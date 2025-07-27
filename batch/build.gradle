@@ -1,0 +1,5 @@
+dependencies {
+    // In the root build.gradle, dependencies for batch module are already defined.
+    // This file can be used for batch-specific dependencies if needed in the future.
+    runtimeOnly 'com.h2database:h2'
+}
