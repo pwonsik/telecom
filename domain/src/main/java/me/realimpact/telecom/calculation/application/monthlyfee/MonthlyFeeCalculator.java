@@ -14,6 +14,7 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.Product;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ProrationPeriod;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ProrationPeriodBuilder;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Suspension;
+import me.realimpact.telecom.calculation.domain.monthlyfee.policy.MonthlyChargingPolicyFactory;
 import me.realimpact.telecom.calculation.port.out.ContractQueryPort;
 import me.realimpact.telecom.calculation.port.out.ProductQueryPort;
 
@@ -23,8 +24,9 @@ public class MonthlyFeeCalculator {
 
     private final ContractQueryPort contractQueryPort;
     private final ProductQueryPort productQueryPort;
+    private final MonthlyChargingPolicyFactory monthlyChargingPolicyFactory;
 
-    public MonthlyFeeCalculationResult calculate(CalculationRequest context) {
+    public List<MonthlyFeeCalculationResult> calculate(CalculationRequest context) {
         // 청구기간
         Period billingPeriod = Period.of(context.billingStartDate(), context.billingEndDate());
 
@@ -43,12 +45,12 @@ public class MonthlyFeeCalculator {
 
         // 계산 결과 생성
         return prorationPeriods.stream()
-                .flatMap(prorationPeriod -> {
-                    MonthlyChargingPolicy policy = policyFactory.getPolicy(prorationPeriod.getMonthlyChargeItem().getCalculationMethod());
-                    return policy.calculate(prorationPeriod).stream();
+                .map(prorationPeriod -> {
+                    MonthlyChargingPolicy policy = monthlyChargingPolicyFactory.getPolicy(
+                        prorationPeriod.getMonthlyChargeItem().getCalculationMethod());
+                    MonthlyFeeCalculationResult policy.calculate(prorationPeriod);
+                    return new MonthlyFeeCalculationResult();
                 })
                 .toList();
-
-        return new MonthlyFeeCalculationResult();
     }
 }

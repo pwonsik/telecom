@@ -1,63 +1,41 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee.policy;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
-import me.realimpact.telecom.calculation.domain.model.BillingFactor;
-import me.realimpact.telecom.calculation.domain.model.Charge;
-import me.realimpact.telecom.calculation.domain.model.VatPolicy;
+import lombok.RequiredArgsConstructor;
+import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargingPolicy;
+import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ProrationPeriod;
 
+/*
+ * 범위 계산 정책
+ *        
+ */
+@RequiredArgsConstructor
 public class RangeFactorPolicy implements MonthlyChargingPolicy {
 
-    private final List<RangeRule> rules;
-
-    public RangeFactorPolicy(List<RangeRule> rules) {
-        this.rules = rules;
-    }
-
-    @Override
-    public List<Charge> calculate(ProrationPeriod calculationPeriod) {
-        return rules.stream()
-            .map(rule -> rule.findMatch(calculationPeriod.billingFactors()))
-            .filter(Objects::nonNull)
-            .map(chargeInfo -> {
-                BigDecimal proratedAmount = calculationPeriod.getProratedAmount(chargeInfo.amountToCharge());
-                return new Charge(
-                    chargeInfo.chargeName(),
-                    proratedAmount,
-                    calculationPeriod.period(),
-                    calculationPeriod.productOffering(),
-                    calculationPeriod.contractStatus()
-                );
-            })
-            .toList();
-    }
-
-    private record ChargeInfo(String chargeName, BigDecimal amountToCharge) {}
-
-    public record RangeRule(String chargeName, String factorName, BigDecimal from, BigDecimal to, BigDecimal amountToCharge) {
-        public ChargeInfo findMatch(Map<String, String> bf) {
-            String factorValueStr = bf.get(factorName);
-            if (factorValueStr == null) {
-                return null;
+    public record RangeRule(String factorName,long from, long to, long amountToCharge, boolean includeUpperValue) {
+        public long findMatch(long billingFactor) {
+            if (billingFactor >= from && (includeUpperValue ? billingFactor <= to : billingFactor < to)) {
+                return this.amountToCharge;
             }
-
-            try {
-                BigDecimal factorValue = new BigDecimal(factorValueStr);
-                if (factorValue.compareTo(from) >= 0 && factorValue.compareTo(to) < 0) {
-                    return new ChargeInfo(chargeName, amountToCharge);
-                }
-            } catch (NumberFormatException e) {
-                // Log error if necessary
-                return null;
-            }
-            return null;
+            return 0L;
         }
     }
+    private final List<RangeRule> rules;
+
+    @Override
+    public Optional<MonthlyFeeCalculationResult> calculate(ProrationPeriod prorationPeriod) {
+        for (RangeRule rule : rules) {
+            Long billingFactor = prorationPeriod.getAdditionalBillingFactor(rule.factorName(), Long.class)
+                .orElseThrow(() -> new IllegalArgumentException("Billing factor not found: " + rule.factorName()));
+            long amountToCharge = rule.findMatch(billingFactor);
+            BigDecimal proratedFee = prorationPeriod.getProratedAmount(BigDecimal.valueOf(amountToCharge));
+            return Optional.of(new MonthlyFeeCalculationResult(prorationPeriod, proratedFee));
+        }
+        return Optional.empty();
+    }
+
 }

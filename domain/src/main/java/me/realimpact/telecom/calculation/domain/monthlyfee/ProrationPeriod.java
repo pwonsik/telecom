@@ -22,7 +22,7 @@ public class ProrationPeriod extends Temporal {
     private final ProductOffering productOffering;
     private final MonthlyChargeItem monthlyChargeItem;
     private final Optional<Suspension> suspension;
-    private final List<AdditionalBillingFactors> billingFactors;
+    private final List<AdditionalBillingFactors> additionalBillingFactors;
 
     public long getUsageDays() {
         return ChronoUnit.DAYS.between(period.getStartDate(), period.getEndDate());
@@ -35,11 +35,11 @@ public class ProrationPeriod extends Temporal {
     public BigDecimal getProratedAmount(BigDecimal amount) {
         return amount
                 .multiply(BigDecimal.valueOf(this.getUsageDays()))
-                .multiply(getRatio())
+                .multiply(calculateSuspensionRatio())
                 .divide(BigDecimal.valueOf(this.getDayOfMonth()), 2, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal getRatio() {
+    private BigDecimal calculateSuspensionRatio() {
         return suspension
             .map(s -> s.getSuspensionType() == SuspensionType.TEMPORARY_SUSPENSION 
                 ? monthlyChargeItem.getSuspensionChargeRatio() 
@@ -55,5 +55,31 @@ public class ProrationPeriod extends Temporal {
     @Override
     public LocalDate getEndDate() {
         return period.getEndDate();
+    }
+
+    /**
+     * 추가 과금 요소 값을 타입에 맞게 반환합니다.
+     * 
+     * @param key   조회할 요소의 키
+     * @param clazz 반환받고자 하는 타입 (예: String.class, Long.class)
+     * @return      해당 타입의 Optional 값
+     */
+    public <T> Optional<T> getAdditionalBillingFactor(String key, Class<T> clazz) {
+        for (AdditionalBillingFactors additionalBillingFactor : additionalBillingFactors) {
+            Optional<String> factor = additionalBillingFactor.getFactor(key);
+            if (factor.isPresent()) {
+                String value = factor.get();
+                try {
+                    if (clazz == String.class) {
+                        return Optional.of(clazz.cast(value));
+                    } else if (clazz == Long.class) {
+                        return Optional.of(clazz.cast(Long.valueOf(value)));
+                    }
+                } catch (Exception e) {
+                    throw e;
+                }
+            }
+        }
+        return Optional.empty();
     }
 }

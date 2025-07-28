@@ -1,5 +1,7 @@
 package me.realimpact.telecom.calculation.application;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -19,7 +21,7 @@ public class CalculationUseCase implements CalculationCommand {
     public CalculationResult calculate(CalculationRequest context) {
         CalculationResult result = new CalculationResult();
         
-        MonthlyFeeCalculationResult monthlyFeeCalculationResult = 
+        List<MonthlyFeeCalculationResult> monthlyFeeCalculationResult = 
             monthlyFeeCalculator.calculate(context);
 
         return result;

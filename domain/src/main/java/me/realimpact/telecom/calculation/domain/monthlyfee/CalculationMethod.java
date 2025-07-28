@@ -1,4 +1,4 @@
-package me.realimpact.telecom.calculation.domain.monthlyfee.policy;
+package me.realimpact.telecom.calculation.domain.monthlyfee;
 
 public enum CalculationMethod {
     FLAT_RATE("00","일반적인 정액 요율"),

@@ -11,12 +11,15 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class AdditionalBillingFactors extends Temporal {
+    /*
+     * key : ContractAmount, LineCount, LineSpeed.
+     * value : 10000, 3, H8, etc.
+     */
     private final Map<String, String> factors;
 
     private final LocalDateTime effectiveStartDateTime;
     private final LocalDateTime effectiveEndDateTime;
 
-    private final LocalDate subscribedAt;
     private final Optional<LocalDate> activatedAt;    
 
     @Override
@@ -30,5 +33,9 @@ public class AdditionalBillingFactors extends Temporal {
     @Override
     public LocalDate getEndDate() {
         return effectiveEndDateTime.toLocalDate();
+    }
+
+    public Optional<String> getFactor(String key) {
+        return Optional.ofNullable(factors.get(key));
     }
 }
