@@ -7,7 +7,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargingPolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
-import me.realimpact.telecom.calculation.domain.monthlyfee.ProrationPeriod;
+import me.realimpact.telecom.calculation.domain.monthlyfee.ProratedPeriod;
 
 /**
  * 전체 값이 속하는 구간의 요금을 모든 값에 적용하는 정책
@@ -20,8 +20,8 @@ public class TierFactorPolicy implements MonthlyChargingPolicy {
     private final List<RangeRule> rules;
 
     @Override
-    public Optional<MonthlyFeeCalculationResult> calculate(ProrationPeriod prorationPeriod) {
-        Optional<Long> valueOpt = prorationPeriod.getAdditionalBillingFactor(factorKey, Long.class);
+    public Optional<MonthlyFeeCalculationResult> calculate(ProratedPeriod proratedPeriod) {
+        Optional<Long> valueOpt = proratedPeriod.getAdditionalBillingFactor(factorKey, Long.class);
         if (valueOpt.isEmpty()) {
             return Optional.empty();
         }
@@ -38,6 +38,6 @@ public class TierFactorPolicy implements MonthlyChargingPolicy {
         BigDecimal totalAmount = applicableRule.get().getAmount()
                 .multiply(BigDecimal.valueOf(value));
 
-        return Optional.of(new MonthlyFeeCalculationResult(prorationPeriod, totalAmount));
+        return Optional.of(new MonthlyFeeCalculationResult(proratedPeriod, totalAmount));
     }
 } 

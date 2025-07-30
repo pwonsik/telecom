@@ -78,7 +78,7 @@ class ProrationPeriodBuilderTest {
             billingPeriod
         );
 
-        ProrationPeriodBuilder builder = new ProrationPeriodBuilder(
+        ProratedPeriodBuilder builder = new ProratedPeriodBuilder(
             contract,
             List.of(product),
             List.of(),
@@ -87,7 +87,7 @@ class ProrationPeriodBuilderTest {
         );
 
         // when
-        List<ProrationPeriod> periods = builder.build();
+        List<ProratedPeriod> periods = builder.build();
 
         // then
         assertThat(periods).hasSize(1);
@@ -127,7 +127,7 @@ class ProrationPeriodBuilderTest {
             billingPeriod
         );
 
-        ProrationPeriodBuilder builder = new ProrationPeriodBuilder(
+        ProratedPeriodBuilder builder = new ProratedPeriodBuilder(
             contract,
             List.of(product),
             List.of(suspension),
@@ -136,7 +136,7 @@ class ProrationPeriodBuilderTest {
         );
 
         // when
-        List<ProrationPeriod> periods = builder.build();
+        List<ProratedPeriod> periods = builder.build();
 
         // then (5/1 ~ 5/9, 5/10 ~ 5/19, 5/20 ~ 5/31)
         assertThat(periods).hasSize(3); // 정지 전, 정지 중, 정지 후
@@ -188,7 +188,7 @@ class ProrationPeriodBuilderTest {
             billingPeriod
         );
 
-        ProrationPeriodBuilder builder = new ProrationPeriodBuilder(
+        ProratedPeriodBuilder builder = new ProratedPeriodBuilder(
             contract,
             List.of(product),
             List.of(),
@@ -197,7 +197,7 @@ class ProrationPeriodBuilderTest {
         );
 
         // when
-        List<ProrationPeriod> periods = builder.build();
+        List<ProratedPeriod> periods = builder.build();
 
         // then (5/1 ~ 5/4. 5/5 ~ 5/24. 5/25 ~ 5/31)
         assertThat(periods).hasSize(3); // 추가요소 전, 추가요소 적용 중, 추가요소 후
@@ -246,7 +246,7 @@ class ProrationPeriodBuilderTest {
             billingPeriod
         );
 
-        ProrationPeriodBuilder builder = new ProrationPeriodBuilder(
+        ProratedPeriodBuilder builder = new ProratedPeriodBuilder(
             contract,
             List.of(product),
             List.of(suspension),
@@ -255,7 +255,7 @@ class ProrationPeriodBuilderTest {
         );
 
         // when
-        List<ProrationPeriod> periods = builder.build();
+        List<ProratedPeriod> periods = builder.build();
 
         // then (5/5 ~ 5/14, 5/15 ~ 5/24, 5/25 ~ 5/31)
         assertThat(periods).hasSize(3);

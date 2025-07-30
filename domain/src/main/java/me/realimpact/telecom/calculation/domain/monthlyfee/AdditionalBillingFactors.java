@@ -17,28 +17,17 @@ public class AdditionalBillingFactors extends Temporal {
      */
     private final Map<String, String> factors;
 
-    private final LocalDateTime effectiveStartDateTime;
-    private final LocalDateTime effectiveEndDateTime;
-
-    private final Optional<LocalDate> activatedAt;    
-
-    private final Temporal billingPeriod;
+    private final LocalDate calculationStartDate;
+    private final LocalDate calculationEndDate; 
 
     @Override
     public LocalDate getCalculationStartDate() {
-        return List.of(
-            effectiveStartDateTime.toLocalDate(), 
-            activatedAt.orElse(LocalDate.MIN),  
-            billingPeriod.getCalculationStartDate()
-        ).stream().max(Comparator.naturalOrder()).orElseThrow();
+        return calculationStartDate;
     }
 
     @Override
     public LocalDate getCalculationEndDate() {
-        return List.of(
-            effectiveEndDateTime.toLocalDate(),
-            billingPeriod.getCalculationEndDate()
-        ).stream().min(Comparator.naturalOrder()).orElseThrow();
+        return calculationEndDate;
     }
 
     public Optional<String> getFactor(String key) {

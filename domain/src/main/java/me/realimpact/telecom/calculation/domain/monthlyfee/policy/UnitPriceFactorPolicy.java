@@ -10,7 +10,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargingPolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
-import me.realimpact.telecom.calculation.domain.monthlyfee.ProrationPeriod;
+import me.realimpact.telecom.calculation.domain.monthlyfee.ProratedPeriod;
 
 /*
  * 단가 * 건수 계산 정책
@@ -21,15 +21,15 @@ public class UnitPriceFactorPolicy implements MonthlyChargingPolicy {
     private final String factorName;
 
     @Override
-    public Optional<MonthlyFeeCalculationResult> calculate(ProrationPeriod prorationPeriod) {
+    public Optional<MonthlyFeeCalculationResult> calculate(ProratedPeriod proratedPeriod) {
         // 건수 조회
-        Long count = prorationPeriod.getAdditionalBillingFactor(factorName, Long.class)
+        Long count = proratedPeriod.getAdditionalBillingFactor(factorName, Long.class)
             .orElseThrow(() -> new IllegalArgumentException("Billing factor not found: " + factorName));
-        BigDecimal unitPrice = prorationPeriod.getMonthlyChargeItem().getChargeItemAmount();
+        BigDecimal unitPrice = proratedPeriod.getMonthlyChargeItem().getChargeItemAmount();
 
         // 단가 * 건수
-        BigDecimal proratedFee = prorationPeriod.getProratedFee(unitPrice).multiply(BigDecimal.valueOf(count));
+        BigDecimal proratedFee = proratedPeriod.getProratedFee(unitPrice).multiply(BigDecimal.valueOf(count));
 
-        return Optional.of(new MonthlyFeeCalculationResult(prorationPeriod, proratedFee));        
+        return Optional.of(new MonthlyFeeCalculationResult(proratedPeriod, proratedFee));        
     }
 }

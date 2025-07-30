@@ -34,4 +34,9 @@ public class Contract extends Temporal {
             billingPeriod.getCalculationEndDate()
         ).stream().min(Comparator.naturalOrder()).orElseThrow();
     }
+
+    public Object getServiceCode() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getServiceCode'");
+    }
 }

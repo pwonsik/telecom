@@ -14,7 +14,7 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.Suspension.Suspension
 @RequiredArgsConstructor
 @Builder
 @Getter
-public class ProrationPeriod extends Temporal {
+public class ProratedPeriod extends Temporal {
     private final Period period;
     private final Contract contract;
     private final Product product;

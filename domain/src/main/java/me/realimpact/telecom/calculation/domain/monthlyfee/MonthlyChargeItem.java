@@ -1,6 +1,7 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -13,4 +14,5 @@ public class MonthlyChargeItem {
     private final BigDecimal chargeItemAmount;
     private final BigDecimal suspensionChargeRatio;
     private final CalculationMethod calculationMethod;
+    private final MonthlyChargingPolicy monthlyChargingPolicy;
 }

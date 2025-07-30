@@ -7,7 +7,7 @@ import java.util.Optional;
 
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargingPolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
-import me.realimpact.telecom.calculation.domain.monthlyfee.ProrationPeriod;
+import me.realimpact.telecom.calculation.domain.monthlyfee.ProratedPeriod;
 
 public class MatchingFactorPolicy implements MonthlyChargingPolicy {
 
@@ -18,7 +18,7 @@ public class MatchingFactorPolicy implements MonthlyChargingPolicy {
     }
 
     @Override
-    public Optional<MonthlyFeeCalculationResult> calculate(ProrationPeriod calculationPeriod) {
+    public Optional<MonthlyFeeCalculationResult> calculate(ProratedPeriod calculationPeriod) {
         // return rules.stream()
         //     .filter(rule -> rule.matches(calculationPeriod.billingFactors()))
         //     .map(rule -> {
