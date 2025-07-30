@@ -24,7 +24,7 @@ public class ProratedPeriod extends Temporal {
     private final List<AdditionalBillingFactors> additionalBillingFactors;
 
     public long getDayOfMonth() {
-        return period.getStartDate().getDayOfMonth();
+        return period.getStartDate().lengthOfMonth();
     }
 
     private BigDecimal calculateSuspensionRatio() {

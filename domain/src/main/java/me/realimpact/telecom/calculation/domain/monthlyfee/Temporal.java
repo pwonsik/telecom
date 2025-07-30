@@ -33,6 +33,6 @@ public abstract class Temporal {
     }
 
     public long getUsageDays() {
-        return ChronoUnit.DAYS.between(getStartDate(), getEndDate());
+        return ChronoUnit.DAYS.between(getStartDate(), getEndDate())+1;
     } 
 }

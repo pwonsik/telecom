@@ -172,7 +172,7 @@ class MonthlyFeeCalculationIntegrationTest {
         assertThat(results).hasSize(1);
         MonthlyFeeCalculationResult result = results.get(0);
         // 3/15 ~ 3/31 (17일) => 30000 * (17/31)
-        assertThat(result.getFee()).isEqualByComparingTo(BigDecimal.valueOf(16451.61));
+        assertThat(result.getFee()).isEqualByComparingTo(BigDecimal.valueOf(16451.61290));
     }
 
     @Test
@@ -226,7 +226,7 @@ class MonthlyFeeCalculationIntegrationTest {
         
         // 3/1 ~ 3/9 (9일)
         assertThat(results.get(0).getFee())
-            .isEqualByComparingTo(BigDecimal.valueOf(3483.87));  // 12000 * (9/31)
+            .isEqualByComparingTo(BigDecimal.valueOf(3483.87097));  // 12000 * (9/31)
         
         // 3/10 ~ 3/20 (11일) - 정지 기간
         assertThat(results.get(1).getFee())
@@ -234,7 +234,7 @@ class MonthlyFeeCalculationIntegrationTest {
         
         // 3/21 ~ 3/31 (11일)
         assertThat(results.get(2).getFee())
-            .isEqualByComparingTo(BigDecimal.valueOf(4258.06));  // 12000 * (11/31)
+            .isEqualByComparingTo(BigDecimal.valueOf(4258.06452));  // 12000 * (11/31)
     }
 
     @Test
@@ -288,11 +288,11 @@ class MonthlyFeeCalculationIntegrationTest {
         
         // 3/1 ~ 3/15 (15일) - 1G
         assertThat(results.get(0).getFee())
-            .isEqualByComparingTo(BigDecimal.valueOf(4838.71));  // 10000 * (15/31)
+            .isEqualByComparingTo(BigDecimal.valueOf(4838.70968));  // 10000 * (15/31)
         
         // 3/16 ~ 3/31 (16일) - 10G
         assertThat(results.get(1).getFee())
-            .isEqualByComparingTo(BigDecimal.valueOf(10322.58));  // 20000 * (16/31)
+            .isEqualByComparingTo(BigDecimal.valueOf(10322.58065));  // 20000 * (16/31)
     }
 
     @Test
@@ -346,15 +346,15 @@ class MonthlyFeeCalculationIntegrationTest {
         
         // 기본료 계산
         assertThat(results.get(0).getFee())
-            .isEqualByComparingTo(BigDecimal.valueOf(10000));
+            .isEqualByComparingTo(BigDecimal.valueOf(10000.00000));
         
         // 3/1 ~ 3/20 (20일) - 5회선
         assertThat(results.get(1).getFee())
-            .isEqualByComparingTo(BigDecimal.valueOf(3225.81));  // 5000 * (20/31)
+            .isEqualByComparingTo(BigDecimal.valueOf(3225.80645));  // 5000 * (20/31)
         
         // 3/21 ~ 3/31 (11일) - 8회선
         assertThat(results.get(2).getFee())
-            .isEqualByComparingTo(BigDecimal.valueOf(2838.71));  // 8000 * (11/31)
+            .isEqualByComparingTo(BigDecimal.valueOf(2838.70968));  // 8000 * (11/31)
     }
 
     private CalculationRequest createCalculationRequest() {
