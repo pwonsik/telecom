@@ -12,7 +12,7 @@ public class FlatRatePolicy implements MonthlyChargingPolicy {
     @Override
     public Optional<MonthlyFeeCalculationResult> calculate(ProrationPeriod prorationPeriod) {
         BigDecimal productOfferingMonthlyFee = prorationPeriod.getMonthlyChargeItem().getChargeItemAmount();
-        BigDecimal proratedFee = prorationPeriod.getProratedAmount(productOfferingMonthlyFee);
+        BigDecimal proratedFee = prorationPeriod.getProratedFee(productOfferingMonthlyFee);
 
         return Optional.of(new MonthlyFeeCalculationResult(prorationPeriod, proratedFee));
     }

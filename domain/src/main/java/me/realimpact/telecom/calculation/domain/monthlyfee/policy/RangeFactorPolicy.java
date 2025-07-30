@@ -15,25 +15,18 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.ProrationPeriod;
  */
 @RequiredArgsConstructor
 public class RangeFactorPolicy implements MonthlyChargingPolicy {
-
-    public static record RangeRule(String factorName,long from, long to, long amountToCharge, boolean includeUpperValue) {
-        public long findMatch(long billingFactor) {
-            if (billingFactor >= from && (includeUpperValue ? billingFactor <= to : billingFactor < to)) {
-                return this.amountToCharge;
-            }
-            return 0L;
-        }
-    }
+    private final String factorKey;
     private final List<RangeRule> rules;
 
     @Override
     public Optional<MonthlyFeeCalculationResult> calculate(ProrationPeriod prorationPeriod) {
         for (RangeRule rule : rules) {
-            Long billingFactor = prorationPeriod.getAdditionalBillingFactor(rule.factorName(), Long.class)
-                .orElseThrow(() -> new IllegalArgumentException("Billing factor not found: " + rule.factorName()));
-            long amountToCharge = rule.findMatch(billingFactor);
-            BigDecimal proratedFee = prorationPeriod.getProratedAmount(BigDecimal.valueOf(amountToCharge));
-            return Optional.of(new MonthlyFeeCalculationResult(prorationPeriod, proratedFee));
+            Long billingFactor = prorationPeriod.getAdditionalBillingFactor(factorKey, Long.class)
+                .orElseThrow(() -> new IllegalArgumentException("Billing factor not found: " + factorKey));
+            if (rule.isInRange(billingFactor)) {
+                BigDecimal proratedFee = prorationPeriod.getProratedFee(rule.getAmount());
+                return Optional.of(new MonthlyFeeCalculationResult(prorationPeriod, proratedFee));
+            }
         }
         return Optional.empty();
     }

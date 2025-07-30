@@ -27,7 +27,7 @@ public class ProrationPeriod extends Temporal {
         return period.getCalculationStartDate().getDayOfMonth();
     }
 
-    public BigDecimal getProratedAmount(BigDecimal amount) {
+    public BigDecimal getProratedFee(BigDecimal amount) {
         return amount
                 .multiply(BigDecimal.valueOf(this.getUsageDays()))
                 .multiply(calculateSuspensionRatio())

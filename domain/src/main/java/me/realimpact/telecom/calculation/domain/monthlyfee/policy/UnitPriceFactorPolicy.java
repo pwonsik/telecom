@@ -28,7 +28,7 @@ public class UnitPriceFactorPolicy implements MonthlyChargingPolicy {
         BigDecimal unitPrice = prorationPeriod.getMonthlyChargeItem().getChargeItemAmount();
 
         // 단가 * 건수
-        BigDecimal proratedFee = prorationPeriod.getProratedAmount(unitPrice).multiply(BigDecimal.valueOf(count));
+        BigDecimal proratedFee = prorationPeriod.getProratedFee(unitPrice).multiply(BigDecimal.valueOf(count));
 
         return Optional.of(new MonthlyFeeCalculationResult(prorationPeriod, proratedFee));        
     }

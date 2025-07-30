@@ -14,7 +14,7 @@ public class ContractAmountPolicy implements MonthlyChargingPolicy {
         BigDecimal contractAmount = BigDecimal.valueOf(
             prorationPeriod.getAdditionalBillingFactor("ContractAmount", Long.class).orElse(0L)
         );
-        BigDecimal proratedFee = prorationPeriod.getProratedAmount(contractAmount);
+        BigDecimal proratedFee = prorationPeriod.getProratedFee(contractAmount);
         return Optional.of(new MonthlyFeeCalculationResult(prorationPeriod, proratedFee));
     }
 }

@@ -1,8 +1,6 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee.policy;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,7 +35,7 @@ public class MatchingFactorPolicy implements MonthlyChargingPolicy {
         return Optional.empty();
     }
 
-    public record MatchingRule(String chargeName, Map<String, String> conditions, BigDecimal amountToCharge) {
+    public static record MatchingRule(String chargeName, Map<String, String> conditions, BigDecimal amountToCharge) {
         public boolean matches(Map<String, String> factors) {
             return conditions.entrySet().stream()
                     .allMatch(entry -> entry.getValue().equals(factors.get(entry.getKey())));
