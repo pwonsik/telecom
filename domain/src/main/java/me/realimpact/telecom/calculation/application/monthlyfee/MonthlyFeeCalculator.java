@@ -1,6 +1,7 @@
 package me.realimpact.telecom.calculation.application.monthlyfee;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
 import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactors;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Contract;
+import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargingPolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Period;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Product;
@@ -46,11 +48,11 @@ public class MonthlyFeeCalculator {
         // 계산 결과 생성
         return prorationPeriods.stream()
                 .map(prorationPeriod -> {
-                    MonthlyChargingPolicy policy = monthlyChargingPolicyFactory.getPolicy(
-                        prorationPeriod.getMonthlyChargeItem().getCalculationMethod());
-                    MonthlyFeeCalculationResult policy.calculate(prorationPeriod);
-                    return new MonthlyFeeCalculationResult();
+                    MonthlyChargingPolicy policy = monthlyChargingPolicyFactory.getPolicy(prorationPeriod.getMonthlyChargeItem().getCalculationMethod());
+                    return policy.calculate(prorationPeriod);
                 })
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .toList();
     }
 }

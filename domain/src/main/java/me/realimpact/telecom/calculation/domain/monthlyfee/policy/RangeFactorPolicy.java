@@ -16,7 +16,7 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.ProrationPeriod;
 @RequiredArgsConstructor
 public class RangeFactorPolicy implements MonthlyChargingPolicy {
 
-    public record RangeRule(String factorName,long from, long to, long amountToCharge, boolean includeUpperValue) {
+    public static record RangeRule(String factorName,long from, long to, long amountToCharge, boolean includeUpperValue) {
         public long findMatch(long billingFactor) {
             if (billingFactor >= from && (includeUpperValue ? billingFactor <= to : billingFactor < to)) {
                 return this.amountToCharge;

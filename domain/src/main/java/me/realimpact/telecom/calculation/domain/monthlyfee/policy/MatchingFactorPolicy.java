@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargingPolicy;
+import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ProrationPeriod;
 
 public class MatchingFactorPolicy implements MonthlyChargingPolicy {
@@ -20,19 +21,20 @@ public class MatchingFactorPolicy implements MonthlyChargingPolicy {
 
     @Override
     public Optional<MonthlyFeeCalculationResult> calculate(ProrationPeriod calculationPeriod) {
-        return rules.stream()
-            .filter(rule -> rule.matches(calculationPeriod.billingFactors()))
-            .map(rule -> {
-                BigDecimal proratedAmount = calculationPeriod.getProratedAmount(rule.amountToCharge());
-                return new Charge(
-                        rule.chargeName(),
-                        proratedAmount,
-                        calculationPeriod.period(),
-                        calculationPeriod.productOffering(),
-                        calculationPeriod.contractStatus()
-                );
-            })
-            .toList();
+        // return rules.stream()
+        //     .filter(rule -> rule.matches(calculationPeriod.billingFactors()))
+        //     .map(rule -> {
+        //         BigDecimal proratedAmount = calculationPeriod.getProratedAmount(rule.amountToCharge());
+        //         return new Charge(
+        //                 rule.chargeName(),
+        //                 proratedAmount,
+        //                 calculationPeriod.period(),
+        //                 calculationPeriod.productOffering(),
+        //                 calculationPeriod.contractStatus()
+        //         );
+        //     })
+        //     .toList();
+        return Optional.empty();
     }
 
     public record MatchingRule(String chargeName, Map<String, String> conditions, BigDecimal amountToCharge) {

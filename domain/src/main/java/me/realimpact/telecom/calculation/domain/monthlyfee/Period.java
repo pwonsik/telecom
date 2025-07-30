@@ -16,12 +16,12 @@ public class Period extends Temporal {
     }
 
     @Override
-    public LocalDate getStartDate() {
+    public LocalDate getCalculationStartDate() {
         return startDate;
     }
 
     @Override
-    public LocalDate getEndDate() {
+    public LocalDate getCalculationEndDate() {
         return endDate;
     }
 }

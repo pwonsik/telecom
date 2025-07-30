@@ -3,7 +3,6 @@ package me.realimpact.telecom.calculation.domain.monthlyfee;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,12 +23,8 @@ public class ProrationPeriod extends Temporal {
     private final Optional<Suspension> suspension;
     private final List<AdditionalBillingFactors> additionalBillingFactors;
 
-    public long getUsageDays() {
-        return ChronoUnit.DAYS.between(period.getStartDate(), period.getEndDate());
-    }        
-
     public long getDayOfMonth() {
-        return period.getStartDate().getDayOfMonth();
+        return period.getCalculationStartDate().getDayOfMonth();
     }
 
     public BigDecimal getProratedAmount(BigDecimal amount) {
@@ -48,13 +43,13 @@ public class ProrationPeriod extends Temporal {
     }
 
     @Override
-    public LocalDate getStartDate() {
-        return period.getStartDate();
+    public LocalDate getCalculationStartDate() {
+        return period.getCalculationStartDate();
     }
 
     @Override
-    public LocalDate getEndDate() {
-        return period.getEndDate();
+    public LocalDate getCalculationEndDate() {
+        return period.getCalculationEndDate();
     }
 
     /**

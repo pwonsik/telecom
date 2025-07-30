@@ -9,5 +9,5 @@ import lombok.RequiredArgsConstructor;
 @Getter
 public class MonthlyFeeCalculationResult {
     private final ProrationPeriod prorationPeriod;
-    private final BigDecimal amount;
+    private final BigDecimal fee;
 }

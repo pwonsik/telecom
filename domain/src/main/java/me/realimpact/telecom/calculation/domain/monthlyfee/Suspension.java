@@ -2,6 +2,8 @@ package me.realimpact.telecom.calculation.domain.monthlyfee;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 
@@ -12,14 +14,22 @@ public class Suspension extends Temporal {
     private final LocalDateTime effectiveEndDateTime;
     private final SuspensionType suspensionType;
 
+    private final Temporal billingPeriod;
+
     @Override
-    public LocalDate getStartDate() {
-        return effectiveStartDateTime.toLocalDate();
+    public LocalDate getCalculationStartDate() {
+        return List.of(
+            effectiveStartDateTime.toLocalDate(),
+            billingPeriod.getCalculationStartDate()
+        ).stream().max(Comparator.naturalOrder()).orElseThrow();
     }
 
     @Override
-    public LocalDate getEndDate() {
-        return effectiveEndDateTime.toLocalDate();
+    public LocalDate getCalculationEndDate() {
+        return List.of(
+            effectiveEndDateTime.toLocalDate(),
+            billingPeriod.getCalculationEndDate()
+        ).stream().min(Comparator.naturalOrder()).orElseThrow();
     }
 
     public SuspensionType getSuspensionType() {

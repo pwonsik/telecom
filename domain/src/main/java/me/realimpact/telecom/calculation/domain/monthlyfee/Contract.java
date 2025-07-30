@@ -14,17 +14,24 @@ public class Contract extends Temporal {
     private final LocalDate subscribedAt;
     private final LocalDate initiallySubscribedAt;
     private final Optional<LocalDate> terminatedAt;
+    private final Optional<LocalDate> prefferedTerminationDate;
+    private final Temporal billingPeriod;
 
     @Override
-    public LocalDate getStartDate() {
+    public LocalDate getCalculationStartDate() {
         return List.of(
             subscribedAt, 
-            initiallySubscribedAt
+            initiallySubscribedAt,
+            billingPeriod.getCalculationStartDate()
         ).stream().max(Comparator.naturalOrder()).orElseThrow();
     }
 
     @Override
-    public LocalDate getEndDate() {
-        return terminatedAt.orElse(LocalDate.MAX);
+    public LocalDate getCalculationEndDate() {
+        return List.of(
+            terminatedAt.orElse(LocalDate.MAX),
+            prefferedTerminationDate.orElse(LocalDate.MAX),
+            billingPeriod.getCalculationEndDate()
+        ).stream().min(Comparator.naturalOrder()).orElseThrow();
     }
 }
