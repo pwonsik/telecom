@@ -17,8 +17,6 @@ public class ExclusiveLineContractHistory implements ProvidesAdditionalBillingDe
     private final LocalDateTime effectiveStartDateTime;
     private final LocalDateTime effectiveEndDateTime;
 
-    private final Temporal billingPeriod;
-
     // 예시를 위함
     private final String lineSpeedCode;
     private final String lineOfferTypeCode;
@@ -26,15 +24,13 @@ public class ExclusiveLineContractHistory implements ProvidesAdditionalBillingDe
     private LocalDate getCalculationStartDate() {
         return List.of(
             effectiveStartDateTime.toLocalDate(), 
-            activatedAt,
-            billingPeriod.getCalculationStartDate()
+            activatedAt
         ).stream().max(Comparator.naturalOrder()).orElseThrow();
     }
 
     private LocalDate getCalculationEndDate() {
         return List.of(
-            effectiveEndDateTime.toLocalDate(), 
-            billingPeriod.getCalculationEndDate()
+            effectiveEndDateTime.toLocalDate()
         ).stream().min(Comparator.naturalOrder()).orElseThrow();
     }
 

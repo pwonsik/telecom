@@ -24,24 +24,20 @@ public class Product extends Temporal {
     private final Optional<LocalDate> activatedAt;
     private final Optional<LocalDate> terminatedAt;
 
-    private final Temporal billingPeriod;
-
     @Override
-    public LocalDate getCalculationStartDate() {
+    public LocalDate getStartDate() {
         return List.of(
             effectiveStartDateTime.toLocalDate(), 
             subscribedAt, 
-            activatedAt.orElse(LocalDate.MIN),
-            billingPeriod.getCalculationStartDate()
+            activatedAt.orElse(LocalDate.MIN)
         ).stream().max(Comparator.naturalOrder()).orElseThrow();
     }
 
     @Override
-    public LocalDate getCalculationEndDate() {
+    public LocalDate getEndDate() {
         return List.of(
             effectiveEndDateTime.toLocalDate(), 
-            terminatedAt.orElse(LocalDate.MAX),
-            billingPeriod.getCalculationEndDate()
+            terminatedAt.orElse(LocalDate.MAX)
         ).stream().min(Comparator.naturalOrder()).orElseThrow();
     }
 

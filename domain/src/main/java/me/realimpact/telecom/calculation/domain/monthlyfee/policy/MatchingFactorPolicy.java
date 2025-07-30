@@ -5,11 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargingPolicy;
+import me.realimpact.telecom.calculation.domain.monthlyfee.Pricing;
+import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactors;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ProratedPeriod;
 
-public class MatchingFactorPolicy implements MonthlyChargingPolicy {
+public class MatchingFactorPolicy implements Pricing {
 
     private final List<MatchingRule> rules;
 
@@ -18,7 +19,7 @@ public class MatchingFactorPolicy implements MonthlyChargingPolicy {
     }
 
     @Override
-    public Optional<MonthlyFeeCalculationResult> calculate(ProratedPeriod calculationPeriod) {
+    public BigDecimal getPrice(List<AdditionalBillingFactors> additionalBillingFactors) {
         // return rules.stream()
         //     .filter(rule -> rule.matches(calculationPeriod.billingFactors()))
         //     .map(rule -> {
@@ -32,7 +33,7 @@ public class MatchingFactorPolicy implements MonthlyChargingPolicy {
         //         );
         //     })
         //     .toList();
-        return Optional.empty();
+        return BigDecimal.ZERO;
     }
 
     public static record MatchingRule(String chargeName, Map<String, String> conditions, BigDecimal amountToCharge) {

@@ -5,7 +5,8 @@ import java.util.List;
 import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
-import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargingPolicy;
+import me.realimpact.telecom.calculation.domain.monthlyfee.Pricing;
+import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactors;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ProratedPeriod;
 
@@ -15,29 +16,25 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.ProratedPeriod;
  * 15회선인 경우: 15회선 * 600원 = 9000원
  */
 @RequiredArgsConstructor
-public class TierFactorPolicy implements MonthlyChargingPolicy {
+public class TierFactorPolicy implements Pricing {
     private final String factorKey;
     private final List<RangeRule> rules;
 
     @Override
-    public Optional<MonthlyFeeCalculationResult> calculate(ProratedPeriod proratedPeriod) {
-        Optional<Long> valueOpt = proratedPeriod.getAdditionalBillingFactor(factorKey, Long.class);
-        if (valueOpt.isEmpty()) {
-            return Optional.empty();
-        }
+    public BigDecimal getPrice(List<AdditionalBillingFactors> additionalBillingFactors) {
+        Long billingFactor = additionalBillingFactors.stream()
+            .map(factor -> factor.getFactorValue(factorKey, Long.class))
+            .filter(Optional::isPresent)
+            .map(opt -> opt.orElse(0L))
+            .findFirst()
+            .orElse(0L);
 
-        long value = valueOpt.get();
-        Optional<RangeRule> applicableRule = rules.stream()
-                .filter(rule -> rule.isInRange(value))
-                .findFirst();
+        BigDecimal price = rules.stream()
+                .filter(rule -> rule.isInRange(billingFactor))
+                .findFirst()
+                .map(RangeRule::getFee)
+                .orElse(BigDecimal.ZERO);
 
-        if (applicableRule.isEmpty()) {
-            return Optional.empty();
-        }
-
-        BigDecimal totalAmount = applicableRule.get().getAmount()
-                .multiply(BigDecimal.valueOf(value));
-
-        return Optional.of(new MonthlyFeeCalculationResult(proratedPeriod, totalAmount));
+        return price.multiply(BigDecimal.valueOf(billingFactor));
     }
 } 

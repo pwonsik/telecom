@@ -1,8 +1,8 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee.policy;
 
 import me.realimpact.telecom.calculation.domain.monthlyfee.CalculationMethod;
-import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargingPolicy;
+import me.realimpact.telecom.calculation.domain.monthlyfee.Pricing;
 
 public interface MonthlyChargingPolicyFactory {
-    MonthlyChargingPolicy getPolicy(CalculationMethod calculationMethod);
+    Pricing getPolicy(CalculationMethod calculationMethod);
 }

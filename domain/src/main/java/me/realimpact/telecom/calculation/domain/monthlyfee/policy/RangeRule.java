@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 public class RangeRule {
     private final long from;
     private final long to;
-    private final BigDecimal amount;
+    private final BigDecimal fee;
 
     public boolean isInRange(long value) {
         return value >= from && value <= to;

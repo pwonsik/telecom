@@ -9,12 +9,12 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import me.realimpact.telecom.calculation.domain.monthlyfee.CalculationMethod;
-import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargingPolicy;
+import me.realimpact.telecom.calculation.domain.monthlyfee.Pricing;
 
 @Component
 public class DefaultMonthlyChargingPolicyFactory implements MonthlyChargingPolicyFactory {
 
-    private final Map<CalculationMethod, MonthlyChargingPolicy> policies;
+    private final Map<CalculationMethod, Pricing> policies;
 
     public DefaultMonthlyChargingPolicyFactory() {
         this.policies = new HashMap<>();
@@ -43,7 +43,7 @@ public class DefaultMonthlyChargingPolicyFactory implements MonthlyChargingPolic
     }
 
     @Override
-    public MonthlyChargingPolicy getPolicy(CalculationMethod calculationMethod) {
+    public Pricing getPolicy(CalculationMethod calculationMethod) {
         return policies.get(calculationMethod);
     }
 }

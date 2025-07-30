@@ -5,9 +5,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
+@Getter
 public class Contract extends Temporal {
     private final Long contractId;
     
@@ -15,23 +17,21 @@ public class Contract extends Temporal {
     private final LocalDate initiallySubscribedAt;
     private final Optional<LocalDate> terminatedAt;
     private final Optional<LocalDate> prefferedTerminationDate;
-    private final Temporal billingPeriod;
+
 
     @Override
-    public LocalDate getCalculationStartDate() {
+    public LocalDate getStartDate() {
         return List.of(
             subscribedAt, 
-            initiallySubscribedAt,
-            billingPeriod.getCalculationStartDate()
+            initiallySubscribedAt
         ).stream().max(Comparator.naturalOrder()).orElseThrow();
     }
 
     @Override
-    public LocalDate getCalculationEndDate() {
+    public LocalDate getEndDate() {
         return List.of(
             terminatedAt.orElse(LocalDate.MAX),
-            prefferedTerminationDate.orElse(LocalDate.MAX),
-            billingPeriod.getCalculationEndDate()
+            prefferedTerminationDate.orElse(LocalDate.MAX)
         ).stream().min(Comparator.naturalOrder()).orElseThrow();
     }
 

@@ -1,9 +1,6 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -17,20 +14,39 @@ public class AdditionalBillingFactors extends Temporal {
      */
     private final Map<String, String> factors;
 
-    private final LocalDate calculationStartDate;
-    private final LocalDate calculationEndDate; 
+    private final LocalDate effectiveStartDate;
+    private final LocalDate effectiveEndDate; 
 
     @Override
-    public LocalDate getCalculationStartDate() {
-        return calculationStartDate;
+    public LocalDate getStartDate() {
+        return effectiveStartDate;
     }
 
     @Override
-    public LocalDate getCalculationEndDate() {
-        return calculationEndDate;
+    public LocalDate getEndDate() {
+        return effectiveEndDate;
     }
 
-    public Optional<String> getFactor(String key) {
-        return Optional.ofNullable(factors.get(key));
+    /**
+     * 추가 과금 요소 값을 타입에 맞게 반환합니다.
+     * 
+     * @param key   조회할 요소의 키
+     * @param clazz 반환받고자 하는 타입 (예: String.class, Long.class)
+     * @return      해당 타입의 Optional 값
+     */
+    public <T> Optional<T> getFactorValue(String key, Class<T> clazz) {
+        if (factors.containsKey(key)) {
+            String factorValue = factors.get(key);
+            try {
+                if (clazz == String.class) {
+                    return Optional.of(clazz.cast(factorValue));
+                } else if (clazz == Long.class) {
+                    return Optional.of(clazz.cast(Long.valueOf(factorValue)));
+                }
+            } catch (Exception e) {
+                throw e;
+            }            
+        } 
+        return Optional.empty();
     }
 }

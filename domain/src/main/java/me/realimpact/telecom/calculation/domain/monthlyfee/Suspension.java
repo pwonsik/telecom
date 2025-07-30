@@ -14,22 +14,14 @@ public class Suspension extends Temporal {
     private final LocalDateTime effectiveEndDateTime;
     private final SuspensionType suspensionType;
 
-    private final Temporal billingPeriod;
-
     @Override
-    public LocalDate getCalculationStartDate() {
-        return List.of(
-            effectiveStartDateTime.toLocalDate(),
-            billingPeriod.getCalculationStartDate()
-        ).stream().max(Comparator.naturalOrder()).orElseThrow();
+    public LocalDate getStartDate() {
+        return effectiveStartDateTime.toLocalDate();
     }
 
     @Override
-    public LocalDate getCalculationEndDate() {
-        return List.of(
-            effectiveEndDateTime.toLocalDate(),
-            billingPeriod.getCalculationEndDate()
-        ).stream().min(Comparator.naturalOrder()).orElseThrow();
+    public LocalDate getEndDate() {
+        return effectiveEndDateTime.toLocalDate();
     }
 
     public SuspensionType getSuspensionType() {

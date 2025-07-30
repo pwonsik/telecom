@@ -1,20 +1,22 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee.policy;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
-import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargingPolicy;
-import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
-import me.realimpact.telecom.calculation.domain.monthlyfee.ProratedPeriod;
+import me.realimpact.telecom.calculation.domain.monthlyfee.Pricing;
+import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactors;
+
 
 /* 추가과금요소의 계약금액을 가져와서 일할계산합니다. */
-public class ContractAmountPolicy implements MonthlyChargingPolicy {
+public class ContractAmountPolicy implements Pricing {
     @Override
-    public Optional<MonthlyFeeCalculationResult> calculate(ProratedPeriod proratedPeriod) {
-        BigDecimal contractAmount = BigDecimal.valueOf(
-            proratedPeriod.getAdditionalBillingFactor("ContractAmount", Long.class).orElse(0L)
-        );
-        BigDecimal proratedFee = proratedPeriod.getProratedFee(contractAmount);
-        return Optional.of(new MonthlyFeeCalculationResult(proratedPeriod, proratedFee));
+    public BigDecimal getPrice(List<AdditionalBillingFactors> additionalBillingFactors) {
+        return additionalBillingFactors.stream()
+            .map(factor -> factor.getFactorValue("ContractAmount", Long.class))
+            .filter(Optional::isPresent)
+            .map(opt -> BigDecimal.valueOf(opt.orElse(0L)))
+            .findFirst()
+            .orElse(BigDecimal.ZERO);
     }
 }
