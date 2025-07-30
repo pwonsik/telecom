@@ -23,7 +23,6 @@ public class ProratedPeriodBuilder {
     private final DefaultPeriod billingPeriod;
 
     public List<ProratedPeriod> build() {
-        Stream<LocalDate> billingPeriodDates = Stream.of(billingPeriod.getStartDate(), billingPeriod.getEndDate());
         Stream<LocalDate> contractDates = Stream.of(contract.getEffectiveCalculationStartDate(billingPeriod), contract.getEffectiveCalculationEndDate(billingPeriod));
         Stream<LocalDate> productsDates = products.stream().flatMap(s -> Stream.of(s.getEffectiveCalculationStartDate(billingPeriod), s.getEffectiveCalculationEndDate(billingPeriod)));
         Stream<LocalDate> suspensionDates = suspensions.stream().flatMap(s -> Stream.of(s.getEffectiveCalculationStartDate(billingPeriod), s.getEffectiveCalculationEndDate(billingPeriod)));

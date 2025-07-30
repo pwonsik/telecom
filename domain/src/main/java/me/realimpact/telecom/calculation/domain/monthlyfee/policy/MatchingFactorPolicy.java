@@ -3,12 +3,8 @@ package me.realimpact.telecom.calculation.domain.monthlyfee.policy;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-
 import me.realimpact.telecom.calculation.domain.monthlyfee.Pricing;
 import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactors;
-import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
-import me.realimpact.telecom.calculation.domain.monthlyfee.ProratedPeriod;
 
 public class MatchingFactorPolicy implements Pricing {
 

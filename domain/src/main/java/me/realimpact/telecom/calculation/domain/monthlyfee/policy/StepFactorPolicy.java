@@ -7,8 +7,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Pricing;
 import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactors;
-import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
-import me.realimpact.telecom.calculation.domain.monthlyfee.ProratedPeriod;
+
 
 /**
  * 구간별로 다른 요금을 적용하고, 각 구간의 합을 계산하는 정책
