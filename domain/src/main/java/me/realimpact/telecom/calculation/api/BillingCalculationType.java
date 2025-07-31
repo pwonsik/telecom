@@ -16,4 +16,8 @@ public enum BillingCalculationType {
         this.code = code;
         this.description = description;
     }
+
+    public boolean includeBillingEndDate() {
+        return this == REVENUE_CONFIRMATION || this == REVENUE_ESTIMATION || this == FUTURE_CHARGE_INQUIRY;
+    }
 }

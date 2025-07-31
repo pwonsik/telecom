@@ -28,8 +28,8 @@ public abstract class Temporal {
      * 중첩되면 true, 아니면 false를 반환합니다.
      */
     public boolean overlapsWith(Temporal temporal) {
-        return !this.getEndDate().isBefore(temporal.getStartDate()) 
-            && !this.getStartDate().isAfter(temporal.getEndDate());
+        return this.getEndDate().isAfter(temporal.getStartDate()) 
+            && this.getStartDate().isBefore(temporal.getEndDate());
     }
 
     public long getUsageDays() {

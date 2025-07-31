@@ -23,10 +23,17 @@ public class ProratedPeriodBuilder {
     private final DefaultPeriod billingPeriod;
 
     public List<ProratedPeriod> build() {
-        Stream<LocalDate> contractDates = Stream.of(contract.getEffectiveCalculationStartDate(billingPeriod), contract.getEffectiveCalculationEndDate(billingPeriod));
-        Stream<LocalDate> productsDates = products.stream().flatMap(s -> Stream.of(s.getEffectiveCalculationStartDate(billingPeriod), s.getEffectiveCalculationEndDate(billingPeriod)));
-        Stream<LocalDate> suspensionDates = suspensions.stream().flatMap(s -> Stream.of(s.getEffectiveCalculationStartDate(billingPeriod), s.getEffectiveCalculationEndDate(billingPeriod)));
-        Stream<LocalDate> billingFactorDates = additionalBillingFactors.stream().flatMap(bf -> Stream.of(bf.getEffectiveCalculationStartDate(billingPeriod), bf.getEffectiveCalculationEndDate(billingPeriod)));
+        Stream<LocalDate> contractDates = 
+            Stream.of(contract.getEffectiveCalculationStartDate(billingPeriod), contract.getEffectiveCalculationEndDate(billingPeriod));
+        Stream<LocalDate> productsDates = 
+            products.stream()
+                .flatMap(s -> Stream.of(s.getEffectiveCalculationStartDate(billingPeriod), s.getEffectiveCalculationEndDate(billingPeriod)));
+        Stream<LocalDate> suspensionDates = 
+            suspensions.stream()
+                .flatMap(s -> Stream.of(s.getEffectiveCalculationStartDate(billingPeriod), s.getEffectiveCalculationEndDate(billingPeriod)));
+        Stream<LocalDate> billingFactorDates = 
+            additionalBillingFactors.stream()
+                .flatMap(bf -> Stream.of(bf.getEffectiveCalculationStartDate(billingPeriod), bf.getEffectiveCalculationEndDate(billingPeriod)));
 
         List<LocalDate> datePoints = Stream.of(contractDates, productsDates, suspensionDates, billingFactorDates)
                 .flatMap(datePoint -> datePoint)
