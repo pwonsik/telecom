@@ -21,6 +21,7 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeFactorPolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeRule;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.StepFactorPolicy;
+import me.realimpact.telecom.calculation.domain.monthlyfee.policy.TierFactorPolicy;
 import me.realimpact.telecom.calculation.port.out.ContractQueryPort;
 import me.realimpact.telecom.calculation.port.out.ProductQueryPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -114,6 +115,24 @@ class MonthlyFeeCalculationIntegrationTest {
                 new StepFactorPolicy("line_count", List.of(
                     new RangeRule(1, 5, BigDecimal.valueOf(5000)),
                     new RangeRule(6, 10, BigDecimal.valueOf(8000))
+                ))
+            )
+        )
+    );
+
+    private static final ProductOffering TIER_RATE_OFFERING = new ProductOffering(
+        "TIER-001",
+        "구간별 누진 요금제 상품",
+        List.of(
+            new MonthlyChargeItem(
+                "TIER-001-01",
+                "데이터 사용량 기반 요금",
+                BigDecimal.ZERO,
+                CalculationMethod.TIER_FACTOR,
+                new TierFactorPolicy("data_usage", List.of(
+                    new RangeRule(0, 5, BigDecimal.valueOf(5000)),  // 0~5GB: 5,000원/GB
+                    new RangeRule(6, 10, BigDecimal.valueOf(8000)), // 6~10GB: 8,000원/GB
+                    new RangeRule(11, 99999999, BigDecimal.valueOf(10000)) // 11GB 이상: 10,000원/GB
                 ))
             )
         )
@@ -355,6 +374,64 @@ class MonthlyFeeCalculationIntegrationTest {
         // 3/21 ~ 3/31 (11일) - 8회선
         assertThat(results.get(3).getFee().setScale(0, RoundingMode.FLOOR))
             .isEqualByComparingTo(BigDecimal.valueOf((long)((5000 * 5 + 8000 * 3)* (11.0/31))));
+    }
+
+    @Test
+    @DisplayName("데이터 사용량 기반 구간별 누진 요금제 상품의 사용량 변경 시나리오")
+    void calculate_TierRate_WithDataUsageChange() {
+        // given
+        LocalDate subscriptionDate = BILLING_START_DATE;
+        Contract contract = new Contract(
+            CONTRACT_ID,
+            subscriptionDate,
+            subscriptionDate,
+            Optional.empty(),
+            Optional.empty()
+        );
+
+        // 3/1 ~ 3/15: 8GB 사용
+        Map<String, String> factors1 = new HashMap<>();
+        factors1.put("data_usage", "8");
+        AdditionalBillingFactors billingFactors1 = new AdditionalBillingFactors(
+            factors1, BILLING_START_DATE, LocalDate.of(2024, 3, 16));
+
+        // 3/16 ~ 3/31: 15GB 사용
+        Map<String, String> factors2 = new HashMap<>();
+        factors2.put("data_usage", "15");
+        AdditionalBillingFactors billingFactors2 = new AdditionalBillingFactors(
+            factors2, LocalDate.of(2024, 3, 16), MAX_END_DATE);
+
+        Product product = new Product(
+            CONTRACT_ID,
+            TIER_RATE_OFFERING,
+            LocalDateTime.of(2024, 3, 1, 0, 0),
+            LocalDateTime.of(9999, 12, 31, 23, 59),
+            subscriptionDate,
+            Optional.of(subscriptionDate),
+            Optional.empty()
+        );
+
+        when(contractQueryPort.findByContractId(CONTRACT_ID)).thenReturn(contract);
+        when(contractQueryPort.findSuspensionHistory(any())).thenReturn(List.of());
+        when(additionalBillingFactorFactory.create(any()))
+            .thenReturn(List.of(billingFactors1, billingFactors2));
+        when(productQueryPort.findByContractId(any())).thenReturn(List.of(product));
+
+        CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
+
+        // when
+        List<MonthlyFeeCalculationResult> results = calculator.calculate(request);
+
+        // then
+        assertThat(results).hasSize(2);
+        
+        // 3/1 ~ 3/15 (15일) - 8GB 사용
+        assertThat(results.get(0).getFee().setScale(0, RoundingMode.FLOOR))
+            .isEqualByComparingTo(BigDecimal.valueOf((long)((8 * 8000) * (15.0/31))));  
+        
+        // 3/16 ~ 3/31 (16일) - 15GB 사용
+        assertThat(results.get(1).getFee().setScale(0, RoundingMode.FLOOR))
+            .isEqualByComparingTo(BigDecimal.valueOf((long)((15 * 10000) * (16.0/31))));
     }
 
     private CalculationRequest createCalculationRequest(BillingCalculationType billingCalculationType, BillingCalculationPeriod billingCalculationPeriod) {
