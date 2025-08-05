@@ -49,3 +49,43 @@
 ## 7.2. 요금항목 별로 과세 정책 다름 (과세, 면세, 영세, 비과세)
 ## 7.3. 부가세율은 custom 가능
 
+-----------------------
+
+데이터를 조회하기 위해 mybatis를 사용할거야. 아래 순서대로 작업해줘.
+# build.gradle에 관련 의존성을 추가해줘.
+# domain submodule의 application.yml에 mybatis용 설정을 추가해줘.
+# domain의 infrastructure, adapter 패키지를 만들어줘
+# mybatis mapper xml에 findContractWithProductsChargeItemsAndSuspensions를 추가해줘.
+## 입력
+- contractId, billingStartDate, billingEndDate를 sql의 입력으로 받을거야.
+
+## 출력
+- Contract 하위에 product의 list와, suspension의 list를 보유
+- product하위에는 MonthlyChargeItem의 list를 보유.
+
+## join 조건
+- contract의 contractId와 product의 contractId (inner join)
+- product의 productOfferingId와 productoffering의 productOfferingId (inner join)
+- contract의 contractId와 suspension의 contractId (outer join)
+
+## filter 조건
+- effectiveStartDateTime의 날짜부분 < effectiveEndDateTime의 날짜부분
+- 모든 시작일스러운 값들은 <= billingEndDate의 23시59분59초 조건을, 모든 종료일스러운 값들은 > billingStartDate의 23시59분59초 조건을 넣어줘.
+  시작일스러운 값들이 null이면 19000101로 치환, 종료일스러운 값들이 null이면 99991231로 치환해줘.
+
+## 테이블 레이아웃
+- 테이블 레이아웃은 domain안의 contract, product, suspension, productOffering, MonthlyChargeItem을 참고해줘.  
+
+위 테이블 조회 결과를 담는 dto는 infrastructure 계층에 위치해야 해.
+이 다음 step으로 infrastructure의 dto를 domain 객체로 변환 로직을 만들거야. 일단 여기까지 해보자.
+
+---------------
+
+# mybatis sql xml을 만드는 부분에 key값 관련 오류가 있네. 아래 내용을 보완해줘.
+1. contract의 key : contractId
+2. product의 key : contractId, productOfferingId, effectiveStartDateTime, effectiveEndDateTime
+3. suspension의 key : contractId, suspensionType, effectiveStartDateTime, effectiveEndDateTime
+4. ProductOffering의 key : productId, chargeItemId
+
+이 sql을 스프링배치에서 mybatispagingitemreader에서 쓸거니까 paging, 정렬조건을 잘 작성해줘.
+
