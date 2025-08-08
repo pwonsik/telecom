@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: telecom-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: telecom123!
+      MYSQL_DATABASE: telecom_billing
+      MYSQL_USER: telecom_user
+      MYSQL_PASSWORD: telecom_pass
+      TZ: Asia/Seoul
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./ddl:/docker-entrypoint-initdb.d
+      - ./mysql/conf.d:/etc/mysql/conf.d
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-time-zone='+09:00'
+    networks:
+      - telecom-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: telecom-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis/redis.conf:/etc/redis/redis.conf
+    command: redis-server /etc/redis/redis.conf
+    networks:
+      - telecom-network
+
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  telecom-network:
+    driver: bridge

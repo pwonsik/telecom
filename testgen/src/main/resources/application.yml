@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: testgen
+    
+  datasource:
+    url: jdbc:mysql://localhost:3306/telecom_billing?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: root
+    password: password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: me.realimpact.telecom.testgen.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    use-column-label: true
+    cache-enabled: false
+    default-fetch-size: 1000
+    default-statement-timeout: 60
+
+logging:
+  level:
+    me.realimpact.telecom.testgen: INFO
+    org.springframework.jdbc: WARN
+    com.zaxxer.hikari: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="me.realimpact.telecom.testgen.mapper.TestDataMapper">
+
+    <!-- Contract Batch Insert -->
+    <insert id="insertContracts" parameterType="java.util.List">
+        INSERT INTO contract (
+            contract_id, 
+            subscribed_at, 
+            initially_subscribed_at, 
+            terminated_at, 
+            preffered_termination_date
+        ) VALUES
+        <foreach collection="list" item="contract" separator=",">
+            (
+                #{contract.contractId},
+                #{contract.subscribedAt},
+                #{contract.initiallySubscribedAt},
+                #{contract.terminatedAt},
+                #{contract.prefferedTerminationDate}
+            )
+        </foreach>
+    </insert>
+
+    <!-- Product Batch Insert -->
+    <insert id="insertProducts" parameterType="java.util.List">
+        INSERT INTO product (
+            contract_id,
+            product_offering_id,
+            effective_start_date_time,
+            effective_end_date_time,
+            subscribed_at,
+            activated_at,
+            terminated_at
+        ) VALUES
+        <foreach collection="list" item="product" separator=",">
+            (
+                #{product.contractId},
+                #{product.productOfferingId},
+                #{product.effectiveStartDateTime},
+                #{product.effectiveEndDateTime},
+                #{product.subscribedAt},
+                #{product.activatedAt},
+                #{product.terminatedAt}
+            )
+        </foreach>
+    </insert>
+
+    <!-- Suspension Batch Insert -->
+    <insert id="insertSuspensions" parameterType="java.util.List">
+        <if test="list != null and list.size() > 0">
+            INSERT INTO suspension (
+                contract_id,
+                suspension_type_code,
+                effective_start_date_time,
+                effective_end_date_time,
+                suspension_type_description
+            ) VALUES
+            <foreach collection="list" item="suspension" separator=",">
+                (
+                    #{suspension.contractId},
+                    #{suspension.suspensionTypeCode},
+                    #{suspension.effectiveStartDateTime},
+                    #{suspension.effectiveEndDateTime},
+                    #{suspension.suspensionTypeDescription}
+                )
+            </foreach>
+        </if>
+    </insert>
+
+    <!-- Product Offering IDs 조회 -->
+    <select id="selectProductOfferingIds" resultType="String">
+        SELECT product_offering_id 
+        FROM product_offering 
+        ORDER BY product_offering_id
+    </select>
+
+</mapper>

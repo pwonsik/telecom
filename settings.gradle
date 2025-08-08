@@ -1,3 +1,3 @@
 
 rootProject.name = 'telecom-billing'
-include 'domain', 'web-service', 'batch'
+include 'domain', 'web-service', 'batch', 'testgen'

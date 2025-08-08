@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.4'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    implementation('com.github.javafaker:javafaker:1.0.2') {
+        exclude group: 'org.yaml', module: 'snakeyaml'
+    }
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}
+
+jar {
+    enabled = false
+}
+
+bootJar {
+    enabled = true
+    archiveClassifier = ''
+    mainClass = 'me.realimpact.telecom.testgen.TestGenApplication'
+}
