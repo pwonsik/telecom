@@ -20,11 +20,10 @@ public class Contract extends Temporal {
     private final LocalDate initiallySubscribedAt;
     private final Optional<LocalDate> terminatedAt;
     private final Optional<LocalDate> prefferedTerminationDate;
-    
-    // MyBatis 중첩 구조에 맞춰 products와 suspensions 포함
+
     private final List<Product> products;
     private final List<Suspension> suspensions;
-
+    private final List<AdditionalBillingFactor> additionalBillingFactors;
 
     @Override
     public LocalDate getStartDate() {
@@ -72,8 +71,14 @@ public class Contract extends Temporal {
                 suspension.getEffectiveCalculationEndDate(billingPeriod)
             ));
 
+        Stream<LocalDate> additionalBillingFactorDates = this.additionalBillingFactors.stream()
+                .flatMap(additionalBillingFactor -> Stream.of(
+                        additionalBillingFactor.getEffectiveCalculationStartDate(billingPeriod),
+                        additionalBillingFactor.getEffectiveCalculationEndDate(billingPeriod)
+                ));
+
         // 모든 날짜 지점들을 정렬하여 구간 경계 생성
-        List<LocalDate> datePoints = Stream.of(contractDates, productsDates, suspensionDates)
+        List<LocalDate> datePoints = Stream.of(contractDates, productsDates, suspensionDates, additionalBillingFactorDates)
             .flatMap(datePoint -> datePoint)
             .distinct()
             .sorted()
@@ -97,28 +102,31 @@ public class Contract extends Temporal {
         
         for (Product product : this.products) {
             // 상품이 해당 기간과 겹치는지 확인
-            if (product.overlapsWith(period)) {
-                for (MonthlyChargeItem monthlyChargeItem : product.getProductOffering().getMonthlyChargeItems()) {
-                    // 해당 기간에 제상 상태인 정지 찾기
-                    Optional<Suspension> suspension = this.suspensions.stream()
-                        .filter(s -> s.overlapsWith(period))
-                        .findFirst();
-                    
-                    // TODO: AdditionalBillingFactors 처리 로직 추가 필요
-                    List<AdditionalBillingFactors> additionalBillingFactors = List.of();
-                    
-                    proratedPeriods.add(
-                        ProratedPeriod.builder()
-                            .period(period)
-                            .contract(this)
-                            .product(product)
-                            .productOffering(product.getProductOffering())
-                            .monthlyChargeItem(monthlyChargeItem)
-                            .suspension(suspension)
-                            .additionalBillingFactors(additionalBillingFactors)
-                            .build()
-                    );
-                }
+            if (!product.overlapsWith(period)) {
+                continue;
+            }
+
+            for (MonthlyChargeItem monthlyChargeItem : product.getProductOffering().getMonthlyChargeItems()) {
+                // 해당 기간에 겹치는 정지이력 찾기
+                Optional<Suspension> overlappedSuspension = this.suspensions.stream()
+                    .filter(s -> s.overlapsWith(period))
+                    .findFirst();
+
+                List<AdditionalBillingFactor> overlappedAdditionalBillingFactor = this.additionalBillingFactors.stream()
+                        .filter(bf -> bf.overlapsWith(period))
+                        .toList();
+
+                proratedPeriods.add(
+                    ProratedPeriod.builder()
+                        .period(period)
+                        .contract(this)
+                        .product(product)
+                        .productOffering(product.getProductOffering())
+                        .monthlyChargeItem(monthlyChargeItem)
+                        .suspension(overlappedSuspension)
+                        .additionalBillingFactors(overlappedAdditionalBillingFactor)
+                        .build()
+                );
             }
         }
         

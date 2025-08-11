@@ -8,7 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactors;
+import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +38,7 @@ class UnitPricePolicyTest {
         UnitPriceFactorPolicy policy = new UnitPriceFactorPolicy(FACTOR_KEY, UNIT_PRICE);
         Map<String, String> factors = new HashMap<>();
         factors.put(FACTOR_KEY, "5");
-        AdditionalBillingFactors billingFactors = new AdditionalBillingFactors(factors, TODAY, TODAY.plusDays(1));
+        AdditionalBillingFactor billingFactors = new AdditionalBillingFactor(factors, TODAY, TODAY.plusDays(1));
 
         // when
         BigDecimal price = policy.getPrice(List.of(billingFactors));
@@ -55,11 +55,11 @@ class UnitPricePolicyTest {
         
         Map<String, String> factors1 = new HashMap<>();
         factors1.put(FACTOR_KEY, "3");
-        AdditionalBillingFactors billingFactors1 = new AdditionalBillingFactors(factors1, TODAY, TODAY.plusDays(1));
+        AdditionalBillingFactor billingFactors1 = new AdditionalBillingFactor(factors1, TODAY, TODAY.plusDays(1));
         
         Map<String, String> factors2 = new HashMap<>();
         factors2.put(FACTOR_KEY, "5");
-        AdditionalBillingFactors billingFactors2 = new AdditionalBillingFactors(factors2, TODAY, TODAY.plusDays(1));
+        AdditionalBillingFactor billingFactors2 = new AdditionalBillingFactor(factors2, TODAY, TODAY.plusDays(1));
 
         // when
         BigDecimal price = policy.getPrice(List.of(billingFactors1, billingFactors2));

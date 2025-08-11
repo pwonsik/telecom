@@ -4,7 +4,6 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.*;
 import me.realimpact.telecom.calculation.infrastructure.dto.*;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -28,7 +27,8 @@ public class DtoToDomainConverter {
             Optional.ofNullable(dto.getTerminatedAt()),
             Optional.ofNullable(dto.getPrefferedTerminationDate()),
             products,
-            suspensions
+            suspensions,
+                List.of()
         );
     }
 
@@ -80,32 +80,40 @@ public class DtoToDomainConverter {
     }
 
     private CalculationMethod getCalculationMethodFromCode(String code) {
-        return Arrays.stream(CalculationMethod.values())
-                .filter(method -> method.name().equals(getCalculationMethodEnumName(code)))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown calculation method code: " + code));
-    }
-
-    private String getCalculationMethodEnumName(String code) {
-        return switch (code) {
-            case "00" -> "FLAT_RATE";
-            case "01" -> "MATCHING_FACTOR";
-            case "02" -> "RANGE_FACTOR";
-            case "03" -> "UNIT_PRICE_FACTOR";
-            case "04" -> "STEP_FACTOR";
-            case "05" -> "TIER_FACTOR";
-            default -> throw new IllegalArgumentException("Unknown calculation method code: " + code);
-        };
+        return CalculationMethod.fromCode(code);
     }
 
     private Pricing createPricing(MonthlyChargeItemDto dto) {
-        // TODO: 실제 Pricing 구현체 생성 로직
-        // DTO의 pricingType에 따라 적절한 Pricing 구현체를 생성해야 함
-        // 예: FlatRatePolicy, MatchingFactorPolicy, RangeFactorPolicy 등
-        // 
-        // 현재는 임시로 null을 반환하지만, 실제로는 MonthlyChargingPolicyFactory를 사용하여
-        // 적절한 Pricing 구현체를 생성해야 함
-        return null;
+        // 임시로 CalculationMethod에 따른 기본 Pricing 생성
+        // 실제 구현에서는 MonthlyChargingPolicyFactory를 사용해야 함
+        return switch (dto.getCalculationMethodCode()) {
+            // flat
+            case "00" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy(
+                    dto.getFlatRateAmount()
+            );
+            case "01" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.MatchingFactorPolicy(
+                java.util.List.of() // 빈 매칭 규칙 리스트
+            );
+            case "02" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeFactorPolicy(
+                "default", // 임시 기본값  
+                java.util.List.of() // 빈 범위 규칙 리스트
+            );
+            case "03" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.UnitPriceFactorPolicy(
+                "count", // 임시 기본값
+                    dto.getFlatRateAmount()
+            );
+            case "04" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.StepFactorPolicy(
+                "count", // 임시 기본값
+                java.util.List.of() // 빈 구간 규칙 리스트
+            );
+            case "05" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.TierFactorPolicy(
+                "count", // 임시 기본값
+                java.util.List.of() // 빈 구간 규칙 리스트
+            );
+            default -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy(
+                java.math.BigDecimal.ZERO // 알 수 없는 경우 0원으로 기본값 설정
+            );
+        };
     }
 
     public List<Suspension> convertToSuspensions(List<SuspensionDto> dtos) {
@@ -125,17 +133,6 @@ public class DtoToDomainConverter {
     }
 
     private Suspension.SuspensionType convertToSuspensionType(String code) {
-        return Arrays.stream(Suspension.SuspensionType.values())
-                .filter(type -> type.name().equals(getEnumNameFromCode(code)))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown suspension type code: " + code));
-    }
-
-    private String getEnumNameFromCode(String code) {
-        return switch (code) {
-            case "F1" -> "TEMPORARY_SUSPENSION";
-            case "F3" -> "NON_PAYMENT_SUSPENSION";
-            default -> throw new IllegalArgumentException("Unknown suspension type code: " + code);
-        };
+        return Suspension.SuspensionType.fromCode(code);
     }
 }

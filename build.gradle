@@ -62,6 +62,7 @@ project(':web-service') {
 project(':batch') {
     dependencies {
         implementation 'org.springframework.boot:spring-boot-starter-batch'
+        implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
         implementation project(':domain')
     }
 }

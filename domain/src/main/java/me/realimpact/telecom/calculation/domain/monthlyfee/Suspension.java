@@ -24,6 +24,7 @@ public class Suspension extends Temporal {
         return effectiveEndDateTime.toLocalDate();
     }
 
+    @Getter
     public enum SuspensionType {
         TEMPORARY_SUSPENSION("F1","일시정지"),
         NON_PAYMENT_SUSPENSION("F3","미납정지");
@@ -34,6 +35,13 @@ public class Suspension extends Temporal {
         SuspensionType(String code, String description) {
             this.code = code;
             this.description = description;
+        }
+
+        public static SuspensionType fromCode(String code) {
+            return java.util.Arrays.stream(values())
+                    .filter(type -> type.code.equals(code))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown suspension type code: " + code));
         }
     }
 }

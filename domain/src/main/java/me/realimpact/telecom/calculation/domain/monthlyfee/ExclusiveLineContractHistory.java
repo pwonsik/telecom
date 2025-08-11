@@ -35,8 +35,8 @@ public class ExclusiveLineContractHistory implements ProvidesAdditionalBillingDe
     }
 
     @Override
-    public AdditionalBillingFactors getAdditionalBillingFactors() {
-        return new AdditionalBillingFactors(
+    public AdditionalBillingFactor getAdditionalBillingFactors() {
+        return new AdditionalBillingFactor(
             Map.of(
                 "lineSpeedCode", lineSpeedCode,
                 "lineOfferTypeCode", lineOfferTypeCode

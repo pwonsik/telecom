@@ -28,6 +28,21 @@ public class ContractQueryRepository implements ContractQueryPort {
         return converter.convertToContract(contractDto);
     }
 
+    /**
+     * 전체 또는 조건부 계약 조회 (Spring Batch용)
+     * contractId가 null이면 전체 조회, 있으면 해당 계약만 조회
+     */
+//    @Override
+//    public Contract findContractsWithProductsChargeItemsAndSuspensions(LocalDate billingStartDate, LocalDate billingEndDate) {
+//        ContractDto contractDto = contractQueryMapper.findContractsWithProductsChargeItemsAndSuspensions(billingStartDate, billingEndDate);
+//        if (contractDto == null) {
+//            return null;
+//        }
+//
+//        // DTO를 도메인 객체로 변환 (products와 suspensions 포함)
+//        return converter.convertToContract(contractDto);
+//    }
+
     @Override
     public List<ExclusiveLineContractHistory> findExclusiveLineContractHistory(Long contractId) {
         // TODO: ExclusiveLineContractHistory 조회 로직 구현 필요

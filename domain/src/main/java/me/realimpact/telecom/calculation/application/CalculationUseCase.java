@@ -10,6 +10,7 @@ import me.realimpact.telecom.calculation.api.CalculationRequest;
 import me.realimpact.telecom.calculation.api.CalculationResult;
 import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeCalculatorService;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +18,7 @@ public class CalculationUseCase implements CalculationCommandUseCase {
 
     private final MonthlyFeeCalculatorService monthlyFeeCalculatorService;
 
+    @Transactional
     @Override
     public CalculationResult calculate(CalculationRequest context) {
         CalculationResult result = new CalculationResult();

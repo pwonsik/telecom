@@ -15,7 +15,6 @@ import java.util.Optional;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.BillingCalculationType;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
-import me.realimpact.telecom.calculation.application.monthlyfee.AdditionalBillingFactorFactory;
 import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeCalculatorService;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeFactorPolicy;
@@ -23,6 +22,7 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeRule;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.StepFactorPolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.TierFactorPolicy;
 import me.realimpact.telecom.calculation.port.out.ContractQueryPort;
+import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,9 +36,10 @@ class MonthlyFeeCalculationIntegrationTest {
 
     @Mock
     private ContractQueryPort contractQueryPort;
-
+    
     @Mock
-    private AdditionalBillingFactorFactory additionalBillingFactorFactory;
+    private CalculationResultSavePort calculationResultSavePort;
+
 
     private MonthlyFeeCalculatorService calculator;
 
@@ -152,7 +153,7 @@ class MonthlyFeeCalculationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        calculator = new MonthlyFeeCalculatorService(contractQueryPort);
+        calculator = new MonthlyFeeCalculatorService(contractQueryPort, calculationResultSavePort);
     }
 
     @Test
@@ -178,11 +179,11 @@ class MonthlyFeeCalculationIntegrationTest {
             Optional.empty(),
             Optional.empty(),
             List.of(product), // products
-            List.of()         // suspensions
+            List.of(),        // suspensions
+            List.of()         // additionalBillingFactors
         );
 
         when(contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(any(), any(), any())).thenReturn(contractWithProduct);
-        when(additionalBillingFactorFactory.create(any())).thenReturn(List.of());
 
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
@@ -213,7 +214,7 @@ class MonthlyFeeCalculationIntegrationTest {
         // 회선수에 따른 구간별 요금
         Map<String, String> factors = new HashMap<>();
         factors.put("line_count", "15");  // 15회선
-        AdditionalBillingFactors billingFactors = new AdditionalBillingFactors(
+        AdditionalBillingFactor billingFactors = new AdditionalBillingFactor(
             factors, BILLING_START_DATE, MAX_END_DATE);
 
         Product product = new Product(
@@ -233,11 +234,11 @@ class MonthlyFeeCalculationIntegrationTest {
             Optional.empty(),
             Optional.empty(),
             List.of(product),    // products
-            List.of(suspension)  // suspensions
+            List.of(suspension), // suspensions
+            List.of(billingFactors)  // additionalBillingFactors  
         );
         
         when(contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(any(), any(), any())).thenReturn(contractWithProductAndSuspension);
-        when(additionalBillingFactorFactory.create(any())).thenReturn(List.of(billingFactors));
 
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 

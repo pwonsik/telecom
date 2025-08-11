@@ -8,7 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactors;
+import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactor;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.MatchingFactorPolicy.MatchingRule;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -81,7 +81,7 @@ class MatchingFactorPolicyTest {
         Map<String, String> factors = new HashMap<>();
         factors.put("line_type", "dedicated");
         factors.put("speed", "10G"); // 다른 속도
-        AdditionalBillingFactors billingFactors = new AdditionalBillingFactors(factors, TODAY, TODAY.plusDays(1));
+        AdditionalBillingFactor billingFactors = new AdditionalBillingFactor(factors, TODAY, TODAY.plusDays(1));
 
         // when
         BigDecimal price = policy.getPrice(List.of(billingFactors));

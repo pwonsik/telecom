@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="me.realimpact.telecom.calculation.infrastructure.adapter.CalculationResultMapper">
+
+    <!-- 배치 삽입 (대용량 처리용) -->
+    <insert id="batchInsertCalculationResults" parameterType="java.util.List">
+        INSERT INTO calculation_result (
+            contract_id,
+            product_contract_id,
+            product_offering_id,
+            charge_item_id,
+            suspension_type_code,
+            period_start_date,
+            period_end_date,
+            usage_days,
+            days_of_month,
+            calculated_fee,
+            billing_start_date,
+            billing_end_date
+        ) VALUES
+        <foreach collection="results" item="result" separator=",">
+        (
+            #{result.contractId},
+            #{result.productContractId},
+            #{result.productOfferingId},
+            #{result.chargeItemId},
+            #{result.suspensionTypeCode},
+            #{result.periodStartDate},
+            #{result.periodEndDate},
+            #{result.usageDays},
+            #{result.daysOfMonth},
+            #{result.calculatedFee},
+            #{result.billingStartDate},
+            #{result.billingEndDate}
+        )
+        </foreach>
+    </insert>
+
+</mapper>

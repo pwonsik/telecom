@@ -80,7 +80,8 @@ class ContractProratedPeriodsTest {
             Optional.empty(),
             Optional.empty(),
             List.of(product), // products
-            List.of()         // suspensions
+            List.of(),        // suspensions
+            List.of()         // additionalBillingFactors
         );
 
         // when - Contract가 직접 구간을 생성
@@ -120,7 +121,8 @@ class ContractProratedPeriodsTest {
             Optional.empty(),
             Optional.empty(),
             List.of(product),    // products
-            List.of(suspension)  // suspensions
+            List.of(suspension), // suspensions
+            List.of()            // additionalBillingFactors
         );
 
         // when - Contract가 직접 구간을 생성
@@ -161,7 +163,8 @@ class ContractProratedPeriodsTest {
             Optional.empty(),
             Optional.empty(),
             List.of(product), // products
-            List.of()         // suspensions
+            List.of(),        // suspensions
+            List.of()         // additionalBillingFactors
         );
         
         // TODO: AdditionalBillingFactors 처리 로직이 구현되면 테스트 추가
@@ -206,7 +209,8 @@ class ContractProratedPeriodsTest {
             Optional.empty(),
             Optional.empty(),
             List.of(product),    // products
-            List.of(suspension)  // suspensions
+            List.of(suspension), // suspensions
+            List.of()            // additionalBillingFactors
         );
 
         // when - Contract가 직접 구간을 생성

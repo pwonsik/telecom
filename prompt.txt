@@ -89,3 +89,11 @@
 
 이 sql을 스프링배치에서 mybatispagingitemreader에서 쓸거니까 paging, 정렬조건을 잘 작성해줘.
 
+
+
+-------------------
+
+# Price 정보 관리 오브젝트 개발
+- Spring Bean으로 관리
+- ProductOfferingID와 MonthlyChargeItem의 조합으로 가격 정책 관리
+- FlatRate면
