@@ -20,21 +20,20 @@ public class TestGenApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        int contractCount = 0;
         if (args.length == 0) {
             log.error("사용법: java -jar testgen.jar <계약_개수>");
             log.error("예시: java -jar testgen.jar 1000");
-            System.exit(1);
-            return;
+            contractCount = 1000;
+            log.error("계약 개수를 입력하셔야 합니다: 1000으로 강제 고정합니다.");
+        } else {
+            contractCount = Integer.parseInt(args[0]);
+            if (contractCount <= 0) {
+                log.error("계약 개수는 1 이상이어야 합니다: {}. 1000으로 강제 고정합니다.", contractCount);
+            }
         }
 
         try {
-            int contractCount = Integer.parseInt(args[0]);
-            if (contractCount <= 0) {
-                log.error("계약 개수는 1 이상이어야 합니다: {}", contractCount);
-                System.exit(1);
-                return;
-            }
-
             log.info("=== 테스트 데이터 생성기 시작 ===");
             log.info("생성할 계약 개수: {}", contractCount);
             

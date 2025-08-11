@@ -8,20 +8,20 @@ import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.api.CalculationCommandUseCase;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
 import me.realimpact.telecom.calculation.api.CalculationResult;
-import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeCalculator;
+import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeCalculatorService;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
 
 @Service
 @RequiredArgsConstructor
 public class CalculationUseCase implements CalculationCommandUseCase {
 
-    private final MonthlyFeeCalculator monthlyFeeCalculator;
+    private final MonthlyFeeCalculatorService monthlyFeeCalculatorService;
 
     @Override
     public CalculationResult calculate(CalculationRequest context) {
         CalculationResult result = new CalculationResult();
         
-        List<MonthlyFeeCalculationResult> monthlyFeeCalculationResult = monthlyFeeCalculator.calculate(context);
+        List<MonthlyFeeCalculationResult> monthlyFeeCalculationResult = monthlyFeeCalculatorService.calculate(context);
 
         return result;
     }

@@ -22,7 +22,7 @@ import me.realimpact.telecom.calculation.port.out.ProductQueryPort;
 
 @Service
 @RequiredArgsConstructor
-public class MonthlyFeeCalculator {
+public class MonthlyFeeCalculatorService {
 
     private final ContractQueryPort contractQueryPort;
     private final ProductQueryPort productQueryPort;

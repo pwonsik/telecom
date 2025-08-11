@@ -16,7 +16,7 @@ import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.BillingCalculationType;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
 import me.realimpact.telecom.calculation.application.monthlyfee.AdditionalBillingFactorFactory;
-import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeCalculator;
+import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeCalculatorService;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeFactorPolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeRule;
@@ -44,7 +44,7 @@ class MonthlyFeeCalculationIntegrationTest {
     @Mock
     private AdditionalBillingFactorFactory additionalBillingFactorFactory;
 
-    private MonthlyFeeCalculator calculator;
+    private MonthlyFeeCalculatorService calculator;
 
     private static final LocalDate BILLING_START_DATE = LocalDate.of(2024, 3, 1);
     private static final LocalDate BILLING_END_DATE = LocalDate.of(2024, 3, 31);
@@ -156,7 +156,7 @@ class MonthlyFeeCalculationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        calculator = new MonthlyFeeCalculator(contractQueryPort, productQueryPort, additionalBillingFactorFactory);
+        calculator = new MonthlyFeeCalculatorService(contractQueryPort, productQueryPort, additionalBillingFactorFactory);
     }
 
     @Test
