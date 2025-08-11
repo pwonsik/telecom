@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class CalculationUseCase implements CalculationCommandUseCase {
+public class CalculationCommandService implements CalculationCommandUseCase {
 
     private final MonthlyFeeCalculatorService monthlyFeeCalculatorService;
 
