@@ -15,18 +15,14 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.DefaultPeriod;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Product;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ProratedPeriod;
-import me.realimpact.telecom.calculation.domain.monthlyfee.ProratedPeriodBuilder;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Suspension;
 import me.realimpact.telecom.calculation.port.out.ContractQueryPort;
-import me.realimpact.telecom.calculation.port.out.ProductQueryPort;
 
 @Service
 @RequiredArgsConstructor
 public class MonthlyFeeCalculatorService {
 
     private final ContractQueryPort contractQueryPort;
-    private final ProductQueryPort productQueryPort;
-    private final AdditionalBillingFactorFactory additionalBillingFactorFactory;
 
     public List<MonthlyFeeCalculationResult> calculate(CalculationRequest context) {
         // 청구기간 말일까지 계산해야 하는 유형 (정기청구나 전당월의 전월. 미래요금조회 등)은 종료일에 하루를 더해준다.
@@ -40,23 +36,17 @@ public class MonthlyFeeCalculatorService {
         DefaultPeriod billingPeriod = DefaultPeriod.of(context.billingStartDate(), billingEndDate);
 
         // 계약정보
-        Contract contract = contractQueryPort.findByContractId(context.contractId());
+        Contract contract = contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(
+                context.contractId(), billingPeriod.getStartDate(), billingPeriod.getEndDate());
+
+        //List<AdditionalBillingFactors> billingFactors = additionalBillingFactorFactory.create(contract);
         
-        // 정지 이력
-        List<Suspension> suspensions = contractQueryPort.findSuspensionHistory(context.contractId());
-        
-        // 상품정보
-        List<Product> products = productQueryPort.findByContractId(context.contractId());
-        
-        List<AdditionalBillingFactors> billingFactors = additionalBillingFactorFactory.create(contract);
-        
-        // 구간 분리
-        ProratedPeriodBuilder proratedPeriodBuilder = new ProratedPeriodBuilder(contract, products, suspensions, billingFactors, billingPeriod);
-        List<ProratedPeriod> proratedPeriods = proratedPeriodBuilder.build();
+        // 구간 분리 - Contract가 직접 담당
+        List<ProratedPeriod> proratedPeriods = contract.buildProratedPeriods(billingPeriod);
 
         // 계산 결과 생성
         return proratedPeriods.stream()
-                .map(proratedPeriod -> proratedPeriod.calculate())
+                .map(ProratedPeriod::calculate)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .toList();

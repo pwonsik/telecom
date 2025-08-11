@@ -1,6 +1,7 @@
 
 package me.realimpact.telecom.calculation.domain.monthlyfee;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDate;
@@ -8,7 +9,9 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
+@Getter
 @RequiredArgsConstructor
 public class Product extends Temporal {
     private final Long contractId;
@@ -23,22 +26,19 @@ public class Product extends Temporal {
 
     @Override
     public LocalDate getStartDate() {
-        return List.of(
-            effectiveStartDateTime.toLocalDate(), 
-            subscribedAt, 
+        return Stream.of(
+            effectiveStartDateTime.toLocalDate(),
+            subscribedAt,
             activatedAt.orElse(LocalDate.MIN)
-        ).stream().max(Comparator.naturalOrder()).orElseThrow();
+        ).max(Comparator.naturalOrder()).orElseThrow();
     }
 
     @Override
     public LocalDate getEndDate() {
-        return List.of(
-            effectiveEndDateTime.toLocalDate(), 
+        return Stream.of(
+            effectiveEndDateTime.toLocalDate(),
             terminatedAt.orElse(LocalDate.MAX)
-        ).stream().min(Comparator.naturalOrder()).orElseThrow();
+        ).min(Comparator.naturalOrder()).orElseThrow();
     }
 
-    public ProductOffering getProductOffering() {
-        return productOffering;
-    }
 }
