@@ -69,25 +69,3 @@ CREATE TABLE monthly_charge_item (
     PRIMARY KEY (product_offering_id, charge_item_id),
     FOREIGN KEY (product_offering_id) REFERENCES product_offering(product_offering_id)
 ) COMMENT = '월정액 과금 항목';
-
--- 인덱스 생성
--- contract 테이블 인덱스
---CREATE INDEX idx_contract_subscribed_at ON contract(subscribed_at);
---CREATE INDEX idx_contract_terminated_at ON contract(terminated_at);
-
--- product 테이블 인덱스  
---CREATE INDEX idx_product_contract_id ON product(contract_id);
---CREATE INDEX idx_product_offering_id ON product(product_offering_id);
---CREATE INDEX idx_product_effective_dates ON product(effective_start_date_time, effective_end_date_time);
---CREATE INDEX idx_product_subscribed_at ON product(subscribed_at);
---CREATE INDEX idx_product_terminated_at ON product(terminated_at);
-
--- suspension 테이블 인덱스
---CREATE INDEX idx_suspension_contract_id ON suspension(contract_id);
---CREATE INDEX idx_suspension_effective_dates ON suspension(effective_start_date_time, effective_end_date_time);
---CREATE INDEX idx_suspension_type_code ON suspension(suspension_type_code);
-
--- monthly_charge_item 테이블 인덱스
---CREATE INDEX idx_monthly_charge_item_product_offering ON monthly_charge_item(product_offering_id);
---CREATE INDEX idx_monthly_charge_item_calculation_method ON monthly_charge_item(calculation_method_code);
---CREATE INDEX idx_monthly_charge_item_pricing_type ON monthly_charge_item(pricing_type);

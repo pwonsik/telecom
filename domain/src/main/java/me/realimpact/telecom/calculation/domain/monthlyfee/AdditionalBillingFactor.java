@@ -7,7 +7,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class AdditionalBillingFactors extends Temporal {
+public class AdditionalBillingFactor extends Temporal {
     /*
      * key : ContractAmount, LineCount, LineSpeed.
      * value : 10000, 3, H8, etc.

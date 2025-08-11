@@ -21,7 +21,7 @@ public class ProratedPeriod extends Temporal {
     private final ProductOffering productOffering;
     private final MonthlyChargeItem monthlyChargeItem;
     private final Optional<Suspension> suspension;
-    private final List<AdditionalBillingFactors> additionalBillingFactors;
+    private final List<AdditionalBillingFactor> additionalBillingFactors;
 
     public long getDayOfMonth() {
         return period.getStartDate().lengthOfMonth();

@@ -45,7 +45,36 @@
         </collection>
     </resultMap>
 
-    <select id="findContractWithProductsChargeItemsAndSuspensions" resultMap="contractWithProductsAndSuspensions">
+    <!-- 공통 WHERE 조건을 SQL fragment로 분리 -->
+    <sql id="contractFilterConditions">
+        <!-- 계약 ID 조건 (조건부) -->
+        <if test="contractId != null">
+            AND c.contract_id = #{contractId}
+        </if>
+        
+        <!-- 계약 유효 기간 필터링 -->
+        AND COALESCE(c.subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(c.terminated_at, '9999-12-31') &gt; #{billingStartDate}
+        AND COALESCE(c.initially_subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(c.preffered_termination_date, '9999-12-31') &gt; #{billingStartDate}
+        
+        <!-- 상품 유효 기간 필터링 -->
+        AND DATE(COALESCE(p.effective_start_date_time, '1900-01-01 00:00:00')) &lt; DATE(COALESCE(p.effective_end_date_time, '9999-12-31 23:59:59'))
+        AND COALESCE(p.effective_start_date_time, '1900-01-01 00:00:00') &lt;= CONCAT(#{billingEndDate}, ' 23:59:59')
+        AND COALESCE(p.effective_end_date_time, '9999-12-31 23:59:59') &gt; CONCAT(#{billingStartDate}, ' 23:59:59')
+        AND COALESCE(p.subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(p.terminated_at, '9999-12-31') &gt; #{billingStartDate}
+        
+        <!-- 정지 유효 기간 필터링 (LEFT JOIN이므로 NULL 허용) -->
+        AND (s.contract_id IS NULL OR (
+            DATE(COALESCE(s.effective_start_date_time, '1900-01-01 00:00:00')) &lt; DATE(COALESCE(s.effective_end_date_time, '9999-12-31 23:59:59'))
+            AND COALESCE(s.effective_start_date_time, '1900-01-01 00:00:00') &lt;= CONCAT(#{billingEndDate}, ' 23:59:59')
+            AND COALESCE(s.effective_end_date_time, '9999-12-31 23:59:59') &gt; CONCAT(#{billingStartDate}, ' 23:59:59')
+        ))
+    </sql>
+
+    <!-- 공통 SELECT와 FROM을 SQL fragment로 분리 -->
+    <sql id="contractSelectClause">
         SELECT 
             c.contract_id,
             c.subscribed_at,
@@ -80,30 +109,10 @@
         INNER JOIN product_offering po ON p.product_offering_id = po.product_offering_id
         LEFT JOIN monthly_charge_item mci ON po.product_offering_id = mci.product_offering_id
         LEFT JOIN suspension s ON c.contract_id = s.contract_id
-        
-        WHERE c.contract_id = #{contractId}
-        
-        -- 계약 유효 기간 필터링
-        AND COALESCE(c.subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
-        AND COALESCE(c.terminated_at, '9999-12-31') &gt; #{billingStartDate}
-        AND COALESCE(c.initially_subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
-        AND COALESCE(c.preffered_termination_date, '9999-12-31') &gt; #{billingStartDate}
-        
-        -- 상품 유효 기간 필터링
-        AND DATE(COALESCE(p.effective_start_date_time, '1900-01-01 00:00:00')) &lt; DATE(COALESCE(p.effective_end_date_time, '9999-12-31 23:59:59'))
-        AND COALESCE(p.effective_start_date_time, '1900-01-01 00:00:00') &lt;= CONCAT(#{billingEndDate}, ' 23:59:59')
-        AND COALESCE(p.effective_end_date_time, '9999-12-31 23:59:59') &gt; CONCAT(#{billingStartDate}, ' 23:59:59')
-        AND COALESCE(p.subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
-        AND COALESCE(p.terminated_at, '9999-12-31') &gt; #{billingStartDate}
-        
-        -- 정지 유효 기간 필터링 (LEFT JOIN이므로 NULL 허용)
-        AND (s.contract_id IS NULL OR (
-            DATE(COALESCE(s.effective_start_date_time, '1900-01-01 00:00:00')) &lt; DATE(COALESCE(s.effective_end_date_time, '9999-12-31 23:59:59'))
-            AND COALESCE(s.effective_start_date_time, '1900-01-01 00:00:00') &lt;= CONCAT(#{billingEndDate}, ' 23:59:59')
-            AND COALESCE(s.effective_end_date_time, '9999-12-31 23:59:59') &gt; CONCAT(#{billingStartDate}, ' 23:59:59')
-        ))
-        
-        -- Spring Batch MyBatisPagingItemReader용 정렬 조건 (복합키 순서대로)
+    </sql>
+
+    <!-- 공통 정렬 조건 (MyBatisPagingItemReader용) -->
+    <sql id="contractOrderByClause">
         ORDER BY 
             c.contract_id,
             po.product_offering_id, 
@@ -113,6 +122,22 @@
             s.suspension_type_code,
             s.effective_start_date_time,
             s.effective_end_date_time
+    </sql>
+
+    <!-- 단건 조회용 (기존 호환성 유지) -->
+    <select id="findContractWithProductsChargeItemsAndSuspensions" resultMap="contractWithProductsAndSuspensions">
+        <include refid="contractSelectClause"/>
+        WHERE 1=1
+        <include refid="contractFilterConditions"/>
+        <include refid="contractOrderByClause"/>
+    </select>
+
+    <!-- 전체/조건부 조회용 (Spring Batch용) -->
+    <select id="findContractsWithProductsChargeItemsAndSuspensions" resultMap="contractWithProductsAndSuspensions">
+        <include refid="contractSelectClause"/>
+        WHERE 1=1
+        <include refid="contractFilterConditions"/>
+        <include refid="contractOrderByClause"/>
     </select>
 
 </mapper>

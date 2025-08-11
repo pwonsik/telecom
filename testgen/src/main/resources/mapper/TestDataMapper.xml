@@ -76,4 +76,29 @@
         ORDER BY product_offering_id
     </select>
 
+    <!-- 테이블 초기화 (외래키 제약 조건 해결) -->
+    
+    <!-- 외래키 체크 비활성화 -->
+    <update id="disableForeignKeyChecks">
+        SET FOREIGN_KEY_CHECKS = 0
+    </update>
+    
+    <!-- 외래키 체크 활성화 -->  
+    <update id="enableForeignKeyChecks">
+        SET FOREIGN_KEY_CHECKS = 1
+    </update>
+    
+    <!-- 테이블별 DELETE -->
+    <delete id="truncateSuspensions">
+        DELETE FROM suspension
+    </delete>
+    
+    <delete id="truncateProducts">  
+        DELETE FROM product
+    </delete>
+    
+    <delete id="truncateContracts">
+        DELETE FROM contract
+    </delete>
+
 </mapper>

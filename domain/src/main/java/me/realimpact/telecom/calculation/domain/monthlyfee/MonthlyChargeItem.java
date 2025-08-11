@@ -14,7 +14,7 @@ public class MonthlyChargeItem {
     private final CalculationMethod calculationMethod;
     private final Pricing pricing;
 
-    public BigDecimal getPrice(List<AdditionalBillingFactors> additionalBillingFactors) {
+    public BigDecimal getPrice(List<AdditionalBillingFactor> additionalBillingFactors) {
         return pricing.getPrice(additionalBillingFactors);
     }
 }

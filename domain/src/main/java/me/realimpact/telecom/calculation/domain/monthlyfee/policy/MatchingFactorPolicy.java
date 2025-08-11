@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Pricing;
-import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactors;
+import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactor;
 
 public class MatchingFactorPolicy implements Pricing {
 
@@ -15,7 +15,7 @@ public class MatchingFactorPolicy implements Pricing {
     }
 
     @Override
-    public BigDecimal getPrice(List<AdditionalBillingFactors> additionalBillingFactors) {
+    public BigDecimal getPrice(List<AdditionalBillingFactor> additionalBillingFactors) {
         // return rules.stream()
         //     .filter(rule -> rule.matches(calculationPeriod.billingFactors()))
         //     .map(rule -> {
