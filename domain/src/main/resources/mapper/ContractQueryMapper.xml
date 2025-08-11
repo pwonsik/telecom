@@ -10,6 +10,8 @@
         <result property="initiallySubscribedAt" column="initially_subscribed_at"/>
         <result property="terminatedAt" column="terminated_at"/>
         <result property="prefferedTerminationDate" column="preffered_termination_date"/>
+        <result property="billingStartDate" column="billing_start_date"/>
+        <result property="billingEndDate" column="billing_end_date"/>
         
         <collection property="products" ofType="ProductDto">
             <!-- Product의 key: contractId, productOfferingId, effectiveStartDateTime, effectiveEndDateTime -->
@@ -81,6 +83,8 @@
             c.initially_subscribed_at,
             c.terminated_at,
             c.preffered_termination_date,
+            #{billingStartDate} AS billing_start_date,
+            #{billingEndDate} AS billing_end_date,
             
             p.effective_start_date_time as product_effective_start_date_time,
             p.effective_end_date_time as product_effective_end_date_time,

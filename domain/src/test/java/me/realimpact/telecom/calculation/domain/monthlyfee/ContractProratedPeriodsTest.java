@@ -79,13 +79,15 @@ class ContractProratedPeriodsTest {
             subscriptionDate,
             Optional.empty(),
             Optional.empty(),
+            billingPeriod.getStartDate(),
+            billingPeriod.getEndDate(),
             List.of(product), // products
             List.of(),        // suspensions
             List.of()         // additionalBillingFactors
         );
 
         // when - Contract가 직접 구간을 생성
-        List<ProratedPeriod> periods = contract.buildProratedPeriods(billingPeriod);
+        List<ProratedPeriod> periods = contract.buildProratedPeriods();
 
         // then
         assertThat(periods).hasSize(1);
@@ -120,13 +122,15 @@ class ContractProratedPeriodsTest {
             TestFixture.BILLING_START_DATE.minusMonths(1),
             Optional.empty(),
             Optional.empty(),
+            billingPeriod.getStartDate(),
+            billingPeriod.getEndDate(),
             List.of(product),    // products
             List.of(suspension), // suspensions
             List.of()            // additionalBillingFactors
         );
 
         // when - Contract가 직접 구간을 생성
-        List<ProratedPeriod> periods = contract.buildProratedPeriods(billingPeriod);
+        List<ProratedPeriod> periods = contract.buildProratedPeriods();
 
         // then (5/1 ~ 5/9, 5/10 ~ 5/19, 5/20 ~ 5/31)
         assertThat(periods).hasSize(3); // 정지 전, 정지 중, 정지 후
@@ -162,6 +166,8 @@ class ContractProratedPeriodsTest {
             TestFixture.BILLING_START_DATE.minusMonths(1),
             Optional.empty(),
             Optional.empty(),
+            billingPeriod.getStartDate(),
+            billingPeriod.getEndDate(),
             List.of(product), // products
             List.of(),        // suspensions
             List.of()         // additionalBillingFactors
@@ -171,7 +177,7 @@ class ContractProratedPeriodsTest {
         // 현재는 기본적인 구간 분리만 테스트
 
         // when - Contract가 직접 구간을 생성
-        List<ProratedPeriod> periods = contract.buildProratedPeriods(billingPeriod);
+        List<ProratedPeriod> periods = contract.buildProratedPeriods();
 
         // then - 추가 과금 요소가 없으므로 전체 기간이 하나의 구간
         assertThat(periods).hasSize(1);
@@ -208,13 +214,15 @@ class ContractProratedPeriodsTest {
             subscriptionDate,
             Optional.empty(),
             Optional.empty(),
+            billingPeriod.getStartDate(),
+            billingPeriod.getEndDate(),
             List.of(product),    // products
             List.of(suspension), // suspensions
             List.of()            // additionalBillingFactors
         );
 
         // when - Contract가 직접 구간을 생성
-        List<ProratedPeriod> periods = contract.buildProratedPeriods(billingPeriod);
+        List<ProratedPeriod> periods = contract.buildProratedPeriods();
 
         // then (5/5 ~ 5/14, 5/15 ~ 5/24, 5/25 ~ 5/31)
         assertThat(periods).hasSize(3);

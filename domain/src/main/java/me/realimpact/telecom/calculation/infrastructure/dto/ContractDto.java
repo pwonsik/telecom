@@ -15,6 +15,8 @@ public class ContractDto {
     private LocalDate initiallySubscribedAt;
     private LocalDate terminatedAt;
     private LocalDate prefferedTerminationDate;
+    private LocalDate billingStartDate;
+    private LocalDate billingEndDate;
     
     private List<ProductDto> products;
     private List<SuspensionDto> suspensions;

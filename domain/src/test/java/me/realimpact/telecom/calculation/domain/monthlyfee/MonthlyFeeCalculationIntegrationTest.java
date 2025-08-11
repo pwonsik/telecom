@@ -15,7 +15,7 @@ import java.util.Optional;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.BillingCalculationType;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
-import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeCalculatorService;
+import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeFactorPolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeRule;
@@ -41,7 +41,7 @@ class MonthlyFeeCalculationIntegrationTest {
     private CalculationResultSavePort calculationResultSavePort;
 
 
-    private MonthlyFeeCalculatorService calculator;
+    private BaseFeeCalculator calculator;
 
     private static final LocalDate BILLING_START_DATE = LocalDate.of(2024, 3, 1);
     private static final LocalDate BILLING_END_DATE = LocalDate.of(2024, 3, 31);
@@ -153,7 +153,7 @@ class MonthlyFeeCalculationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        calculator = new MonthlyFeeCalculatorService(contractQueryPort, calculationResultSavePort);
+        calculator = new BaseFeeCalculator(contractQueryPort, calculationResultSavePort);
     }
 
     @Test
@@ -178,23 +178,28 @@ class MonthlyFeeCalculationIntegrationTest {
             subscriptionDate,
             Optional.empty(),
             Optional.empty(),
+            BILLING_START_DATE,
+            BILLING_END_DATE,
             List.of(product), // products
             List.of(),        // suspensions
             List.of()         // additionalBillingFactors
         );
 
-        when(contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(any(), any(), any())).thenReturn(contractWithProduct);
+        when(contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(any(), any(), any())).thenReturn(List.of(contractWithProduct));
 
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
         // when
-        List<MonthlyFeeCalculationResult> results = calculator.calculate(request);
+        List<MonthlyFeeCalculationResult> results = calculator.calculateAndReturn(request);
 
         // then
         assertThat(results).hasSize(1);
         MonthlyFeeCalculationResult result = results.get(0);
         // 3/15 ~ 3/31 (17일) => 30000 * (17/31)
-        assertThat(result.getFee().setScale(0, RoundingMode.FLOOR))
+        BigDecimal totalFee = result.items().stream()
+            .map(MonthlyFeeCalculationResultItem::fee)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertThat(totalFee.setScale(0, RoundingMode.FLOOR))
             .isEqualByComparingTo(BigDecimal.valueOf((long)(30000 * (17.0/31))));
     }
 
@@ -233,17 +238,19 @@ class MonthlyFeeCalculationIntegrationTest {
             subscriptionDate,
             Optional.empty(),
             Optional.empty(),
+            BILLING_START_DATE,
+            BILLING_END_DATE,
             List.of(product),    // products
             List.of(suspension), // suspensions
             List.of(billingFactors)  // additionalBillingFactors  
         );
         
-        when(contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(any(), any(), any())).thenReturn(contractWithProductAndSuspension);
+        when(contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(any(), any(), any())).thenReturn(List.of(contractWithProductAndSuspension));
 
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
         // when
-        List<MonthlyFeeCalculationResult> results = calculator.calculate(request);
+        List<MonthlyFeeCalculationResult> results = calculator.calculateAndReturn(request);
 
         // then
         assertThat(results).hasSize(3);
@@ -254,16 +261,27 @@ class MonthlyFeeCalculationIntegrationTest {
          * 11~ : 8000
          */
          
+        // 각 결과의 총 요금 계산
+        BigDecimal totalFee0 = results.get(0).items().stream()
+            .map(MonthlyFeeCalculationResultItem::fee)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalFee1 = results.get(1).items().stream()
+            .map(MonthlyFeeCalculationResultItem::fee)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalFee2 = results.get(2).items().stream()
+            .map(MonthlyFeeCalculationResultItem::fee)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
         // 3/1 ~ 3/9 (9일)
-        assertThat(results.get(0).getFee().setScale(0, RoundingMode.FLOOR))
+        assertThat(totalFee0.setScale(0, RoundingMode.FLOOR))
             .isEqualByComparingTo(BigDecimal.valueOf((long)((12000 * 5 + 10000 * 5 + 8000 * 5) * (9.0/31))));  
         
         // 3/10 ~ 3/19 (10일) - 정지 기간
-        assertThat(results.get(1).getFee().setScale(0, RoundingMode.FLOOR))
+        assertThat(totalFee1.setScale(0, RoundingMode.FLOOR))
             .isEqualByComparingTo(BigDecimal.ZERO);
         
         // 3/20 ~ 3/31 (12일)
-        assertThat(results.get(2).getFee().setScale(0, RoundingMode.FLOOR))
+        assertThat(totalFee2.setScale(0, RoundingMode.FLOOR))
             .isEqualByComparingTo(BigDecimal.valueOf((long)((12000 * 5 + 10000 * 5 + 8000 * 5) * (12.0/31))));  // 150000 * 12/31
     }
 

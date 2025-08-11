@@ -30,48 +30,13 @@ public class CalculationResultRepository implements CalculationResultSavePort {
      * 성능을 위해 여러 개의 결과를 한번에 저장
      */
     @Override
-    @Transactional
-    public void batchSaveCalculationResults(List<MonthlyFeeCalculationResult> results, DefaultPeriod billingPeriod) {
+    public void batchSaveCalculationResults(List<MonthlyFeeCalculationResult> results) {
         if (results == null || results.isEmpty()) {
             log.warn("No calculation results to save");
             return;
         }
-
-        // 대용량 처리를 위해 청크 단위로 나누어 처리
-        final int chunkSize = 1000; // 1000개씩 나누어 처리
-        
-        List<CalculationResultDto> dtos = domainToDtoConverter.convertToCalculationResultDtos(results, billingPeriod.getStartDate(), billingPeriod.getEndDate());
-        
-        int totalInserted = 0;
-        int chunkCount = (dtos.size() + chunkSize - 1) / chunkSize; // 올림 계산
-        
-        for (int i = 0; i < chunkCount; i++) {
-            int start = i * chunkSize;
-            int end = Math.min(start + chunkSize, dtos.size());
-            
-            List<CalculationResultDto> chunk = dtos.subList(start, end);
-            
-            try {
-                int insertCount = calculationResultMapper.batchInsertCalculationResults(chunk);
-                totalInserted += insertCount;
-                
-                log.debug("Batch insert chunk {}/{}: {} records inserted", i + 1, chunkCount, insertCount);
-                
-                if (insertCount != chunk.size()) {
-                    log.warn("Expected to insert {} records in chunk {}, but inserted {} records", 
-                            chunk.size(), i + 1, insertCount);
-                }
-            } catch (Exception e) {
-                log.error("Failed to insert chunk {} with {} records", i + 1, chunk.size(), e);
-                throw new RuntimeException("Batch insert failed at chunk " + (i + 1), e);
-            }
-        }
-        
-        log.info("Successfully batch inserted {} calculation results (expected: {})", totalInserted, results.size());
-        
-        if (totalInserted != results.size()) {
-            throw new RuntimeException("Batch insert incomplete. Expected: " + results.size() + ", Actual: " + totalInserted);
-        }
+        List<CalculationResultDto> dtos = domainToDtoConverter.convertToCalculationResultDtos(results);
+        calculationResultMapper.batchInsertCalculationResults(dtos);
     }
 
 }

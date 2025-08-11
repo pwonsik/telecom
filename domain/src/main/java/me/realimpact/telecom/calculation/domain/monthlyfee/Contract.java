@@ -20,6 +20,8 @@ public class Contract extends Temporal {
     private final LocalDate initiallySubscribedAt;
     private final Optional<LocalDate> terminatedAt;
     private final Optional<LocalDate> prefferedTerminationDate;
+    private final LocalDate billingStartDate;
+    private final LocalDate billingEndDate;
 
     private final List<Product> products;
     private final List<Suspension> suspensions;
@@ -48,11 +50,11 @@ public class Contract extends Temporal {
     
     /**
      * 계약 정보, 상품 정보, 정지 정보를 기반으로 일할 계산을 위한 구간들을 생성한다.
-     * 
-     * @param billingPeriod 청구 기간
+     *
      * @return 일할 계산 구간 목록
      */
-    public List<ProratedPeriod> buildProratedPeriods(DefaultPeriod billingPeriod) {
+    public List<ProratedPeriod> buildProratedPeriods() {
+        DefaultPeriod billingPeriod = DefaultPeriod.of(billingStartDate, billingEndDate);
         // 계약, 상품, 정지의 모든 시작/종료 날짜들을 수집
         Stream<LocalDate> contractDates = Stream.of(
             this.getEffectiveCalculationStartDate(billingPeriod), 

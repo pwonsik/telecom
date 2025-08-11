@@ -26,9 +26,11 @@ public class DtoToDomainConverter {
             dto.getInitiallySubscribedAt(),
             Optional.ofNullable(dto.getTerminatedAt()),
             Optional.ofNullable(dto.getPrefferedTerminationDate()),
+            dto.getBillingStartDate(),
+            dto.getBillingEndDate(),
             products,
             suspensions,
-                List.of()
+            List.of()
         );
     }
 

@@ -18,14 +18,15 @@ public class ContractQueryRepository implements ContractQueryPort {
     private final DtoToDomainConverter converter;
 
     @Override
-    public Contract findContractWithProductsChargeItemsAndSuspensions(Long contractId, LocalDate billingStartDate, LocalDate billingEndDate) {
+    public List<Contract> findContractWithProductsChargeItemsAndSuspensions(Long contractId, LocalDate billingStartDate, LocalDate billingEndDate) {
         ContractDto contractDto = contractQueryMapper.findContractWithProductsChargeItemsAndSuspensions(contractId, billingStartDate, billingEndDate);
         if (contractDto == null) {
-            return null;
+            return List.of();
         }
         
         // DTO를 도메인 객체로 변환 (products와 suspensions 포함)
-        return converter.convertToContract(contractDto);
+        Contract contract = converter.convertToContract(contractDto);
+        return List.of(contract);
     }
 
     /**

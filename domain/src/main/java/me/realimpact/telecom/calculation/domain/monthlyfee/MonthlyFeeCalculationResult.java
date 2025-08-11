@@ -1,13 +1,12 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@RequiredArgsConstructor
-@Getter
-public class MonthlyFeeCalculationResult {
-    private final ProratedPeriod proratedPeriod;
-    private final BigDecimal fee;
+public record MonthlyFeeCalculationResult(
+    long contractId,
+    LocalDate billingStartDate,
+    LocalDate billingEndDate,
+    List<MonthlyFeeCalculationResultItem> items) {
 }

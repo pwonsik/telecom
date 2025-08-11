@@ -20,58 +20,32 @@ public class DomainToDtoConverter {
     /**
      * MonthlyFeeCalculationResult를 CalculationResultDto로 변환
      */
-    public CalculationResultDto convertToCalculationResultDto(
-            MonthlyFeeCalculationResult result,
-            LocalDate billingStartDate,
-            LocalDate billingEndDate) {
-        
-        var proratedPeriod = result.getProratedPeriod();
-        var contract = proratedPeriod.getContract();
-        var product = proratedPeriod.getProduct();
-        var productOffering = proratedPeriod.getProductOffering();
-        var chargeItem = proratedPeriod.getMonthlyChargeItem();
-        var suspension = proratedPeriod.getSuspension();
-        
-        return CalculationResultDto.builder()
-                // Contract 정보
-                .contractId(contract.getContractId())
-
-                // Product 정보
-                .productContractId(product.getContractId())
-                .productOfferingId(productOffering.getProductOfferingId())
-
-                // MonthlyChargeItem 정보
-                .chargeItemId(chargeItem.getChargeItemId())
-
-                // Suspension 정보 (Optional)
-                .suspensionTypeCode(suspension.map(s -> s.getSuspensionType().getCode()).orElse(null))
-
-                // Period 정보
-                .periodStartDate(proratedPeriod.getStartDate())
-                .periodEndDate(proratedPeriod.getEndDate())
-                .usageDays((int) proratedPeriod.getUsageDays())
-                .daysOfMonth((int) proratedPeriod.getDayOfMonth())
-                
-                // 계산 결과
-                .calculatedFee(result.getFee())
-
-                // 메타데이터
-                .billingStartDate(billingStartDate)
-                .billingEndDate(billingEndDate)
-                .build();
+    public List<CalculationResultDto> convertToCalculationResultDto(
+            MonthlyFeeCalculationResult result) {
+        return result.items().stream()
+            .map(i -> CalculationResultDto.builder()
+                .contractId(result.contractId())
+                .productOfferingId(i.productOfferingId())
+                .chargeItemId(i.monthlyChargeItemId())
+                .billingStartDate(result.billingStartDate())
+                .billingEndDate(result.billingEndDate())
+                .calculatedFee(i.fee())
+                .periodStartDate(i.effectiveStartDate())
+                .periodEndDate(i.effectiveEndDate())
+                .build()
+            )
+            .toList();
     }
 
     /**
      * 여러 MonthlyFeeCalculationResult를 CalculationResultDto 리스트로 변환
      */
     public List<CalculationResultDto> convertToCalculationResultDtos(
-            List<MonthlyFeeCalculationResult> results,
-            LocalDate billingStartDate,
-            LocalDate billingEndDate) {
+            List<MonthlyFeeCalculationResult> results) {
         
         return results.stream()
-                .map(result -> convertToCalculationResultDto(result, billingStartDate, billingEndDate))
-                .collect(Collectors.toList());
+            .flatMap(result -> convertToCalculationResultDto(result).stream())
+            .toList();
     }
 
 }
