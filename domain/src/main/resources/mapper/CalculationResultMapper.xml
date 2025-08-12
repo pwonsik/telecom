@@ -3,36 +3,30 @@
 
 <mapper namespace="me.realimpact.telecom.calculation.infrastructure.adapter.CalculationResultMapper">
 
-    <!-- 배치 삽입 (대용량 처리용) -->
+    <!-- 평면화된 계산 결과를 배치로 삽입 -->
     <insert id="batchInsertCalculationResults" parameterType="java.util.List">
         INSERT INTO calculation_result (
             contract_id,
-            product_contract_id,
-            product_offering_id,
-            charge_item_id,
-            suspension_type_code,
-            period_start_date,
-            period_end_date,
-            usage_days,
-            days_of_month,
-            calculated_fee,
             billing_start_date,
-            billing_end_date
+            billing_end_date,
+            product_offering_id,
+            monthly_charge_item_id,
+            effective_start_date,
+            effective_end_date,
+            suspension_type,
+            fee
         ) VALUES
-        <foreach collection="results" item="result" separator=",">
+        <foreach collection="items" item="item" separator=",">
         (
-            #{result.contractId},
-            #{result.productContractId},
-            #{result.productOfferingId},
-            #{result.chargeItemId},
-            #{result.suspensionTypeCode},
-            #{result.periodStartDate},
-            #{result.periodEndDate},
-            #{result.usageDays},
-            #{result.daysOfMonth},
-            #{result.calculatedFee},
-            #{result.billingStartDate},
-            #{result.billingEndDate}
+            #{item.contractId},
+            #{item.billingStartDate},
+            #{item.billingEndDate},
+            #{item.productOfferingId},
+            #{item.monthlyChargeItemId},
+            #{item.effectiveStartDate},
+            #{item.effectiveEndDate},
+            #{item.suspensionType},
+            #{item.fee}
         )
         </foreach>
     </insert>

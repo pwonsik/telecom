@@ -1,6 +1,6 @@
 package me.realimpact.telecom.calculation.infrastructure.adapter;
 
-import me.realimpact.telecom.calculation.infrastructure.dto.CalculationResultDto;
+import me.realimpact.telecom.calculation.infrastructure.dto.FlatCalculationResultDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -8,22 +8,17 @@ import java.util.List;
 
 /**
  * 계산 결과 저장을 위한 MyBatis Mapper
+ * 평면화된 구조로 batch insert 처리
  */
 @Mapper
 public interface CalculationResultMapper {
 
     /**
-     * 대용량 배치 삽입 (Batch Insert)
-     * 성능을 위해 여러 개의 결과를 한번에 저장
+     * 평면화된 계산 결과를 배치로 삽입
+     * @param items 평면화된 계산 결과 목록
+     * @return 삽입된 행 수
      */
-    int batchInsertCalculationResults(@Param("results") List<CalculationResultDto> results);
-    
-    /**
-     * 계약 ID와 청구 기간으로 계산 결과 조회
-     */
-    List<CalculationResultDto> selectCalculationResultsByContractAndPeriod(
-        @Param("contractId") Long contractId,
-        @Param("billingStartDate") String billingStartDate,
-        @Param("billingEndDate") String billingEndDate
+    int batchInsertCalculationResults(
+        @Param("items") List<FlatCalculationResultDto> items
     );
 }

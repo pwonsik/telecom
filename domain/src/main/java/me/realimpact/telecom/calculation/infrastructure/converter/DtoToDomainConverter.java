@@ -1,10 +1,12 @@
 package me.realimpact.telecom.calculation.infrastructure.converter;
 
 import me.realimpact.telecom.calculation.domain.monthlyfee.*;
+import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy;
 import me.realimpact.telecom.calculation.infrastructure.dto.*;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -69,7 +71,7 @@ public class DtoToDomainConverter {
     }
 
     private MonthlyChargeItem convertToMonthlyChargeItem(MonthlyChargeItemDto dto) {
-        CalculationMethod calculationMethod = getCalculationMethodFromCode(dto.getCalculationMethodCode());
+        CalculationMethod calculationMethod = CalculationMethod.fromCode(dto.getCalculationMethodCode());
         Pricing pricing = createPricing(dto);
         
         return new MonthlyChargeItem(
@@ -81,60 +83,55 @@ public class DtoToDomainConverter {
         );
     }
 
-    private CalculationMethod getCalculationMethodFromCode(String code) {
-        return CalculationMethod.fromCode(code);
-    }
-
     private Pricing createPricing(MonthlyChargeItemDto dto) {
         // 임시로 CalculationMethod에 따른 기본 Pricing 생성
         // 실제 구현에서는 MonthlyChargingPolicyFactory를 사용해야 함
-        return switch (dto.getCalculationMethodCode()) {
-            // flat
-            case "00" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy(
-                    dto.getFlatRateAmount()
-            );
-            case "01" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.MatchingFactorPolicy(
-                java.util.List.of() // 빈 매칭 규칙 리스트
-            );
-            case "02" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeFactorPolicy(
-                "default", // 임시 기본값  
-                java.util.List.of() // 빈 범위 규칙 리스트
-            );
-            case "03" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.UnitPriceFactorPolicy(
-                "count", // 임시 기본값
-                    dto.getFlatRateAmount()
-            );
-            case "04" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.StepFactorPolicy(
-                "count", // 임시 기본값
-                java.util.List.of() // 빈 구간 규칙 리스트
-            );
-            case "05" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.TierFactorPolicy(
-                "count", // 임시 기본값
-                java.util.List.of() // 빈 구간 규칙 리스트
-            );
-            default -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy(
-                java.math.BigDecimal.ZERO // 알 수 없는 경우 0원으로 기본값 설정
-            );
-        };
+//        return switch (dto.getCalculationMethodCode()) {
+//            // flat
+//            case "FLAT" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy(
+//                    dto.getFlatRateAmount()
+//            );
+//            case "01" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.MatchingFactorPolicy(
+//                java.util.List.of() // 빈 매칭 규칙 리스트
+//            );
+//            case "02" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeFactorPolicy(
+//                "default", // 임시 기본값
+//                java.util.List.of() // 빈 범위 규칙 리스트
+//            );
+//            case "03" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.UnitPriceFactorPolicy(
+//                "count", // 임시 기본값
+//                    dto.getFlatRateAmount()
+//            );
+//            case "04" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.StepFactorPolicy(
+//                "count", // 임시 기본값
+//                java.util.List.of() // 빈 구간 규칙 리스트
+//            );
+//            case "05" -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.TierFactorPolicy(
+//                "count", // 임시 기본값
+//                java.util.List.of() // 빈 구간 규칙 리스트
+//            );
+//            default -> new me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy(
+//                java.math.BigDecimal.ZERO // 알 수 없는 경우 0원으로 기본값 설정
+//            );
+//        };
+        return new FlatRatePolicy(dto.getFlatRateAmount());
     }
 
     public List<Suspension> convertToSuspensions(List<SuspensionDto> dtos) {
         return dtos.stream()
                 .map(this::convertToSuspension)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     public Suspension convertToSuspension(SuspensionDto dto) {
-        Suspension.SuspensionType suspensionType = convertToSuspensionType(dto.getSuspensionTypeCode());
-        
+        if (dto.getSuspensionTypeCode() == null) {
+            return null;
+        }
         return new Suspension(
-            dto.getEffectiveStartDateTime(),
-            dto.getEffectiveEndDateTime(),
-            suspensionType
+                dto.getEffectiveStartDateTime(),
+                dto.getEffectiveEndDateTime(),
+                Suspension.SuspensionType.fromCode(dto.getSuspensionTypeCode())
         );
-    }
-
-    private Suspension.SuspensionType convertToSuspensionType(String code) {
-        return Suspension.SuspensionType.fromCode(code);
     }
 }

@@ -115,7 +115,7 @@
         LEFT JOIN suspension s ON c.contract_id = s.contract_id
     </sql>
 
-    <!-- 공통 정렬 조건 (MyBatisPagingItemReader용) -->
+    <!-- 공통 정렬 조건 (MyBatisCursorItemReader용) -->
     <sql id="contractOrderByClause">
         ORDER BY 
             c.contract_id,
@@ -136,12 +136,13 @@
         <include refid="contractOrderByClause"/>
     </select>
 
-    <!-- 전체/조건부 조회용 (Spring Batch용) -->
+    <!-- 전체/조건부 조회용 (Spring Batch - Cursor 방식) -->
     <select id="findContractsWithProductsChargeItemsAndSuspensions" resultMap="contractWithProductsAndSuspensions">
         <include refid="contractSelectClause"/>
         WHERE 1=1
         <include refid="contractFilterConditions"/>
         <include refid="contractOrderByClause"/>
+        <!-- MyBatisCursorItemReader는 스트리밍 방식으로 모든 결과를 순차 처리 -->
     </select>
 
 </mapper>

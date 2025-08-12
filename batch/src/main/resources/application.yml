@@ -1,20 +1,42 @@
-
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb
-    driverClassName: org.h2.Driver
-    username: sa
-    password: 
-  h2:
-    console:
-      enabled: true
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    properties:
-      hibernate:
-        format_sql: true
+    url: jdbc:mysql://localhost:3306/telecom_billing?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&socketTimeout=0&connectTimeout=60000
+    username: user
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20   # 멀티쓰레드 처리를 위해 증가
+      minimum-idle: 8         # 최소 유지 커넥션 수 증가
+      connection-timeout: 60000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  batch:
+    job:
+      enabled: false   # CommandLineRunner에서 수동으로 실행
+    jdbc:
+      initialize-schema: always  # Spring Batch 테이블 자동 생성
+  main:
+    web-application-type: none  # 웹 서버 비활성화
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: me.realimpact.telecom.calculation.infrastructure.dto
+  configuration:
+    map-underscore-to-camel-case: true
+    use-column-label: true
+    cache-enabled: false
+    default-fetch-size: 100
+    default-statement-timeout: 0  # 0 = 무제한 (배치용)
 
 logging:
   level:
-    org.hibernate.SQL: debug
+    me.realimpact.telecom: INFO
+    org.springframework.jdbc: WARN
+    com.zaxxer.hikari: INFO
+    # MyBatis SQL 로깅 설정
+    #me.realimpact.telecom.calculation.infrastructure.adapter: DEBUG  # Mapper SQL 출력
+    #org.mybatis.spring.SqlSessionUtils: DEBUG  # MyBatis 세션 정보
+    #org.springframework.batch.item.database: DEBUG  # Spring Batch Database 로깅
+    #org.mybatis.spring.batch: DEBUG  # MyBatis Batch 로깅
+    #org.springframework.jdbc.core.JdbcTemplate: DEBUG  # JDBC 템플릿 SQL
+    #org.springframework.jdbc.core.StatementCreatorUtils: TRACE  # SQL 파라미터 값

@@ -1,0 +1,54 @@
+package me.realimpact.telecom.billing.batch.writer;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
+import me.realimpact.telecom.calculation.infrastructure.adapter.CalculationResultMapper;
+import me.realimpact.telecom.calculation.infrastructure.converter.CalculationResultFlattener;
+import me.realimpact.telecom.calculation.infrastructure.dto.FlatCalculationResultDto;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSession;
+import org.springframework.batch.item.Chunk;
+import org.springframework.batch.item.ItemWriter;
+
+import java.util.List;
+
+/**
+ * MonthlyFeeCalculationResult를 데이터베이스에 저장하는 커스텀 Writer
+ */
+@RequiredArgsConstructor
+@Slf4j
+public class MonthlyFeeCalculationResultWriter implements ItemWriter<MonthlyFeeCalculationResult> {
+
+    private final SqlSessionFactory sqlSessionFactory;
+    private final CalculationResultFlattener calculationResultFlattener;
+
+    @Override
+    public void write(Chunk<? extends MonthlyFeeCalculationResult> chunk) throws Exception {
+        if (chunk.isEmpty()) {
+            return;
+        }
+
+        log.info("Writing {} calculation results to database", chunk.size());
+        
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            CalculationResultMapper mapper = sqlSession.getMapper(CalculationResultMapper.class);
+            
+            // MonthlyFeeCalculationResult를 평면화된 DTO로 변환
+            List<FlatCalculationResultDto> flatResults = calculationResultFlattener.flattenResults(chunk.getItems());
+            
+            log.info("Flattened {} results into {} records for batch insert", 
+                    chunk.size(), flatResults.size());
+            
+            // 단일 배치 Insert 실행
+            int insertedRows = mapper.batchInsertCalculationResults(flatResults);
+            
+            sqlSession.commit();
+            log.info("Successfully inserted {} records", insertedRows);
+            
+        } catch (Exception e) {
+            log.error("Failed to write calculation results", e);
+            throw e;
+        }
+    }
+}

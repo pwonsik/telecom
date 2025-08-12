@@ -1,43 +1,40 @@
 -- CalculationResult 테이블 생성 스크립트
--- MonthlyFeeCalculationResult 저장을 위한 테이블
+-- MonthlyFeeCalculationResult의 각 MonthlyFeeCalculationResultItem을 평면화해서 저장
+-- 단일 테이블로 batch insert 최적화
 
 DROP TABLE IF EXISTS calculation_result;
+
 CREATE TABLE calculation_result (
-    -- Primary Key: 계산 결과 고유 식별자
+    -- Primary Key
     calculation_result_id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT '계산 결과 ID',
     
-    -- Contract 정보
+    -- Contract 정보 (중복 저장됨)
     contract_id BIGINT NOT NULL COMMENT '계약 ID',
     
-    -- Product 정보  
-    product_contract_id BIGINT NOT NULL COMMENT '상품 계약 ID',
-    product_offering_id VARCHAR(50) NOT NULL COMMENT '상품 오퍼링 ID',
-    
-    -- MonthlyChargeItem 정보
-    charge_item_id VARCHAR(50) NOT NULL COMMENT '과금 항목 ID',
-    
-    -- Suspension 정보 (Optional)
-    suspension_type_code VARCHAR(10) COMMENT '정지 유형 코드',
-
-    -- Period 정보 (ProratedPeriod의 period)
-    period_start_date DATE NOT NULL COMMENT '계산 기간 시작일',
-    period_end_date DATE NOT NULL COMMENT '계산 기간 종료일',
-    usage_days INT NOT NULL COMMENT '사용 일수',
-    days_of_month INT NOT NULL COMMENT '해당 월 총일수',
-    
-    -- 계산 결과
-    calculated_fee DECIMAL(15,5) NOT NULL COMMENT '계산된 요금',
-
-    -- 메타데이터
+    -- 청구 기간 정보 (중복 저장됨)
     billing_start_date DATE NOT NULL COMMENT '청구 시작일',
     billing_end_date DATE NOT NULL COMMENT '청구 종료일',
     
-    -- 인덱스 (대용량 조회 성능 향상)
-    INDEX idx_contract (contract_id)
+    -- MonthlyFeeCalculationResultItem 정보
+    product_offering_id VARCHAR(50) NOT NULL COMMENT '상품 오퍼링 ID',
+    monthly_charge_item_id VARCHAR(50) NOT NULL COMMENT '월정액 과금 항목 ID',
+    effective_start_date DATE NOT NULL COMMENT '유효 시작일',
+    effective_end_date DATE NOT NULL COMMENT '유효 종료일',
+    suspension_type VARCHAR(30) COMMENT '정지 유형 (TEMPORARY_SUSPENSION, PARTIAL_SUSPENSION 등)',
+    fee DECIMAL(15,2) NOT NULL COMMENT '계산된 요금',
     
-    -- 외래 키 제약조건
-    FOREIGN KEY (contract_id) REFERENCES contract(contract_id)
-) COMMENT = '월정액 요금 계산 결과';
+    -- 메타데이터
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성 시각',
+    
+    -- 인덱스 (대용량 조회 성능 향상)
+    INDEX idx_contract (contract_id),
+    INDEX idx_billing_period (billing_start_date, billing_end_date),
+    INDEX idx_product_offering (product_offering_id),
+    INDEX idx_charge_item (monthly_charge_item_id),
+    INDEX idx_effective_period (effective_start_date, effective_end_date),
+    INDEX idx_suspension_type (suspension_type),
+    INDEX idx_created_at (created_at)
+) COMMENT = '월정액 요금 계산 결과 (평면화 구조)';
 
 -- 파티셔닝을 위한 준비 (추후 대용량 데이터 처리시 월별 파티셔닝 가능)
 -- ALTER TABLE calculation_result 

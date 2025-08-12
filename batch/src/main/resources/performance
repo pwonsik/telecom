@@ -1,0 +1,7 @@
+대량
+
+cursor 100 chunk single thread 1,496,541건 3m31s490ms
+cursor 1000 chunk single thread 1,505,511건 2m53s301ms 왜 다르지..
+
+cursor 100 chunk 4 thread 1,497,939건 2m7s292ms
+

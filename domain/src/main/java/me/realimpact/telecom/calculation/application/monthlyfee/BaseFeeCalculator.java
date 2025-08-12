@@ -59,6 +59,7 @@ public class BaseFeeCalculator implements ProratedFeeCalculator<Contract, Monthl
 
     @Override
     public void write(List<MonthlyFeeCalculationResult> output) {
+        // 결과에서 청구 기간을 추출하여 DefaultPeriod 생성
         calculationResultSavePort.batchSaveCalculationResults(output);
     }
 
