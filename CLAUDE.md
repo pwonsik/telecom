@@ -35,14 +35,28 @@ This is a Spring Boot 3-based telecom billing calculation system implementing he
 
 # Run batch application
 ./gradlew :batch:bootRun
+
+# Run batch with parameters (example)
+./gradlew :batch:bootRun --args="--billingStartDate=2024-03-01 --billingEndDate=2024-03-31"
+
+# Build and run batch JAR
+./gradlew :batch:bootJar
+java -jar batch/build/libs/batch-0.0.1-SNAPSHOT.jar --billingStartDate=2024-03-01 --billingEndDate=2024-03-31
 ```
+
+### Batch Execution
+The system includes comprehensive batch processing capabilities:
+- Use `./run-batch-jar.sh` for interactive batch execution
+- For full batch processing guide, see `BATCH_EXECUTION_GUIDE.md`
+- Supports both full contract processing and single contract processing via `contractId` parameter
 
 ## Architecture
 
 ### Module Structure
-- **domain**: Core business logic with hexagonal architecture (no Spring Boot executable)
+- **domain**: Core business logic with hexagonal architecture (library module, no Spring Boot executable)
 - **web-service**: REST API layer depending on domain
-- **batch**: Batch processing layer depending on domain
+- **batch**: Spring Batch processing layer depending on domain for large-scale calculations
+- **testgen**: Test data generation utility with JavaFaker
 
 ### Hexagonal Architecture
 The domain module follows strict hexagonal architecture:
@@ -85,9 +99,12 @@ The system uses strategy pattern for pricing policies via `MonthlyChargingPolicy
 - **Calculation period**: Maximum one month (1st to end of month)
 
 ### Technology Stack
-- Spring Boot 3.x with Java 17+
+- Spring Boot 3.x with Java 21
 - JPA with QueryDSL for database queries
+- MyBatis for complex SQL queries and batch processing
 - JUnit 5 for testing (avoid mocking in domain tests)
+- Spring Batch for large-scale data processing
+- MySQL as primary database
 - Hexagonal architecture with clear separation of concerns
 
 ### Testing
@@ -107,15 +124,16 @@ This system implements Korean telecom billing with these specific requirements:
 
 The core complexity lies in accurately segmenting billing periods when contracts, products, and service states change, then applying the correct pricing policy to each segment.
 
-## MyBatis SQL XML Configuration
+## MyBatis Configuration for Batch Processing
 
-### Key Considerations for Paging and Sorting in Spring Batch MyBatisPagingItemReader
-- For MyBatis SQL XML, carefully define composite keys for different entities
-- Ensure proper key configuration for pagination and sorting in batch processing:
+### Key Considerations for MyBatisPagingItemReader
+- MyBatis SQL queries support conditional WHERE clauses for flexible usage:
+  - Web service: single contract queries with `contractId` parameter
+  - Batch processing: full dataset queries with `contractId = null`
+- Ensure proper composite key configuration for pagination and sorting:
   * contract key: contractId
   * product key: contractId, productOfferingId, effectiveStartDateTime, effectiveEndDateTime
   * suspension key: contractId, suspensionType, effectiveStartDateTime, effectiveEndDateTime
   * ProductOffering key: productId, chargeItemId
-- When using MyBatisPagingItemReader, implement comprehensive paging and sorting logic
-- Composite keys are crucial for accurate data retrieval in batch processes
-- Recommend using multiple columns in order by and where clauses to ensure precise pagination
+- ORDER BY clauses must maintain consistent sorting for proper pagination
+- For detailed MyBatis paging usage, see `MYBATIS_PAGING_USAGE.md`
