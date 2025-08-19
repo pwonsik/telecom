@@ -35,7 +35,7 @@ class DtoToDomainConverterTest {
         chargeItemDto.setChargeItemId("CI001");
         chargeItemDto.setChargeItemName("기본요금");
         chargeItemDto.setSuspensionChargeRatio(BigDecimal.valueOf(0.5));
-        chargeItemDto.setCalculationMethodCode("00");
+        chargeItemDto.setCalculationMethodCode("FLAT");
         chargeItemDto.setCalculationMethodName("일반적인 정액 요율");
         chargeItemDto.setFlatRateAmount(BigDecimal.valueOf(10000));
         chargeItemDto.setPricingType("FLAT_RATE");
@@ -64,6 +64,8 @@ class DtoToDomainConverterTest {
         dto.setInitiallySubscribedAt(LocalDate.of(2023, 12, 15));
         dto.setTerminatedAt(LocalDate.of(2024, 12, 31));
         dto.setPrefferedTerminationDate(LocalDate.of(2024, 12, 30));
+        dto.setBillingStartDate(LocalDate.of(2024, 1, 1));
+        dto.setBillingEndDate(LocalDate.of(2024, 1, 31));
         dto.setProducts(List.of(productDto));
         dto.setSuspensions(List.of(suspensionDto));
 
@@ -96,6 +98,8 @@ class DtoToDomainConverterTest {
         dto.setInitiallySubscribedAt(LocalDate.of(2023, 12, 15));
         dto.setTerminatedAt(null); // null 테스트
         dto.setPrefferedTerminationDate(null); // null 테스트
+        dto.setBillingStartDate(LocalDate.of(2024, 1, 1));
+        dto.setBillingEndDate(LocalDate.of(2024, 1, 31));
         dto.setProducts(null); // null 테스트
         dto.setSuspensions(null); // null 테스트
 
@@ -120,7 +124,7 @@ class DtoToDomainConverterTest {
         chargeItemDto.setChargeItemId("CI001");
         chargeItemDto.setChargeItemName("기본요금");
         chargeItemDto.setSuspensionChargeRatio(BigDecimal.valueOf(0.5));
-        chargeItemDto.setCalculationMethodCode("00");
+        chargeItemDto.setCalculationMethodCode("FLAT");
         chargeItemDto.setCalculationMethodName("일반적인 정액 요율");
         chargeItemDto.setFlatRateAmount(BigDecimal.valueOf(10000));
         chargeItemDto.setPricingType("FLAT_RATE");
@@ -201,14 +205,14 @@ class DtoToDomainConverterTest {
         chargeItem1.setChargeItemId("CI001");
         chargeItem1.setChargeItemName("기본요금");
         chargeItem1.setSuspensionChargeRatio(BigDecimal.valueOf(0.5));
-        chargeItem1.setCalculationMethodCode("00");
+        chargeItem1.setCalculationMethodCode("FLAT");
         
         MonthlyChargeItemDto chargeItem2 = new MonthlyChargeItemDto();
         chargeItem2.setProductOfferingId("PO001");
         chargeItem2.setChargeItemId("CI002");
         chargeItem2.setChargeItemName("부가요금");
         chargeItem2.setSuspensionChargeRatio(BigDecimal.valueOf(1.0));
-        chargeItem2.setCalculationMethodCode("01");
+        chargeItem2.setCalculationMethodCode("MATCHING");
         
         ProductDto product1 = new ProductDto();
         product1.setContractId(12345L);
@@ -245,6 +249,8 @@ class DtoToDomainConverterTest {
         contractDto.setSubscribedAt(LocalDate.of(2024, 1, 1));
         contractDto.setInitiallySubscribedAt(LocalDate.of(2023, 12, 15));
         contractDto.setTerminatedAt(LocalDate.of(2024, 12, 31));
+        contractDto.setBillingStartDate(LocalDate.of(2024, 1, 1));
+        contractDto.setBillingEndDate(LocalDate.of(2024, 1, 31));
         contractDto.setProducts(Arrays.asList(product1, product2));
         contractDto.setSuspensions(Arrays.asList(suspension1, suspension2));
         

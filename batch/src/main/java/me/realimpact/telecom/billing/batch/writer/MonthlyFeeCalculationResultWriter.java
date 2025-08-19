@@ -8,7 +8,6 @@ import me.realimpact.telecom.calculation.infrastructure.converter.CalculationRes
 import me.realimpact.telecom.calculation.infrastructure.dto.FlatCalculationResultDto;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -23,7 +22,6 @@ public class MonthlyFeeCalculationResultWriter implements ItemWriter<MonthlyFeeC
     private final CalculationResultFlattener calculationResultFlattener;
 
     @Override
-    @Transactional
     public void write(Chunk<? extends MonthlyFeeCalculationResult> chunk) throws Exception {
         if (chunk.isEmpty()) {
             return;

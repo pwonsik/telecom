@@ -19,14 +19,10 @@ public class ContractQueryRepository implements ContractQueryPort {
 
     @Override
     public List<Contract> findContractWithProductsChargeItemsAndSuspensions(Long contractId, LocalDate billingStartDate, LocalDate billingEndDate) {
-        ContractDto contractDto = contractQueryMapper.findContractWithProductsChargeItemsAndSuspensions(contractId, billingStartDate, billingEndDate);
-        if (contractDto == null) {
-            return List.of();
-        }
-        
+        List<ContractDto> contractDtos = contractQueryMapper.findContractWithProductsChargeItemsAndSuspensions(contractId, billingStartDate, billingEndDate);
+
         // DTO를 도메인 객체로 변환 (products와 suspensions 포함)
-        Contract contract = converter.convertToContract(contractDto);
-        return List.of(contract);
+        return converter.convertToContracts(contractDtos);
     }
 
     /**

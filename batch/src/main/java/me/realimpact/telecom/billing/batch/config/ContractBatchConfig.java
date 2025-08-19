@@ -2,6 +2,7 @@ package me.realimpact.telecom.billing.batch.config;
 
 import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.billing.batch.processor.MonthlyFeeCalculationProcessor;
+import me.realimpact.telecom.billing.batch.reader.ChunkedContractReader;
 import me.realimpact.telecom.billing.batch.writer.MonthlyFeeCalculationResultWriter;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.infrastructure.adapter.CalculationResultMapper;
@@ -10,9 +11,6 @@ import me.realimpact.telecom.calculation.infrastructure.converter.CalculationRes
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
 import org.apache.ibatis.session.SqlSessionFactory;
-import org.mybatis.spring.batch.MyBatisBatchItemWriter;
-import org.mybatis.spring.batch.MyBatisCursorItemReader;
-import org.mybatis.spring.batch.builder.MyBatisCursorItemReaderBuilder;
 import org.springframework.batch.item.support.SynchronizedItemStreamReader;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -22,7 +20,6 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,9 +28,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Spring Batch 설정 예제
@@ -77,56 +71,15 @@ public class ContractBatchConfig {
     }
 
     /**
-     * MyBatisCursorItemReader 설정 (Step Parameter 기반)
-     * 커서 기반 스트리밍으로 메모리 효율적 처리
+     * ChunkedContractReader 설정 (Step Parameter 기반)
+     * chunk size만큼 contract ID를 읽어서 bulk 조회로 ContractDto 생성
      * contractId가 있으면 단건, 없으면 전체 조회
      */
     @Bean
     @StepScope
-    public MyBatisCursorItemReader<ContractDto> contractCursorReader(
-            @Value("#{jobParameters['billingStartDate']}") String billingStartDateStr,
-            @Value("#{jobParameters['billingEndDate']}") String billingEndDateStr,
-            @Value("#{jobParameters['contractId']}") String contractIdStr,
-            @Value("#{jobParameters['parallelDegree'] ?: '4'}") String parallelDegreeStr) {
-        
-        System.out.println("=== ContractCursorReader 생성 (@StepScope) ===");
-        System.out.println("billingStartDateStr: [" + billingStartDateStr + "]");
-        System.out.println("billingEndDateStr: [" + billingEndDateStr + "]");
-        System.out.println("contractIdStr: [" + contractIdStr + "]");
-        System.out.println("parallelDegreeStr: [" + parallelDegreeStr + "]");
-        
-        // Job Parameter 유효성 검사
-        if (billingStartDateStr == null || billingStartDateStr.trim().isEmpty() || 
-            billingEndDateStr == null || billingEndDateStr.trim().isEmpty()) {
-            throw new IllegalArgumentException("billingStartDate and billingEndDate are required job parameters");
-        }
-        
-        // Job Parameter에서 받은 문자열을 LocalDate로 변환
-        LocalDate billingStartDate = LocalDate.parse(billingStartDateStr);
-        LocalDate billingEndDate = LocalDate.parse(billingEndDateStr);
-        
-        // contractId 처리 (null 또는 빈 문자열이면 전체 조회)
-        Long contractId = (contractIdStr == null || contractIdStr.trim().isEmpty()) 
-            ? null 
-            : Long.parseLong(contractIdStr.trim());
-            
-        // parallelDegree 처리
-        Integer parallelDegree = Integer.parseInt(parallelDegreeStr);
-
-        // 파라미터 설정
-        Map<String, Object> parameterValues = new HashMap<>();
-        parameterValues.put("contractId", contractId);  // null이면 전체 조회, 값이 있으면 해당 계약만 조회
-        parameterValues.put("billingStartDate", billingStartDate);
-        parameterValues.put("billingEndDate", billingEndDate);
-        parameterValues.put("parallelDegree", parallelDegree);  // MySQL 힌트용
-
-        System.out.println("MyBatis 파라미터: " + parameterValues);
-
-        return new MyBatisCursorItemReaderBuilder<ContractDto>()
-                .sqlSessionFactory(sqlSessionFactory)
-                .queryId("me.realimpact.telecom.calculation.infrastructure.adapter.ContractQueryMapper.findContractsWithProductsChargeItemsAndSuspensions")
-                .parameterValues(parameterValues)
-                .build();
+    public ChunkedContractReader chunkedContractReader() {
+        // @StepScope로 인해 런타임에 job parameter와 dependency가 자동 주입됨
+        return new ChunkedContractReader(null, sqlSessionFactory); // ContractQueryMapper는 런타임에 주입
     }
     
     /**
@@ -136,7 +89,7 @@ public class ContractBatchConfig {
     @StepScope  
     public SynchronizedItemStreamReader<ContractDto> contractReader() {
         SynchronizedItemStreamReader<ContractDto> reader = new SynchronizedItemStreamReader<>();
-        reader.setDelegate(contractCursorReader(null, null, null, null));  // @StepScope가 런타임에 실제 값 주입
+        reader.setDelegate(chunkedContractReader());  // ChunkedContractReader 사용
         return reader;
     }
 

@@ -12,6 +12,11 @@ import java.util.stream.Collectors;
 
 @Component
 public class DtoToDomainConverter {
+    public List<Contract> convertToContracts(List<ContractDto> dto) {
+        return dto.stream()
+            .map(this::convertToContract)
+            .toList();
+    }
 
     public Contract convertToContract(ContractDto dto) {
         // Products 변환
