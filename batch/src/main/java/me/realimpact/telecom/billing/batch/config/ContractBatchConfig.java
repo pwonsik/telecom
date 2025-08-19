@@ -176,7 +176,6 @@ public class ContractBatchConfig {
                 .processor(monthlyFeeCalculationProcessor())  // @StepScope Processor 사용
                 .writer(monthlyFeeCalculationWriter())        // @StepScope Writer 사용
                 .taskExecutor(taskExecutor(null))             // 멀티쓰레드 실행 (@JobScope가 런타임에 실제 값 주입)
-                .throttleLimit(8)                             // 동시 실행 쓰레드 수 제한 (넉넉하게 설정)
                 .build();
     }
 
