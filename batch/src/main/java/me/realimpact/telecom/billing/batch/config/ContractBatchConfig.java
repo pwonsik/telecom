@@ -1,8 +1,10 @@
 package me.realimpact.telecom.billing.batch.config;
 
+import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.billing.batch.processor.MonthlyFeeCalculationProcessor;
 import me.realimpact.telecom.billing.batch.writer.MonthlyFeeCalculationResultWriter;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
+import me.realimpact.telecom.calculation.infrastructure.adapter.CalculationResultMapper;
 import me.realimpact.telecom.calculation.infrastructure.converter.DtoToDomainConverter;
 import me.realimpact.telecom.calculation.infrastructure.converter.CalculationResultFlattener;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
@@ -38,26 +40,18 @@ import java.util.Map;
  * MyBatisPagingItemReader를 사용한 대용량 계약 데이터 처리
  */
 @Configuration
+@RequiredArgsConstructor
 public class ContractBatchConfig {
 
-    @Autowired
-    private SqlSessionFactory sqlSessionFactory;
+    private final SqlSessionFactory sqlSessionFactory;
+    private final JobRepository jobRepository;
+    private final PlatformTransactionManager transactionManager;
+    private final BaseFeeCalculator monthlyFeeCalculatorService;
+    private final DtoToDomainConverter dtoToDomainConverter;
+    private final CalculationResultMapper calculationResultMapper;
+    private final CalculationResultFlattener calculationResultFlattener;
 
-    @Autowired
-    private JobRepository jobRepository;
 
-    @Autowired
-    private PlatformTransactionManager transactionManager;
-    
-    @Autowired
-    private BaseFeeCalculator monthlyFeeCalculatorService;
-    
-    @Autowired
-    private DtoToDomainConverter dtoToDomainConverter;
-    
-    @Autowired
-    private CalculationResultFlattener calculationResultFlattener;
-    
     /**
      * 멀티쓰레드 처리를 위한 TaskExecutor 설정
      */
@@ -161,7 +155,7 @@ public class ContractBatchConfig {
     @Bean
     @StepScope
     public ItemWriter<MonthlyFeeCalculationResult> monthlyFeeCalculationWriter() {
-        return new MonthlyFeeCalculationResultWriter(sqlSessionFactory, calculationResultFlattener);
+        return new MonthlyFeeCalculationResultWriter(calculationResultMapper, calculationResultFlattener);
     }
 
 

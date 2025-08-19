@@ -22,7 +22,6 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeRule;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.StepFactorPolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.TierFactorPolicy;
 import me.realimpact.telecom.calculation.port.out.ContractQueryPort;
-import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,8 +36,6 @@ class MonthlyFeeCalculationIntegrationTest {
     @Mock
     private ContractQueryPort contractQueryPort;
     
-    @Mock
-    private CalculationResultSavePort calculationResultSavePort;
 
 
     private BaseFeeCalculator calculator;
@@ -153,7 +150,7 @@ class MonthlyFeeCalculationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        calculator = new BaseFeeCalculator(contractQueryPort, calculationResultSavePort);
+        calculator = new BaseFeeCalculator(contractQueryPort);
     }
 
     @Test

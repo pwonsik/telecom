@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
 import me.realimpact.telecom.calculation.infrastructure.converter.CalculationResultFlattener;
 import me.realimpact.telecom.calculation.infrastructure.dto.FlatCalculationResultDto;
-import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,7 +17,7 @@ import java.util.List;
 @Repository
 @RequiredArgsConstructor
 @Slf4j
-public class CalculationResultRepository implements CalculationResultSavePort {
+public class CalculationResultRepository  {
 
     private final CalculationResultMapper calculationResultMapper;
     private final CalculationResultFlattener calculationResultFlattener;
@@ -27,7 +26,6 @@ public class CalculationResultRepository implements CalculationResultSavePort {
      * 대용량 배치 저장
      * MonthlyFeeCalculationResult를 평면화된 단일 테이블 구조로 저장
      */
-    @Override
     @Transactional
     public void batchSaveCalculationResults(List<MonthlyFeeCalculationResult> results) {
         if (results == null || results.isEmpty()) {

@@ -11,14 +11,13 @@ import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
 import me.realimpact.telecom.calculation.port.out.ContractQueryPort;
-import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 
 @Service
 @RequiredArgsConstructor
 public class BaseFeeCalculator implements ProratedFeeCalculator<Contract, MonthlyFeeCalculationResult> {
 
     private final ContractQueryPort contractQueryPort;
-    private final CalculationResultSavePort calculationResultSavePort;
+    //private final CalculationResultSavePort calculationResultSavePort;
 
     public DefaultPeriod createBillingPeriod(CalculationRequest context) {
         // 청구기간 말일까지 계산해야 하는 유형 (정기청구나 전당월의 전월. 미래요금조회 등)은 종료일에 하루를 더해준다.
@@ -60,7 +59,7 @@ public class BaseFeeCalculator implements ProratedFeeCalculator<Contract, Monthl
     @Override
     public void write(List<MonthlyFeeCalculationResult> output) {
         // 결과에서 청구 기간을 추출하여 DefaultPeriod 생성
-        calculationResultSavePort.batchSaveCalculationResults(output);
+        //calculationResultSavePort.batchSaveCalculationResults(output);
     }
 
     /**
