@@ -145,6 +145,8 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
         
         // contract ID들로 bulk 조회하여 ContractDto 리스트 생성
         List<ContractDto> contractDtos = fetchContractsByIds(contractIds);
+
+        // todo - 여기에 각종 요금항목을 계산하기 위한 기초 데이터를 load하는 로직 넣는다.
         
         log.info("생성된 ContractDto 개수: {}", contractDtos.size());
         

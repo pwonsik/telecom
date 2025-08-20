@@ -97,3 +97,60 @@
 - Spring Bean으로 관리
 - ProductOfferingID와 MonthlyChargeItem의 조합으로 가격 정책 관리
 - FlatRate면
+
+
+--------------------
+
+# 일회성과금 항목 계산 프로세스 개발
+## package 추가
+- domain, application 밑에 onetimecharge package 추가
+- application.onetimecharge package에 policy package 추가
+- domain.onetimecharge package에 policy package 추가
+- domain.onetimecharge.policy package에 단말할부, 설치비 package 추가 (이름은 잘 지어줘)
+
+## interface 추가
+### application.onetimecharge package에 OneTimeChargeCalculator interface 추가
+- 가변 클래스를 넣을 수 있게, I, O 라는 클래스 약어 도입.
+- 아래 5개의 메소드 정의
+1. List<I> read(CalculationRequest request)
+2. O process(I input)
+3. void write(List<O> output)
+4. void post(List<O> output)
+5. default method calculate
+      default void calculate(CalculationRequest request) {
+          write(read(request).stream().map(this::process).toList());
+      }
+
+## class 추가
+
+### application.onetimecharge 에 OneTimeChargeCalculationResult, OneTimeChargeCalculationResultItem recode 추가 (1:n관계)
+- OneTimeChargeCalculationResult : contractId, BillingStartDate, billingEndDate, list<OneTimeChargeCalculationResultItem> 보유
+- OneTimeChargeCalculationResultItem : chargeItenCode, fee 보유
+
+### application.onetimecharge.policy에 OneTimeChargeCalculator를 구현한 class 두개 추가. 메소드는 일단 비워둔다.
+- 단말할부금 계산 (I : mybatis를 통해 조회한 할부내역DTO, O : OneTimeChargeCalculationResult)
+- 설치비 계산 (I: mybatis를 통해 조회한 설치내역DTO, O : OneTimeChargeCalculationResult)
+
+### domain.onetimecharge.policy에 domain entity 정의
+- 단말할부마스터
+|계약ID|할부일련번호|할부시작일|할부금총액|할부개월수|할부청구횟수|
+
+- 단말할부상세 (단말할부마스터와 1:n관계)
+|계약ID|할부일련번호|할부회차|할부금|청구완료일|
+
+- 설치이력 (이름은 잘 지어줘)
+|계약ID|일련번호|설치일|설치비|청구여부|
+
+
+## mybatis xml, mapper 추가
+### 단말할부내역 조회 로직을 단말할부내역 관리하는 mybatis xml에 추가
+- 기존 contract reader 처럼 contract ID list를 받음
+- 계약ID,할부일련번호를 key로 정의
+- 조회조건 : 빌링종료일 >= 할부시작일 and 할부개월수 > 할부청구횟수
+
+### 설치내역 조회 로직을 설치내역 관리하는 mybatis xml에 추가
+- 기존 contract reader 처럼 contract ID list를 받음
+- 계약ID,일련번호를 key로 정의
+- 조회조건 : 빌링종료일 >= 설치일 and coalesce(청구여부,'N') = 'N'
+
+### CalculationResultFlattener에 OneTimeChargeCalculationResult를 CalculationResult로 변환하는 로직 추가

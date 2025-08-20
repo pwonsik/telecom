@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="me.realimpact.telecom.calculation.infrastructure.adapter.InstallationHistoryMapper">
+
+    <resultMap id="installationHistoryResult" type="InstallationHistoryDto">
+        <!-- 계약ID, 일련번호를 key로 정의 -->
+        <id property="contractId" column="contract_id"/>
+        <id property="sequenceNumber" column="sequence_number"/>
+        <result property="installationDate" column="installation_date"/>
+        <result property="installationFee" column="installation_fee"/>
+        <result property="billedFlag" column="billed_flag"/>
+    </resultMap>
+
+    <!-- 계약 ID 목록으로 설치내역 조회 -->
+    <select id="findInstallationsByContractIds" resultMap="installationHistoryResult">
+        SELECT 
+            ih.contract_id,
+            ih.sequence_number,
+            ih.installation_date,
+            ih.installation_fee,
+            ih.billed_flag
+        FROM installation_history ih
+        WHERE 1=1
+        AND ih.contract_id IN
+        <foreach item="contractId" collection="contractIds" open="(" separator="," close=")">
+            #{contractId}
+        </foreach>
+        <!-- 조회조건: 빌링종료일 >= 설치일 and coalesce(청구여부,'N') = 'N' -->
+        AND #{billingEndDate} >= ih.installation_date
+        AND COALESCE(ih.billed_flag, 'N') = 'N'
+        ORDER BY ih.contract_id, ih.sequence_number
+    </select>
+
+</mapper>

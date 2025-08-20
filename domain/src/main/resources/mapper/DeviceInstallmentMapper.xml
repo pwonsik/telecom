@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="me.realimpact.telecom.calculation.infrastructure.adapter.DeviceInstallmentMapper">
+
+    <resultMap id="deviceInstallmentResult" type="DeviceInstallmentDto">
+        <!-- 계약ID, 할부일련번호를 key로 정의 -->
+        <id property="contractId" column="contract_id"/>
+        <id property="installmentSequence" column="installment_sequence"/>
+        <result property="installmentStartDate" column="installment_start_date"/>
+        <result property="totalInstallmentAmount" column="total_installment_amount"/>
+        <result property="installmentMonths" column="installment_months"/>
+        <result property="billedCount" column="billed_count"/>
+    </resultMap>
+
+    <!-- 계약 ID 목록으로 단말할부내역 조회 -->
+    <select id="findInstallmentsByContractIds" resultMap="deviceInstallmentResult">
+        SELECT 
+            dim.contract_id,
+            dim.installment_sequence,
+            dim.installment_start_date,
+            dim.total_installment_amount,
+            dim.installment_months,
+            dim.billed_count
+        FROM device_installment_master dim
+        WHERE 1=1
+        AND dim.contract_id IN
+        <foreach item="contractId" collection="contractIds" open="(" separator="," close=")">
+            #{contractId}
+        </foreach>
+        <!-- 조회조건: 빌링종료일 >= 할부시작일 and 할부개월수 > 할부청구횟수 -->
+        AND #{billingEndDate} >= dim.installment_start_date
+        AND dim.installment_months > dim.billed_count
+        ORDER BY dim.contract_id, dim.installment_sequence
+    </select>
+
+</mapper>
