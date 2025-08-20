@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.processor.MonthlyFeeCalculationProcessor;
 import me.realimpact.telecom.billing.batch.reader.ChunkedContractReader;
+import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
 import me.realimpact.telecom.billing.batch.writer.MonthlyFeeCalculationResultWriter;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.infrastructure.adapter.CalculationResultMapper;
@@ -124,7 +125,7 @@ public class ContractBatchConfig {
     @Bean
     public Step monthlyFeeCalculationStep() {
         return new StepBuilder("monthlyFeeCalculationStep", jobRepository)
-                .<ContractDto, MonthlyFeeCalculationResult>chunk(100, transactionManager)  // 쓰레드당 100개씩 커밋
+                .<ContractDto, MonthlyFeeCalculationResult>chunk(CHUNK_SIZE, transactionManager)  // 상수화된 chunk size 사용
                 .reader(contractReader())  // Thread-Safe Reader 사용
                 .processor(monthlyFeeCalculationProcessor())  // @StepScope Processor 사용
                 .writer(monthlyFeeCalculationWriter())        // @StepScope Writer 사용

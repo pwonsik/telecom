@@ -3,6 +3,7 @@ package me.realimpact.telecom.billing.batch.reader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.calculation.infrastructure.adapter.ContractQueryMapper;
+import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
@@ -37,8 +38,7 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
     @Value("#{jobParameters['contractId']}")
     private String contractIdStr;
     
-    @Value("#{stepExecutionContext['chunkSize'] ?: 100}")
-    private int chunkSize;
+    private static final int chunkSize = CHUNK_SIZE;
     
     private MyBatisCursorItemReader<Long> contractIdReader;
     private ListItemReader<ContractDto> currentChunkReader;
@@ -69,13 +69,21 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
     
     @Override
     public ContractDto read() throws Exception {
-        if (currentChunkReader == null || currentChunkReader.read() == null) {
-            loadNextChunk();
-            if (currentChunkReader == null) {
-                return null;
+        // 현재 청크에서 아이템을 읽기 시도
+        if (currentChunkReader != null) {
+            ContractDto item = currentChunkReader.read();
+            if (item != null) {
+                return item;
             }
         }
         
+        // 현재 청크가 끝났으면 다음 청크 로드
+        loadNextChunk();
+        if (currentChunkReader == null) {
+            return null; // 더 이상 읽을 데이터가 없음
+        }
+        
+        // 새로운 청크에서 첫 번째 아이템 반환
         return currentChunkReader.read();
     }
     
@@ -115,7 +123,7 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
     }
 
     private void loadNextChunk() throws Exception {
-        log.debug("=== ChunkedContractReader loadNextChunk ===");
+        //log.debug("=== ChunkedContractReader loadNextChunk ===");
         
         List<Long> contractIds = new ArrayList<>();
         
@@ -133,7 +141,7 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
             return;
         }
         
-        log.info("읽어온 contractIds: {}", contractIds.size() <= 10 ? contractIds : contractIds.subList(0, 10) + "...");
+        //log.info("읽어온 contractIds: {}", contractIds.size() <= 10 ? contractIds : contractIds.subList(0, 10) + "...");
         
         // contract ID들로 bulk 조회하여 ContractDto 리스트 생성
         List<ContractDto> contractDtos = fetchContractsByIds(contractIds);

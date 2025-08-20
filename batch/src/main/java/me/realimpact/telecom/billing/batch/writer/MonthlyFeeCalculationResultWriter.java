@@ -27,13 +27,12 @@ public class MonthlyFeeCalculationResultWriter implements ItemWriter<MonthlyFeeC
             return;
         }
 
-        log.info("Writing {} calculation results to database", chunk.size());
+        //log.info("Writing {} calculation results to database", chunk.size());
         
         // MonthlyFeeCalculationResult를 평면화된 DTO로 변환
         List<FlatCalculationResultDto> flatResults = calculationResultFlattener.flattenResults(chunk.getItems());
         
-        log.info("Flattened {} results into {} records for batch insert", 
-                chunk.size(), flatResults.size());
+        //log.info("Flattened {} results into {} records for batch insert", chunk.size(), flatResults.size());
         
         // 단일 배치 Insert 실행 - 스프링이 트랜잭션을 관리
         int insertedRows = calculationResultMapper.batchInsertCalculationResults(flatResults);
