@@ -11,6 +11,8 @@
         <result property="totalInstallmentAmount" column="total_installment_amount"/>
         <result property="installmentMonths" column="installment_months"/>
         <result property="billedCount" column="billed_count"/>
+        <result property="installmentRound" column="installment_round"/>
+        <result property="installmentAmount" column="installment_amount"/>
     </resultMap>
 
     <!-- 계약 ID 목록으로 단말할부내역 조회 -->
@@ -21,8 +23,22 @@
             dim.installment_start_date,
             dim.total_installment_amount,
             dim.installment_months,
-            dim.billed_count
+            dim.billed_count,
+            did.installment_round,
+            did.installment_amount
         FROM device_installment_master dim
+        INNER JOIN (
+            SELECT 
+                contract_id,
+                installment_sequence,
+                installment_round,
+                installment_amount,
+                ROW_NUMBER() OVER (PARTITION BY contract_id, installment_sequence ORDER BY installment_round) as rn
+            FROM device_installment_detail
+            WHERE billing_completed_date IS NULL
+        ) did ON dim.contract_id = did.contract_id 
+              AND dim.installment_sequence = did.installment_sequence
+              AND did.rn = 1
         WHERE 1=1
         AND dim.contract_id IN
         <foreach item="contractId" collection="contractIds" open="(" separator="," close=")">
