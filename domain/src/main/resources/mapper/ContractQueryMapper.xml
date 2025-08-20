@@ -145,4 +145,53 @@
         <!-- MyBatisCursorItemReader는 스트리밍 방식으로 모든 결과를 순차 처리 -->
     </select>
 
+    <!-- 계약 ID 목록 조회 (Spring Batch용) -->
+    <select id="findContractIds" resultType="Long">
+        SELECT DISTINCT c.contract_id
+        FROM contract c
+        WHERE 1=1
+        <!-- 계약 ID 조건 (조건부) -->
+        <if test="contractId != null">
+            AND c.contract_id = #{contractId}
+        </if>
+        <!-- 계약 유효 기간 필터링 -->
+        AND COALESCE(c.subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(c.terminated_at, '9999-12-31') &gt; #{billingStartDate}
+        AND COALESCE(c.initially_subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(c.preffered_termination_date, '9999-12-31') &gt; #{billingStartDate}
+        ORDER BY c.contract_id
+    </select>
+
+    <!-- 계약 ID 목록으로 상세 정보 조회 (IN 절 사용) -->
+    <select id="findContractsByIds" resultMap="contractWithProductsAndSuspensions">
+        <include refid="contractSelectClause"/>
+        WHERE 1=1
+        AND c.contract_id IN
+        <foreach item="contractId" collection="contractIds" open="(" separator="," close=")">
+            #{contractId}
+        </foreach>
+        
+        <!-- 계약 유효 기간 필터링 -->
+        AND COALESCE(c.subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(c.terminated_at, '9999-12-31') &gt; #{billingStartDate}
+        AND COALESCE(c.initially_subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(c.preffered_termination_date, '9999-12-31') &gt; #{billingStartDate}
+        
+        <!-- 상품 유효 기간 필터링 -->
+        AND DATE(COALESCE(p.effective_start_date_time, '1900-01-01 00:00:00')) &lt; DATE(COALESCE(p.effective_end_date_time, '9999-12-31 23:59:59'))
+        AND COALESCE(p.effective_start_date_time, '1900-01-01 00:00:00') &lt;= CONCAT(#{billingEndDate}, ' 23:59:59')
+        AND COALESCE(p.effective_end_date_time, '9999-12-31 23:59:59') &gt; CONCAT(#{billingStartDate}, ' 23:59:59')
+        AND COALESCE(p.subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(p.terminated_at, '9999-12-31') &gt; #{billingStartDate}
+        
+        <!-- 정지 유효 기간 필터링 (LEFT JOIN이므로 NULL 허용) -->
+        AND (s.contract_id IS NULL OR (
+            DATE(COALESCE(s.effective_start_date_time, '1900-01-01 00:00:00')) &lt; DATE(COALESCE(s.effective_end_date_time, '9999-12-31 23:59:59'))
+            AND COALESCE(s.effective_start_date_time, '1900-01-01 00:00:00') &lt;= CONCAT(#{billingEndDate}, ' 23:59:59')
+            AND COALESCE(s.effective_end_date_time, '9999-12-31 23:59:59') &gt; CONCAT(#{billingStartDate}, ' 23:59:59')
+        ))
+        
+        <include refid="contractOrderByClause"/>
+    </select>
+
 </mapper>

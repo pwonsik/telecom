@@ -1,16 +1,19 @@
 package me.realimpact.telecom.billing.batch.config;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.processor.MonthlyFeeCalculationProcessor;
 import me.realimpact.telecom.billing.batch.reader.ChunkedContractReader;
 import me.realimpact.telecom.billing.batch.writer.MonthlyFeeCalculationResultWriter;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.infrastructure.adapter.CalculationResultMapper;
+import me.realimpact.telecom.calculation.infrastructure.adapter.ContractQueryMapper;
 import me.realimpact.telecom.calculation.infrastructure.converter.DtoToDomainConverter;
 import me.realimpact.telecom.calculation.infrastructure.converter.CalculationResultFlattener;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.batch.item.support.SynchronizedItemStreamReader;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -35,6 +38,8 @@ import java.time.LocalDate;
  */
 @Configuration
 @RequiredArgsConstructor
+@MapperScan("me.realimpact.telecom.calculation.infrastructure.adapter")
+@Slf4j
 public class ContractBatchConfig {
 
     private final SqlSessionFactory sqlSessionFactory;
@@ -44,6 +49,7 @@ public class ContractBatchConfig {
     private final DtoToDomainConverter dtoToDomainConverter;
     private final CalculationResultMapper calculationResultMapper;
     private final CalculationResultFlattener calculationResultFlattener;
+    private final ContractQueryMapper contractQueryMapper;
 
 
     /**
@@ -63,9 +69,9 @@ public class ContractBatchConfig {
         executor.setAwaitTerminationSeconds(60);
         executor.initialize();
         
-        System.out.println("=== TaskExecutor 설정 ===");
-        System.out.println("쓰레드 수: " + threadCount);
-        System.out.println("최대 쓰레드 수: " + (threadCount * 2));
+        log.info("=== TaskExecutor 설정 ===");
+        log.info("쓰레드 수: {}", threadCount);
+        log.info("최대 쓰레드 수: {}", threadCount * 2);
         
         return executor;
     }
@@ -79,7 +85,7 @@ public class ContractBatchConfig {
     @StepScope
     public ChunkedContractReader chunkedContractReader() {
         // @StepScope로 인해 런타임에 job parameter와 dependency가 자동 주입됨
-        return new ChunkedContractReader(null, sqlSessionFactory); // ContractQueryMapper는 런타임에 주입
+        return new ChunkedContractReader(contractQueryMapper, sqlSessionFactory); // ContractQueryMapper는 런타임에 주입
     }
     
     /**

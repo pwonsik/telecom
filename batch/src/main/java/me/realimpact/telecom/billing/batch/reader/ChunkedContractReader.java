@@ -1,6 +1,7 @@
 package me.realimpact.telecom.billing.batch.reader;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.calculation.infrastructure.adapter.ContractQueryMapper;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -19,9 +20,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Component
 @StepScope
 @RequiredArgsConstructor
+@Slf4j
 public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
     
     private final ContractQueryMapper contractQueryMapper;
@@ -79,11 +80,11 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
     }
     
     private void initializeContractIdReader() {
-        System.out.println("=== ChunkedContractReader 초기화 ===");
-        System.out.println("chunkSize: " + chunkSize);
-        System.out.println("billingStartDateStr: [" + billingStartDateStr + "]");
-        System.out.println("billingEndDateStr: [" + billingEndDateStr + "]");
-        System.out.println("contractIdStr: [" + contractIdStr + "]");
+        log.info("=== ChunkedContractReader 초기화 ===");
+        log.info("chunkSize: {}", chunkSize);
+        log.info("billingStartDateStr: [{}]", billingStartDateStr);
+        log.info("billingEndDateStr: [{}]", billingEndDateStr);
+        log.info("contractIdStr: [{}]", contractIdStr);
 
         Map<String, Object> parameterValues = getParameterValues();
 
@@ -114,7 +115,7 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
     }
 
     private void loadNextChunk() throws Exception {
-        System.out.println("=== ChunkedContractReader loadNextChunk ===");
+        log.debug("=== ChunkedContractReader loadNextChunk ===");
         
         List<Long> contractIds = new ArrayList<>();
         
@@ -132,12 +133,12 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
             return;
         }
         
-        System.out.println("읽어온 contractIds: " + contractIds);
+        log.info("읽어온 contractIds: {}", contractIds.size() <= 10 ? contractIds : contractIds.subList(0, 10) + "...");
         
         // contract ID들로 bulk 조회하여 ContractDto 리스트 생성
         List<ContractDto> contractDtos = fetchContractsByIds(contractIds);
         
-        System.out.println("생성된 ContractDto 개수: " + contractDtos.size());
+        log.info("생성된 ContractDto 개수: {}", contractDtos.size());
         
         // ListItemReader로 감싸서 하나씩 반환할 수 있도록 설정
         currentChunkReader = new ListItemReader<>(contractDtos);
