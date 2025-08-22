@@ -1,39 +1,60 @@
 package me.realimpact.telecom.calculation.application.onetimecharge.policy;
 
+import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
-import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeCalculationResult;
-import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeCalculator;
-import me.realimpact.telecom.calculation.infrastructure.dto.InstallationHistoryDto;
-import org.springframework.stereotype.Component;
+import me.realimpact.telecom.calculation.application.Calculator;
+import me.realimpact.telecom.calculation.domain.CalculationContext;
+import me.realimpact.telecom.calculation.domain.CalculationResult;
+import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation.InstallationHistory;
+import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper;
+import me.realimpact.telecom.calculation.port.out.InstallationHistoryQueryPort;
+import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
  * 설치비 계산기
  * MyBatis로 조회한 설치내역 DTO를 입력받아 일회성 과금 계산 결과를 생성한다.
  */
-@Component
-public class InstallationFeeCalculator implements OneTimeChargeCalculator<InstallationHistoryDto, OneTimeChargeCalculationResult> {
+@RequiredArgsConstructor
+@Service
+public class InstallationFeeCalculator implements Calculator<InstallationHistory> {
+    private final InstallationHistoryQueryPort installationHistoryQueryPort;
 
+    public InstallationFeeCalculator(InstallationHistoryMapper installationHistoryMapper) {
+        this.installationHistoryMapper = installationHistoryMapper;
+    }
+
+    findInstallationHistories
     @Override
-    public List<InstallationHistoryDto> read(CalculationRequest request) {
-        // TODO: MyBatis를 통한 설치내역 조회 로직 구현
-        return List.of();
+    public List<InstallationHistory> read(CalculationContext ctx, List<Long> contractIds) {
+        return installationHistoryQueryPort.findInstallations(contractIds, ctx.billingStartDate(), ctx.billingEndDate());
     }
 
     @Override
-    public OneTimeChargeCalculationResult process(InstallationHistoryDto input) {
-        // TODO: 설치비 계산 로직 구현
-        return null;
+    public List<CalculationResult> process(CalculationContext ctx, InstallationHistory input) {
+        return List.of(
+                new CalculationResult(
+                        null,
+                        ctx.billingStartDate(),
+                        ctx.billingEndDate(),
+                        null,
+                        "INST",
+                        null,
+                        null,
+                        null,
+                        BigDecimal.valueOf(input.fee())
+        );
     }
 
     @Override
-    public void write(List<OneTimeChargeCalculationResult> output) {
-        // TODO: 계산 결과 저장 로직 구현
+    public void write(CalculationContext ctx, List<CalculationResult> output) {
+
     }
 
     @Override
-    public void post(List<OneTimeChargeCalculationResult> output) {
-        // TODO: 후처리 로직 구현 (필요시)
+    public void post(CalculationContext ctx, List<CalculationResult> output) {
+
     }
 }

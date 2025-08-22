@@ -11,14 +11,14 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
-public class DtoToDomainConverter {
-    public List<Contract> convertToContracts(List<ContractDto> dto) {
+public class ContractDtoToDomainConverter {
+    public List<ContractWithProductsAndSuspensions> convertToContracts(List<ContractDto> dto) {
         return dto.stream()
             .map(this::convertToContract)
             .toList();
     }
 
-    public Contract convertToContract(ContractDto dto) {
+    public ContractWithProductsAndSuspensions convertToContract(ContractDto dto) {
         // Products 변환
         List<Product> products = dto.getProducts() != null ? 
             convertToProducts(dto.getProducts()) : List.of();
@@ -27,7 +27,7 @@ public class DtoToDomainConverter {
         List<Suspension> suspensions = dto.getSuspensions() != null ?
             convertToSuspensions(dto.getSuspensions()) : List.of();
         
-        return new Contract(
+        return new ContractWithProductsAndSuspensions(
             dto.getContractId(),
             dto.getSubscribedAt(),
             dto.getInitiallySubscribedAt(),
@@ -139,4 +139,5 @@ public class DtoToDomainConverter {
                 Suspension.SuspensionType.fromCode(dto.getSuspensionTypeCode())
         );
     }
+
 }

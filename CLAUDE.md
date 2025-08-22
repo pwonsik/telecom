@@ -48,7 +48,7 @@ java -jar batch/build/libs/batch-0.0.1-SNAPSHOT.jar --billingStartDate=2024-03-0
 The system includes comprehensive batch processing capabilities:
 - Use `./run-batch-jar.sh` for interactive batch execution
 - For full batch processing guide, see `BATCH_EXECUTION_GUIDE.md`
-- Supports both full contract processing and single contract processing via `contractId` parameter
+- Supports both full contractWithProductsAndSuspensions processing and single contractWithProductsAndSuspensions processing via `contractId` parameter
 
 ## Architecture
 
@@ -70,7 +70,7 @@ The domain module follows strict hexagonal architecture:
 #### Monthly Fee Calculation Flow
 1. **CalculationUseCase**: Main entry point implementing `CalculationCommandUseCase`
 2. **MonthlyFeeCalculator**: Core calculator handling pro-rated billing logic
-3. **ProratedPeriodBuilder**: Splits billing periods based on contract changes, suspensions, and product changes
+3. **ProratedPeriodBuilder**: Splits billing periods based on contractWithProductsAndSuspensions changes, suspensions, and product changes
 4. **Pricing Policies**: Strategy pattern for different pricing models (Flat rate, Range-based, Tier-based, Unit price, etc.)
 
 #### Policy Strategy Pattern
@@ -94,7 +94,7 @@ The system uses strategy pattern for pricing policies via `MonthlyChargingPolicy
 ### Business Rules Implementation
 - **Pro-rated calculation**: Contract start date is included, end date is excluded
 - **Suspension periods**: Apply suspension billing rates defined per product
-- **Period segmentation**: Overlap contract history with service status history for accurate billing
+- **Period segmentation**: Overlap contractWithProductsAndSuspensions history with service status history for accurate billing
 - **OCP principle**: New B2B products must be addable without modifying existing code
 - **Calculation period**: Maximum one month (1st to end of month)
 
@@ -135,14 +135,14 @@ The core complexity lies in accurately segmenting billing periods when contracts
 ### Batch Job Parameters
 - **billingStartDate** (required): Billing period start date (YYYY-MM-DD format)
 - **billingEndDate** (required): Billing period end date (YYYY-MM-DD format)  
-- **contractId** (optional): Specific contract ID for single contract processing
+- **contractId** (optional): Specific contractWithProductsAndSuspensions ID for single contractWithProductsAndSuspensions processing
 - **threadCount** (optional): Number of threads for parallel processing (default: 8)
 
 ### MyBatis Configuration for Batch Processing
 
 #### Dual Usage Pattern
 MyBatis queries support conditional WHERE clauses for flexible usage:
-- Web service: single contract queries with `contractId` parameter
+- Web service: single contractWithProductsAndSuspensions queries with `contractId` parameter
 - Batch processing: full dataset queries with `contractId = null`
 
 #### Complex Data Reading Strategy
@@ -152,7 +152,7 @@ Current implementation uses MyBatisCursorItemReader for streaming large datasets
 - SQL fragment reuse (`contractSelectClause`, `contractFilterConditions`, `contractOrderByClause`)
 
 #### Key Composite Keys for Proper Pagination
-- contract key: contractId
+- contractWithProductsAndSuspensions key: contractId
 - product key: contractId, productOfferingId, effectiveStartDateTime, effectiveEndDateTime
 - suspension key: contractId, suspensionType, effectiveStartDateTime, effectiveEndDateTime
 - ProductOffering key: productId, chargeItemId

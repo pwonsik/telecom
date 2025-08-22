@@ -20,4 +20,7 @@ public class ContractDto {
     
     private List<ProductDto> products;
     private List<SuspensionDto> suspensions;
+
+    private List<InstallationHistoryDto> installationHistories;
+    private List<DeviceInstallmentDto> deviceInstallments;
 }

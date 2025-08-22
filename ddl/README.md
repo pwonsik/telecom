@@ -10,7 +10,7 @@
 
 ## 테이블 구조
 
-### 1. contract (계약 정보)
+### 1. contractWithProductsAndSuspensions (계약 정보)
 - **Primary Key**: `contract_id`
 - 계약의 기본 정보와 가입/해지 날짜 관리
 

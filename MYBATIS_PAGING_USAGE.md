@@ -31,7 +31,7 @@ MyBatis SQL을 웹서비스와 배치에서 공통으로 사용할 수 있도록
 ### 웹서비스에서 단건 조회
 ```java
 // ContractQueryRepository 사용
-Contract contract = contractQueryRepository.findContractWithProductsChargeItemsAndSuspensions(
+Contract contractWithProductsAndSuspensions = contractQueryRepository.findContractWithProductsChargeItemsAndSuspensions(
     contractId,        // Long: 계약 ID
     billingStartDate,  // LocalDate: 청구 시작일
     billingEndDate     // LocalDate: 청구 종료일
@@ -48,7 +48,7 @@ parameterValues.put("billingEndDate", LocalDate.of(2024, 3, 31));
 
 MyBatisPagingItemReader<ContractDto> reader = new MyBatisPagingItemReaderBuilder<ContractDto>()
     .sqlSessionFactory(sqlSessionFactory)
-    .queryId("me.realimpact.telecom.calculation.infrastructure.adapter.ContractQueryMapper.findContractsWithProductsChargeItemsAndSuspensions")
+    .queryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findContractsWithProductsChargeItemsAndSuspensions")
     .parameterValues(parameterValues)
     .pageSize(1000)  // 1000개씩 페이징
     .build();
@@ -98,10 +98,10 @@ public class ContractBatchConfig {
     public ItemProcessor<ContractDto, MonthlyFeeCalculationResult> contractProcessor() {
         return contractDto -> {
             // DTO를 도메인 객체로 변환
-            Contract contract = converter.convertToContract(contractDto);
+            Contract contractWithProductsAndSuspensions = converter.convertToContract(contractDto);
             
             // 월정액 요금 계산 수행
-            List<MonthlyFeeCalculationResult> results = calculator.calculate(contract);
+            List<MonthlyFeeCalculationResult> results = calculator.calculate(contractWithProductsAndSuspensions);
             
             return results;
         };
@@ -131,7 +131,7 @@ public class ContractBatchConfig {
 ### 3. 인덱스 활용
 ```sql
 -- 필요한 인덱스들
-CREATE INDEX idx_contract_billing_period ON contract(contract_id, subscribed_at, terminated_at);
+CREATE INDEX idx_contract_billing_period ON contractWithProductsAndSuspensions(contract_id, subscribed_at, terminated_at);
 CREATE INDEX idx_product_period ON product(contract_id, effective_start_date_time, effective_end_date_time);
 CREATE INDEX idx_suspension_period ON suspension(contract_id, effective_start_date_time, effective_end_date_time);
 ```

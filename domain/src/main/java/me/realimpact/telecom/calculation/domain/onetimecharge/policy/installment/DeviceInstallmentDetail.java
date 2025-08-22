@@ -14,10 +14,7 @@ import java.time.LocalDate;
  * @param billingCompletedDate 청구 완료일
  */
 public record DeviceInstallmentDetail(
-    Long contractId,
-    Long installmentSequence,
     Integer installmentRound,
-    BigDecimal installmentAmount,
-    LocalDate billingCompletedDate
+    Long installmentAmount
 ) {
 }

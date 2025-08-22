@@ -7,11 +7,11 @@ import me.realimpact.telecom.billing.batch.reader.ChunkedContractReader;
 import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
 import me.realimpact.telecom.billing.batch.writer.MonthlyFeeCalculationResultWriter;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
-import me.realimpact.telecom.calculation.infrastructure.adapter.CalculationResultMapper;
-import me.realimpact.telecom.calculation.infrastructure.adapter.ContractQueryMapper;
-import me.realimpact.telecom.calculation.infrastructure.converter.DtoToDomainConverter;
+import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.CalculationResultMapper;
+import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.DeviceInstallmentMapper;
+import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper;
+import me.realimpact.telecom.calculation.infrastructure.converter.ContractDtoToDomainConverter;
 import me.realimpact.telecom.calculation.infrastructure.converter.CalculationResultFlattener;
-import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
@@ -31,8 +31,6 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.LocalDate;
-
 /**
  * Spring Batch 설정 예제
  * MyBatisPagingItemReader를 사용한 대용량 계약 데이터 처리
@@ -41,16 +39,18 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 @MapperScan("me.realimpact.telecom.calculation.infrastructure.adapter")
 @Slf4j
-public class ContractBatchConfig {
+public class CalculationBatchConfig {
 
     private final SqlSessionFactory sqlSessionFactory;
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final BaseFeeCalculator monthlyFeeCalculatorService;
-    private final DtoToDomainConverter dtoToDomainConverter;
+    private final ContractDtoToDomainConverter contractDtoToDomainConverter;
     private final CalculationResultMapper calculationResultMapper;
     private final CalculationResultFlattener calculationResultFlattener;
-    private final ContractQueryMapper contractQueryMapper;
+    private final BaseFeeCalculator baseFeeCalculator;
+    private final InstallationHistoryMapper installationHistoryMapper;
+    private final DeviceInstallmentMapper deviceInstallmentMapper;
 
 
     /**
@@ -86,7 +86,7 @@ public class ContractBatchConfig {
     @StepScope
     public ChunkedContractReader chunkedContractReader() {
         // @StepScope로 인해 런타임에 job parameter와 dependency가 자동 주입됨
-        return new ChunkedContractReader(contractQueryMapper, sqlSessionFactory); // ContractQueryMapper는 런타임에 주입
+        return new ChunkedContractReader(contractQueryMapper, installationHistoryMapper, deviceInstallmentMapper, sqlSessionFactory); // ContractQueryMapper는 런타임에 주입
     }
     
     /**
@@ -106,7 +106,7 @@ public class ContractBatchConfig {
     @Bean
     @StepScope
     public MonthlyFeeCalculationProcessor monthlyFeeCalculationProcessor() {
-        return new MonthlyFeeCalculationProcessor(monthlyFeeCalculatorService, dtoToDomainConverter);
+        return new MonthlyFeeCalculationProcessor(monthlyFeeCalculatorService, contractDtoToDomainConverter);
     }
     
     /**
@@ -114,7 +114,7 @@ public class ContractBatchConfig {
      */
     @Bean
     @StepScope
-    public ItemWriter<MonthlyFeeCalculationResult> monthlyFeeCalculationWriter() {
+    public ItemWriter<CalculationResult> monthlyFeeCalculationWriter() {
         return new MonthlyFeeCalculationResultWriter(calculationResultMapper, calculationResultFlattener);
     }
 
@@ -125,7 +125,7 @@ public class ContractBatchConfig {
     @Bean
     public Step monthlyFeeCalculationStep() {
         return new StepBuilder("monthlyFeeCalculationStep", jobRepository)
-                .<ContractDto, MonthlyFeeCalculationResult>chunk(CHUNK_SIZE, transactionManager)  // 상수화된 chunk size 사용
+                .<ContractDto, CalculationResult>chunk(CHUNK_SIZE, transactionManager)  // 상수화된 chunk size 사용
                 .reader(contractReader())  // Thread-Safe Reader 사용
                 .processor(monthlyFeeCalculationProcessor())  // @StepScope Processor 사용
                 .writer(monthlyFeeCalculationWriter())        // @StepScope Writer 사용

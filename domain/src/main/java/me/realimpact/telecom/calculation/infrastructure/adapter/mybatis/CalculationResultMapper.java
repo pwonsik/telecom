@@ -1,4 +1,4 @@
-package me.realimpact.telecom.calculation.infrastructure.adapter;
+package me.realimpact.telecom.calculation.infrastructure.adapter.mybatis;
 
 import me.realimpact.telecom.calculation.infrastructure.dto.FlatCalculationResultDto;
 import org.apache.ibatis.annotations.Mapper;

@@ -74,7 +74,7 @@
   시작일스러운 값들이 null이면 19000101로 치환, 종료일스러운 값들이 null이면 99991231로 치환해줘.
 
 ## 테이블 레이아웃
-- 테이블 레이아웃은 domain안의 contract, product, suspension, productOffering, MonthlyChargeItem을 참고해줘.  
+- 테이블 레이아웃은 domain안의 contractWithProductsAndSuspensions, product, suspension, productOffering, MonthlyChargeItem을 참고해줘.
 
 위 테이블 조회 결과를 담는 dto는 infrastructure 계층에 위치해야 해.
 이 다음 step으로 infrastructure의 dto를 domain 객체로 변환 로직을 만들거야. 일단 여기까지 해보자.
@@ -144,12 +144,12 @@
 
 ## mybatis xml, mapper 추가
 ### 단말할부내역 조회 로직을 단말할부내역 관리하는 mybatis xml에 추가
-- 기존 contract reader 처럼 contract ID list를 받음
+- 기존 contractWithProductsAndSuspensions reader 처럼 contractWithProductsAndSuspensions ID list를 받음
 - 계약ID,할부일련번호를 key로 정의
 - 조회조건 : 빌링종료일 >= 할부시작일 and 할부개월수 > 할부청구횟수
 
 ### 설치내역 조회 로직을 설치내역 관리하는 mybatis xml에 추가
-- 기존 contract reader 처럼 contract ID list를 받음
+- 기존 contractWithProductsAndSuspensions reader 처럼 contractWithProductsAndSuspensions ID list를 받음
 - 계약ID,일련번호를 key로 정의
 - 조회조건 : 빌링종료일 >= 설치일 and coalesce(청구여부,'N') = 'N'
 

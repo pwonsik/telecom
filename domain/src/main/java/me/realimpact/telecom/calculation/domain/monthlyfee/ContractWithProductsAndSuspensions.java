@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
-public class Contract extends Temporal {
+public class ContractWithProductsAndSuspensions extends Temporal {
     private final Long contractId;
     
     private final LocalDate subscribedAt;
@@ -41,11 +41,6 @@ public class Contract extends Temporal {
             terminatedAt.orElse(LocalDate.MAX),
             prefferedTerminationDate.orElse(LocalDate.MAX)
         ).min(Comparator.naturalOrder()).orElseThrow();
-    }
-
-    public Object getServiceCode() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getServiceCode'");
     }
     
     /**
@@ -121,7 +116,7 @@ public class Contract extends Temporal {
                 proratedPeriods.add(
                     ProratedPeriod.builder()
                         .period(period)
-                        .contract(this)
+                        .contractWithProductsAndSuspensions(this)
                         .product(product)
                         .productOffering(product.getProductOffering())
                         .monthlyChargeItem(monthlyChargeItem)

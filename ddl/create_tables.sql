@@ -1,9 +1,9 @@
 -- MySQL DDL 스크립트
 -- 텔레콤 빌링 시스템 테이블 생성
 
--- 1. contract 테이블
-DROP TABLE IF EXISTS contract;
-CREATE TABLE contract (
+-- 1. contractWithProductsAndSuspensions 테이블
+DROP TABLE IF EXISTS contractWithProductsAndSuspensions;
+CREATE TABLE contractWithProductsAndSuspensions (
     contract_id BIGINT NOT NULL PRIMARY KEY COMMENT '계약 ID',
     subscribed_at DATE NOT NULL COMMENT '가입일',
     initially_subscribed_at DATE NOT NULL COMMENT '최초 가입일',
@@ -35,7 +35,7 @@ CREATE TABLE product (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
     PRIMARY KEY (contract_id, product_offering_id, effective_start_date_time, effective_end_date_time),
-    FOREIGN KEY (contract_id) REFERENCES contract(contract_id),
+    FOREIGN KEY (contract_id) REFERENCES contractWithProductsAndSuspensions(contract_id),
     FOREIGN KEY (product_offering_id) REFERENCES product_offering(product_offering_id)
 ) COMMENT = '상품 정보';
 
@@ -50,7 +50,7 @@ CREATE TABLE suspension (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
     PRIMARY KEY (contract_id, suspension_type_code, effective_start_date_time, effective_end_date_time),
-    FOREIGN KEY (contract_id) REFERENCES contract(contract_id)
+    FOREIGN KEY (contract_id) REFERENCES contractWithProductsAndSuspensions(contract_id)
 ) COMMENT = '정지 정보';
 
 -- 5. monthly_charge_item 테이블

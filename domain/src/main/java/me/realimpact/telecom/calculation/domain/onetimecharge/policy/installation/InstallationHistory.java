@@ -16,7 +16,10 @@ public record InstallationHistory(
     Long contractId,
     Long sequenceNumber,
     LocalDate installationDate,
-    BigDecimal installationFee,
+    Long installationFee,
     String billedFlag
 ) {
+    public Long fee() {
+        return installationFee();
+    }
 }

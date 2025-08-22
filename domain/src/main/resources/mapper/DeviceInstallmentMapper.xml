@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="me.realimpact.telecom.calculation.infrastructure.adapter.DeviceInstallmentMapper">
+<mapper namespace="me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.DeviceInstallmentMapper">
+
+    <resultMap id="deviceInstallmentDetailResult" type="DeviceInstallmentDetailDto">
+        <result property="installmentRound" column="installment_round"/>
+        <result property="installmentAmount" column="installment_amount"/>
+        <result property="billingCompletedDate" column="billing_completed_date"/>
+    </resultMap>
 
     <resultMap id="deviceInstallmentResult" type="DeviceInstallmentDto">
         <!-- 계약ID, 할부일련번호를 key로 정의 -->
@@ -11,8 +17,8 @@
         <result property="totalInstallmentAmount" column="total_installment_amount"/>
         <result property="installmentMonths" column="installment_months"/>
         <result property="billedCount" column="billed_count"/>
-        <result property="installmentRound" column="installment_round"/>
-        <result property="installmentAmount" column="installment_amount"/>
+        <!-- 하위 Detail 정보를 collection으로 매핑 -->
+        <collection property="details" resultMap="deviceInstallmentDetailResult"/>
     </resultMap>
 
     <!-- 계약 ID 목록으로 단말할부내역 조회 -->
@@ -25,29 +31,22 @@
             dim.installment_months,
             dim.billed_count,
             did.installment_round,
-            did.installment_amount
+            did.installment_amount,
+            did.billing_completed_date
         FROM device_installment_master dim
-        INNER JOIN (
-            SELECT 
-                contract_id,
-                installment_sequence,
-                installment_round,
-                installment_amount,
-                ROW_NUMBER() OVER (PARTITION BY contract_id, installment_sequence ORDER BY installment_round) as rn
-            FROM device_installment_detail
-            WHERE billing_completed_date IS NULL
-        ) did ON dim.contract_id = did.contract_id 
-              AND dim.installment_sequence = did.installment_sequence
-              AND did.rn = 1
+        INNER JOIN device_installment_detail did 
+            ON dim.contract_id = did.contract_id 
+            AND dim.installment_sequence = did.installment_sequence
         WHERE 1=1
         AND dim.contract_id IN
         <foreach item="contractId" collection="contractIds" open="(" separator="," close=")">
             #{contractId}
         </foreach>
-        <!-- 조회조건: 빌링종료일 >= 할부시작일 and 할부개월수 > 할부청구횟수 -->
+        <!-- 조회조건: 빌링종료일 >= 할부시작일 and 할부개월수 > 할부청구횟수 and 미청구 건만 -->
         AND #{billingEndDate} >= dim.installment_start_date
         AND dim.installment_months > dim.billed_count
-        ORDER BY dim.contract_id, dim.installment_sequence
+        AND did.billing_completed_date IS NULL
+        ORDER BY dim.contract_id, dim.installment_sequence, did.installment_round
     </select>
 
 </mapper>

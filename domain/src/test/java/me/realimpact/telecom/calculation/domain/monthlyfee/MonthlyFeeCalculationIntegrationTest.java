@@ -16,6 +16,7 @@ import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.BillingCalculationType;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
+import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeFactorPolicy;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeRule;
@@ -35,8 +36,6 @@ class MonthlyFeeCalculationIntegrationTest {
 
     @Mock
     private ContractQueryPort contractQueryPort;
-    
-
 
     private BaseFeeCalculator calculator;
 
@@ -169,7 +168,7 @@ class MonthlyFeeCalculationIntegrationTest {
             Optional.empty()
         );
         
-        Contract contractWithProduct = new Contract(
+        ContractWithProductsAndSuspensions contractWithProductInventoriesAndSuspensionsWithProduct = new ContractWithProductsAndSuspensions(
             CONTRACT_ID,
             subscriptionDate,
             subscriptionDate,
@@ -182,19 +181,19 @@ class MonthlyFeeCalculationIntegrationTest {
             List.of()         // additionalBillingFactors
         );
 
-        when(contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(any(), any(), any())).thenReturn(List.of(contractWithProduct));
+        when(contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(any(), any(), any())).thenReturn(List.of(contractWithProductInventoriesAndSuspensionsWithProduct));
 
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
         // when
-        List<MonthlyFeeCalculationResult> results = calculator.calculateAndReturn(request);
+        List<CalculationResult> results = calculator.calculateAndReturn(request);
 
         // then
         assertThat(results).hasSize(1);
-        MonthlyFeeCalculationResult result = results.get(0);
+        CalculationResult result = results.get(0);
         // 3/15 ~ 3/31 실제 계산된 요금 확인 (일할 계산)
         BigDecimal totalFee = result.items().stream()
-            .map(MonthlyFeeCalculationResultItem::fee)
+            .map(CalculationResult::fee)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         
         // 실제 일할 계산 로직을 따라 계산된 결과와 비교
@@ -232,7 +231,7 @@ class MonthlyFeeCalculationIntegrationTest {
             Optional.empty()
         );
 
-        Contract contractWithProductAndSuspension = new Contract(
+        ContractWithProductsAndSuspensions contractWithProductInventoriesAndSuspensionsWithProductAndSuspension = new ContractWithProductsAndSuspensions(
             CONTRACT_ID,
             subscriptionDate,
             subscriptionDate,
@@ -245,16 +244,16 @@ class MonthlyFeeCalculationIntegrationTest {
             List.of(billingFactors)  // additionalBillingFactors  
         );
         
-        when(contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(any(), any(), any())).thenReturn(List.of(contractWithProductAndSuspension));
+        when(contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(any(), any(), any())).thenReturn(List.of(contractWithProductInventoriesAndSuspensionsWithProductAndSuspension));
 
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
         // when
-        List<MonthlyFeeCalculationResult> results = calculator.calculateAndReturn(request);
+        List<CalculationResult> results = calculator.calculateAndReturn(request);
 
         // then
         assertThat(results).hasSize(1);
-        MonthlyFeeCalculationResult result = results.get(0);
+        CalculationResult result = results.get(0);
         assertThat(result.items()).hasSize(3);  // 3개 기간별 항목
 
         /* 
@@ -264,7 +263,7 @@ class MonthlyFeeCalculationIntegrationTest {
          */
          
         // 각 기간별 항목 확인
-        List<MonthlyFeeCalculationResultItem> items = result.items();
+        List<CalculationResult> items = result.items();
             
         // 3/1 ~ 3/9 (9일)
         assertThat(items.get(0).fee().setScale(0, RoundingMode.FLOOR))

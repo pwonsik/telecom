@@ -3,11 +3,8 @@ package me.realimpact.telecom.calculation.port.out;
 import java.time.LocalDate;
 import java.util.List;
 
-import me.realimpact.telecom.calculation.domain.monthlyfee.Contract;
-import me.realimpact.telecom.calculation.domain.monthlyfee.ExclusiveLineContractHistory;
+import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsAndSuspensions;
 
 public interface ContractQueryPort {
-    List<Contract> findContractWithProductsChargeItemsAndSuspensions(Long contractId, LocalDate billingStartDate, LocalDate billingEndDate);
-
-    List<ExclusiveLineContractHistory> findExclusiveLineContractHistory(Long contractId);
+    List<ContractWithProductsAndSuspensions> findContractsAndProductInventoriesByContractIds(List<Long> contractIds, LocalDate billingStartDate, LocalDate billingEndDate);
 }

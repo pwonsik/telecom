@@ -1,9 +1,10 @@
 package me.realimpact.telecom.calculation.application.onetimecharge.policy;
 
 import me.realimpact.telecom.calculation.api.CalculationRequest;
-import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeCalculationResult;
-import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeCalculator;
-import me.realimpact.telecom.calculation.infrastructure.dto.DeviceInstallmentDto;
+import me.realimpact.telecom.calculation.application.Calculator;
+import me.realimpact.telecom.calculation.domain.CalculationContext;
+import me.realimpact.telecom.calculation.domain.CalculationResult;
+import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentMaster;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -13,27 +14,25 @@ import java.util.List;
  * MyBatis로 조회한 할부내역 DTO를 입력받아 일회성 과금 계산 결과를 생성한다.
  */
 @Component
-public class DeviceInstallmentCalculator implements OneTimeChargeCalculator<DeviceInstallmentDto, OneTimeChargeCalculationResult> {
+public class DeviceInstallmentCalculator implements Calculator<DeviceInstallmentMaster> {
 
     @Override
-    public List<DeviceInstallmentDto> read(CalculationRequest request) {
-        // TODO: MyBatis를 통한 단말할부내역 조회 로직 구현
+    public List<DeviceInstallmentMaster> read(CalculationContext calculationContext, List<Long> contractIds) {
         return List.of();
     }
 
     @Override
-    public OneTimeChargeCalculationResult process(DeviceInstallmentDto input) {
-        // TODO: 단말할부금 계산 로직 구현
-        return null;
+    public List<CalculationResult> process(CalculationContext calculationContext, DeviceInstallmentMaster input) {
+        return List.of();
     }
 
     @Override
-    public void write(List<OneTimeChargeCalculationResult> output) {
-        // TODO: 계산 결과 저장 로직 구현
+    public void write(CalculationContext calculationContext, List<CalculationResult> output) {
+
     }
 
     @Override
-    public void post(List<OneTimeChargeCalculationResult> output) {
-        // TODO: 후처리 로직 구현 (필요시)
+    public void post(CalculationContext calculationContext, List<CalculationResult> output) {
+
     }
 }

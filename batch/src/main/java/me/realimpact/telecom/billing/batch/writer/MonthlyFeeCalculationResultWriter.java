@@ -2,8 +2,7 @@ package me.realimpact.telecom.billing.batch.writer;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyFeeCalculationResult;
-import me.realimpact.telecom.calculation.infrastructure.adapter.CalculationResultMapper;
+import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.CalculationResultMapper;
 import me.realimpact.telecom.calculation.infrastructure.converter.CalculationResultFlattener;
 import me.realimpact.telecom.calculation.infrastructure.dto.FlatCalculationResultDto;
 import org.springframework.batch.item.Chunk;
@@ -16,13 +15,13 @@ import java.util.List;
  */
 @RequiredArgsConstructor
 @Slf4j
-public class MonthlyFeeCalculationResultWriter implements ItemWriter<MonthlyFeeCalculationResult> {
+public class MonthlyFeeCalculationResultWriter implements ItemWriter<CalculationResult> {
 
     private final CalculationResultMapper calculationResultMapper;
     private final CalculationResultFlattener calculationResultFlattener;
 
     @Override
-    public void write(Chunk<? extends MonthlyFeeCalculationResult> chunk) throws Exception {
+    public void write(Chunk<? extends CalculationResult> chunk) throws Exception {
         if (chunk.isEmpty()) {
             return;
         }

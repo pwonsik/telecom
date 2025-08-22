@@ -1,6 +1,6 @@
 package me.realimpact.telecom.calculation.infrastructure.converter;
 
-import me.realimpact.telecom.calculation.domain.monthlyfee.Contract;
+import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsAndSuspensions;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Product;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Suspension;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
@@ -18,13 +18,13 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class DtoToDomainConverterTest {
+class ContractDtoToDomainConverterTest {
 
-    private DtoToDomainConverter converter;
+    private ContractDtoToDomainConverter converter;
 
     @BeforeEach
     void setUp() {
-        converter = new DtoToDomainConverter();
+        converter = new ContractDtoToDomainConverter();
     }
 
     @Test
@@ -70,23 +70,23 @@ class DtoToDomainConverterTest {
         dto.setSuspensions(List.of(suspensionDto));
 
         // When
-        Contract contract = converter.convertToContract(dto);
+        ContractWithProductsAndSuspensions contractWithProductsAndSuspensions = converter.convertToContract(dto);
 
         // Then - Contract 기본 정보
-        assertThat(contract.getContractId()).isEqualTo(12345L);
-        assertThat(contract.getSubscribedAt()).isEqualTo(LocalDate.of(2024, 1, 1));
-        assertThat(contract.getInitiallySubscribedAt()).isEqualTo(LocalDate.of(2023, 12, 15));
-        assertThat(contract.getTerminatedAt()).contains(LocalDate.of(2024, 12, 31));
-        assertThat(contract.getPrefferedTerminationDate()).contains(LocalDate.of(2024, 12, 30));
+        assertThat(contractWithProductsAndSuspensions.getContractId()).isEqualTo(12345L);
+        assertThat(contractWithProductsAndSuspensions.getSubscribedAt()).isEqualTo(LocalDate.of(2024, 1, 1));
+        assertThat(contractWithProductsAndSuspensions.getInitiallySubscribedAt()).isEqualTo(LocalDate.of(2023, 12, 15));
+        assertThat(contractWithProductsAndSuspensions.getTerminatedAt()).contains(LocalDate.of(2024, 12, 31));
+        assertThat(contractWithProductsAndSuspensions.getPrefferedTerminationDate()).contains(LocalDate.of(2024, 12, 30));
         
         // Then - Products 포함
-        assertThat(contract.getProducts()).hasSize(1);
-        assertThat(contract.getProducts().get(0).getProductOffering().getProductOfferingId()).isEqualTo("PO001");
-        assertThat(contract.getProducts().get(0).getProductOffering().getProductOfferingName()).isEqualTo("기본상품");
+        assertThat(contractWithProductsAndSuspensions.getProducts()).hasSize(1);
+        assertThat(contractWithProductsAndSuspensions.getProducts().get(0).getProductOffering().getProductOfferingId()).isEqualTo("PO001");
+        assertThat(contractWithProductsAndSuspensions.getProducts().get(0).getProductOffering().getProductOfferingName()).isEqualTo("기본상품");
         
         // Then - Suspensions 포함
-        assertThat(contract.getSuspensions()).hasSize(1);
-        assertThat(contract.getSuspensions().get(0).getSuspensionType()).isEqualTo(Suspension.SuspensionType.TEMPORARY_SUSPENSION);
+        assertThat(contractWithProductsAndSuspensions.getSuspensions()).hasSize(1);
+        assertThat(contractWithProductsAndSuspensions.getSuspensions().get(0).getSuspensionType()).isEqualTo(Suspension.SuspensionType.TEMPORARY_SUSPENSION);
     }
 
     @Test
@@ -104,16 +104,16 @@ class DtoToDomainConverterTest {
         dto.setSuspensions(null); // null 테스트
 
         // When
-        Contract contract = converter.convertToContract(dto);
+        ContractWithProductsAndSuspensions contractWithProductsAndSuspensions = converter.convertToContract(dto);
 
         // Then
-        assertThat(contract.getContractId()).isEqualTo(12345L);
-        assertThat(contract.getSubscribedAt()).isEqualTo(LocalDate.of(2024, 1, 1));
-        assertThat(contract.getInitiallySubscribedAt()).isEqualTo(LocalDate.of(2023, 12, 15));
-        assertThat(contract.getTerminatedAt()).isEmpty();
-        assertThat(contract.getPrefferedTerminationDate()).isEmpty();
-        assertThat(contract.getProducts()).isEmpty();
-        assertThat(contract.getSuspensions()).isEmpty();
+        assertThat(contractWithProductsAndSuspensions.getContractId()).isEqualTo(12345L);
+        assertThat(contractWithProductsAndSuspensions.getSubscribedAt()).isEqualTo(LocalDate.of(2024, 1, 1));
+        assertThat(contractWithProductsAndSuspensions.getInitiallySubscribedAt()).isEqualTo(LocalDate.of(2023, 12, 15));
+        assertThat(contractWithProductsAndSuspensions.getTerminatedAt()).isEmpty();
+        assertThat(contractWithProductsAndSuspensions.getPrefferedTerminationDate()).isEmpty();
+        assertThat(contractWithProductsAndSuspensions.getProducts()).isEmpty();
+        assertThat(contractWithProductsAndSuspensions.getSuspensions()).isEmpty();
     }
 
     @Test
@@ -255,21 +255,21 @@ class DtoToDomainConverterTest {
         contractDto.setSuspensions(Arrays.asList(suspension1, suspension2));
         
         // When
-        Contract contract = converter.convertToContract(contractDto);
+        ContractWithProductsAndSuspensions contractWithProductsAndSuspensions = converter.convertToContract(contractDto);
         
         // Then - Contract 기본 정보
-        assertThat(contract.getContractId()).isEqualTo(12345L);
+        assertThat(contractWithProductsAndSuspensions.getContractId()).isEqualTo(12345L);
         
         // Then - Products 검증
-        assertThat(contract.getProducts()).hasSize(2);
-        assertThat(contract.getProducts().get(0).getProductOffering().getProductOfferingId()).isEqualTo("PO001");
-        assertThat(contract.getProducts().get(0).getProductOffering().getMonthlyChargeItems()).hasSize(2);
-        assertThat(contract.getProducts().get(1).getProductOffering().getProductOfferingId()).isEqualTo("PO002");
-        assertThat(contract.getProducts().get(1).getProductOffering().getMonthlyChargeItems()).hasSize(1);
+        assertThat(contractWithProductsAndSuspensions.getProducts()).hasSize(2);
+        assertThat(contractWithProductsAndSuspensions.getProducts().get(0).getProductOffering().getProductOfferingId()).isEqualTo("PO001");
+        assertThat(contractWithProductsAndSuspensions.getProducts().get(0).getProductOffering().getMonthlyChargeItems()).hasSize(2);
+        assertThat(contractWithProductsAndSuspensions.getProducts().get(1).getProductOffering().getProductOfferingId()).isEqualTo("PO002");
+        assertThat(contractWithProductsAndSuspensions.getProducts().get(1).getProductOffering().getMonthlyChargeItems()).hasSize(1);
         
         // Then - Suspensions 검증
-        assertThat(contract.getSuspensions()).hasSize(2);
-        assertThat(contract.getSuspensions().get(0).getSuspensionType()).isEqualTo(Suspension.SuspensionType.TEMPORARY_SUSPENSION);
-        assertThat(contract.getSuspensions().get(1).getSuspensionType()).isEqualTo(Suspension.SuspensionType.NON_PAYMENT_SUSPENSION);
+        assertThat(contractWithProductsAndSuspensions.getSuspensions()).hasSize(2);
+        assertThat(contractWithProductsAndSuspensions.getSuspensions().get(0).getSuspensionType()).isEqualTo(Suspension.SuspensionType.TEMPORARY_SUSPENSION);
+        assertThat(contractWithProductsAndSuspensions.getSuspensions().get(1).getSuspensionType()).isEqualTo(Suspension.SuspensionType.NON_PAYMENT_SUSPENSION);
     }
 }

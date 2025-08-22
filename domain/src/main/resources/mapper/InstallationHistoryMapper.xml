@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="me.realimpact.telecom.calculation.infrastructure.adapter.InstallationHistoryMapper">
+<mapper namespace="me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper">
 
     <resultMap id="installationHistoryResult" type="InstallationHistoryDto">
         <!-- 계약ID, 일련번호를 key로 정의 -->

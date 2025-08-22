@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.api.CalculationCommandUseCase;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
-import me.realimpact.telecom.calculation.api.CalculationResult;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,10 +16,10 @@ public class CalculationCommandService implements CalculationCommandUseCase {
 
     @Transactional
     @Override
-    public CalculationResult calculate(CalculationRequest context) {
+    public CalculationResult calculate(CalculationRequest calculationRequest) {
         CalculationResult result = new CalculationResult();
         
-        monthlyFeeCalculatorService.calculate(context);
+        monthlyFeeCalculatorService.calculate(calculationRequest);
 
         return result;
     }

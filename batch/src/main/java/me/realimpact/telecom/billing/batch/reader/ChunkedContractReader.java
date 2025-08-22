@@ -2,8 +2,11 @@ package me.realimpact.telecom.billing.batch.reader;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.realimpact.telecom.calculation.infrastructure.adapter.ContractQueryMapper;
+import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper;
 import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
+
+import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.DeviceInstallmentMapper;
+import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
@@ -13,7 +16,6 @@ import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.support.ListItemReader;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -27,6 +29,8 @@ import java.util.Map;
 public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
     
     private final ContractQueryMapper contractQueryMapper;
+    private final InstallationHistoryMapper installationHistoryMapper;
+    private final DeviceInstallmentMapper deviceInstallmentMapper;
     private final SqlSessionFactory sqlSessionFactory;
     
     @Value("#{jobParameters['billingStartDate']}")
@@ -43,6 +47,8 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
     private MyBatisCursorItemReader<Long> contractIdReader;
     private ListItemReader<ContractDto> currentChunkReader;
     private boolean initialized = false;
+    private LocalDate billingStartDate;
+    private LocalDate billingEndDate;
     
     @Override
     public void open(ExecutionContext executionContext) throws ItemStreamException {
@@ -98,7 +104,7 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
 
         contractIdReader = new MyBatisCursorItemReader<>();
         contractIdReader.setSqlSessionFactory(sqlSessionFactory);
-        contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.ContractQueryMapper.findContractIds");
+        contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findContractIds");
         contractIdReader.setParameterValues(parameterValues);
     }
 
@@ -108,8 +114,8 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
             throw new IllegalArgumentException("billingStartDate and billingEndDate are required job parameters");
         }
 
-        LocalDate billingStartDate = LocalDate.parse(billingStartDateStr);
-        LocalDate billingEndDate = LocalDate.parse(billingEndDateStr);
+        billingStartDate = LocalDate.parse(billingStartDateStr);
+        billingEndDate = LocalDate.parse(billingEndDateStr);
 
         Long contractId = (contractIdStr == null || contractIdStr.trim().isEmpty())
             ? null
@@ -144,7 +150,11 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
         //log.info("읽어온 contractIds: {}", contractIds.size() <= 10 ? contractIds : contractIds.subList(0, 10) + "...");
         
         // contract ID들로 bulk 조회하여 ContractDto 리스트 생성
-        List<ContractDto> contractDtos = fetchContractsByIds(contractIds);
+        List<ContractDto> contractDtos = contractQueryMapper.findContractsByIds(contractIds, billingStartDate, billingEndDate);
+        contractDtos.forEach(contractDto -> {
+            contractDto.setInstallationHistories(installationHistoryMapper.findInstallationsByContractIds(contractIds, billingEndDate));
+            contractDto.setDeviceInstallments(deviceInstallmentMapper.findInstallmentsByContractIds(contractIds, billingEndDate));
+        });
 
         // todo - 여기에 각종 요금항목을 계산하기 위한 기초 데이터를 load하는 로직 넣는다.
         
@@ -153,11 +163,5 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
         // ListItemReader로 감싸서 하나씩 반환할 수 있도록 설정
         currentChunkReader = new ListItemReader<>(contractDtos);
     }
-    
-    private List<ContractDto> fetchContractsByIds(List<Long> contractIds) {
-        LocalDate billingStartDate = LocalDate.parse(billingStartDateStr);
-        LocalDate billingEndDate = LocalDate.parse(billingEndDateStr);
 
-        return contractQueryMapper.findContractsByIds(contractIds, billingStartDate, billingEndDate);
-    }
 }

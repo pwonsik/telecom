@@ -5,20 +5,20 @@
 
     <!-- Contract Batch Insert -->
     <insert id="insertContracts" parameterType="java.util.List">
-        INSERT INTO contract (
+        INSERT INTO contractWithProductsAndSuspensions (
             contract_id, 
             subscribed_at, 
             initially_subscribed_at, 
             terminated_at, 
             preffered_termination_date
         ) VALUES
-        <foreach collection="list" item="contract" separator=",">
+        <foreach collection="list" item="contractWithProductsAndSuspensions" separator=",">
             (
-                #{contract.contractId},
-                #{contract.subscribedAt},
-                #{contract.initiallySubscribedAt},
-                #{contract.terminatedAt},
-                #{contract.prefferedTerminationDate}
+                #{contractWithProductsAndSuspensions.contractId},
+                #{contractWithProductsAndSuspensions.subscribedAt},
+                #{contractWithProductsAndSuspensions.initiallySubscribedAt},
+                #{contractWithProductsAndSuspensions.terminatedAt},
+                #{contractWithProductsAndSuspensions.prefferedTerminationDate}
             )
         </foreach>
     </insert>
@@ -75,6 +75,13 @@
         FROM product_offering 
         ORDER BY product_offering_id
     </select>
+    
+    <!-- Contract IDs 조회 -->
+    <select id="selectContractIds" resultType="Long">
+        SELECT contract_id 
+        FROM contractWithProductsAndSuspensions
+        ORDER BY contract_id
+    </select>
 
     <!-- 테이블 초기화 (외래키 제약 조건 해결) -->
     
@@ -98,7 +105,87 @@
     </delete>
     
     <delete id="truncateContracts">
-        DELETE FROM contract
+        DELETE FROM contractWithProductsAndSuspensions
     </delete>
+    
+    <delete id="truncateDeviceInstallmentDetails">
+        DELETE FROM device_installment_detail
+    </delete>
+    
+    <delete id="truncateDeviceInstallmentMasters">
+        DELETE FROM device_installment_master
+    </delete>
+    
+    <delete id="truncateInstallationHistories">
+        DELETE FROM installation_history
+    </delete>
+
+    <!-- DeviceInstallmentMaster Batch Insert -->
+    <insert id="insertDeviceInstallmentMasters" parameterType="java.util.List">
+        <if test="list != null and list.size() > 0">
+            INSERT INTO device_installment_master (
+                contract_id,
+                installment_sequence,
+                installment_start_date,
+                total_installment_amount,
+                installment_months,
+                billed_count
+            ) VALUES
+            <foreach collection="list" item="master" separator=",">
+                (
+                    #{master.contractId},
+                    #{master.installmentSequence},
+                    #{master.installmentStartDate},
+                    #{master.totalInstallmentAmount},
+                    #{master.installmentMonths},
+                    #{master.billedCount}
+                )
+            </foreach>
+        </if>
+    </insert>
+
+    <!-- DeviceInstallmentDetail Batch Insert -->
+    <insert id="insertDeviceInstallmentDetails" parameterType="java.util.List">
+        <if test="list != null and list.size() > 0">
+            INSERT INTO device_installment_detail (
+                contract_id,
+                installment_sequence,
+                installment_round,
+                installment_amount,
+                billing_completed_date
+            ) VALUES
+            <foreach collection="list" item="detail" separator=",">
+                (
+                    #{detail.contractId},
+                    #{detail.installmentSequence},
+                    #{detail.installmentRound},
+                    #{detail.installmentAmount},
+                    #{detail.billingCompletedDate}
+                )
+            </foreach>
+        </if>
+    </insert>
+
+    <!-- InstallationHistory Batch Insert -->
+    <insert id="insertInstallationHistories" parameterType="java.util.List">
+        <if test="list != null and list.size() > 0">
+            INSERT INTO installation_history (
+                contract_id,
+                sequence_number,
+                installation_date,
+                installation_fee,
+                billed_flag
+            ) VALUES
+            <foreach collection="list" item="history" separator=",">
+                (
+                    #{history.contractId},
+                    #{history.sequenceNumber},
+                    #{history.installationDate},
+                    #{history.installationFee},
+                    #{history.billedFlag}
+                )
+            </foreach>
+        </if>
+    </insert>
 
 </mapper>

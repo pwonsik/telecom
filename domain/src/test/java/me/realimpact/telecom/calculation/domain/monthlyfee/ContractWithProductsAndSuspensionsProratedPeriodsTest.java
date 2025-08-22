@@ -8,9 +8,7 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Contract의 buildProratedPeriods 메서드를 테스트한다.
  * 이전 ProratedPeriodBuilder의 역할을 Contract가 담당하게 되었음.
  */
-class ContractProratedPeriodsTest {
+class ContractWithProductsAndSuspensionsProratedPeriodsTest {
 
     private static class TestFixture {
         static final LocalDate BILLING_START_DATE = LocalDate.of(2025, 5, 1);
@@ -73,7 +71,7 @@ class ContractProratedPeriodsTest {
             subscriptionDate
         );
         
-        Contract contract = new Contract(
+        ContractWithProductsAndSuspensions contractWithProductsAndSuspensions = new ContractWithProductsAndSuspensions(
             1L,
             subscriptionDate,
             subscriptionDate,
@@ -87,7 +85,7 @@ class ContractProratedPeriodsTest {
         );
 
         // when - Contract가 직접 구간을 생성
-        List<ProratedPeriod> periods = contract.buildProratedPeriods();
+        List<ProratedPeriod> periods = contractWithProductsAndSuspensions.buildProratedPeriods();
 
         // then
         assertThat(periods).hasSize(1);
@@ -116,7 +114,7 @@ class ContractProratedPeriodsTest {
         );
         
         // 4월 1일 가입
-        Contract contract = new Contract(
+        ContractWithProductsAndSuspensions contractWithProductsAndSuspensions = new ContractWithProductsAndSuspensions(
             1L,
             TestFixture.BILLING_START_DATE.minusMonths(1),
             TestFixture.BILLING_START_DATE.minusMonths(1),
@@ -130,7 +128,7 @@ class ContractProratedPeriodsTest {
         );
 
         // when - Contract가 직접 구간을 생성
-        List<ProratedPeriod> periods = contract.buildProratedPeriods();
+        List<ProratedPeriod> periods = contractWithProductsAndSuspensions.buildProratedPeriods();
 
         // then (5/1 ~ 5/9, 5/10 ~ 5/19, 5/20 ~ 5/31)
         assertThat(periods).hasSize(3); // 정지 전, 정지 중, 정지 후
@@ -160,7 +158,7 @@ class ContractProratedPeriodsTest {
         );
         
         // 4월 1일 가입
-        Contract contract = new Contract(
+        ContractWithProductsAndSuspensions contractWithProductsAndSuspensions = new ContractWithProductsAndSuspensions(
             1L,
             TestFixture.BILLING_START_DATE.minusMonths(1),
             TestFixture.BILLING_START_DATE.minusMonths(1),
@@ -177,7 +175,7 @@ class ContractProratedPeriodsTest {
         // 현재는 기본적인 구간 분리만 테스트
 
         // when - Contract가 직접 구간을 생성
-        List<ProratedPeriod> periods = contract.buildProratedPeriods();
+        List<ProratedPeriod> periods = contractWithProductsAndSuspensions.buildProratedPeriods();
 
         // then - 추가 과금 요소가 없으므로 전체 기간이 하나의 구간
         assertThat(periods).hasSize(1);
@@ -208,7 +206,7 @@ class ContractProratedPeriodsTest {
             Suspension.SuspensionType.TEMPORARY_SUSPENSION
         );
         
-        Contract contract = new Contract(
+        ContractWithProductsAndSuspensions contractWithProductsAndSuspensions = new ContractWithProductsAndSuspensions(
             1L,
             subscriptionDate,
             subscriptionDate,
@@ -222,7 +220,7 @@ class ContractProratedPeriodsTest {
         );
 
         // when - Contract가 직접 구간을 생성
-        List<ProratedPeriod> periods = contract.buildProratedPeriods();
+        List<ProratedPeriod> periods = contractWithProductsAndSuspensions.buildProratedPeriods();
 
         // then (5/5 ~ 5/14, 5/15 ~ 5/24, 5/25 ~ 5/31)
         assertThat(periods).hasSize(3);

@@ -11,10 +11,10 @@
 // 하나의 메서드에 Read-Process-Write가 모두 섞여있음
 public List<MonthlyFeeCalculationResult> calculate(CalculationRequest context) {
     // Read: 계약 데이터 조회
-    Contract contract = contractQueryPort.findContract(...);
+    Contract contractWithProductsAndSuspensions = contractQueryPort.findContract(...);
     
     // Process: 계산 수행
-    List<ProratedPeriod> periods = contract.buildProratedPeriods(...);
+    List<ProratedPeriod> periods = contractWithProductsAndSuspensions.buildProratedPeriods(...);
     List<MonthlyFeeCalculationResult> results = periods.stream()...;
     
     // Write: 결과 저장
@@ -34,15 +34,15 @@ public class MonthlyFeeCalculatorService {
     public Contract readContract(Long contractId, LocalDate start, LocalDate end) { ... }
     
     // ============= Processor 패턴 =============
-    public List<MonthlyFeeCalculationResult> processCalculation(Contract contract, DefaultPeriod period) { ... }
+    public List<MonthlyFeeCalculationResult> processCalculation(Contract contractWithProductsAndSuspensions, DefaultPeriod period) { ... }
     
     // ============= Writer 패턴 =============
     public void writeResults(List<MonthlyFeeCalculationResult> results, DefaultPeriod period) { ... }
     
     // ============= 전체 흐름 (기존 호환성 유지) =============
     public List<MonthlyFeeCalculationResult> calculate(CalculationRequest context) {
-        Contract contract = readContract(context);          // Read
-        List<MonthlyFeeCalculationResult> results = processCalculation(contract, context); // Process
+        Contract contractWithProductsAndSuspensions = readContract(context);          // Read
+        List<MonthlyFeeCalculationResult> results = processCalculation(contractWithProductsAndSuspensions, context); // Process
         writeResults(results, context);                     // Write
         return results;
     }
@@ -138,8 +138,8 @@ public Contract readContract(CalculationRequest context);
 public Contract readContract(Long contractId, LocalDate start, LocalDate end);
 
 // Processor 메서드들  
-public List<MonthlyFeeCalculationResult> processCalculation(Contract contract, DefaultPeriod period);
-public List<MonthlyFeeCalculationResult> processCalculation(Contract contract, CalculationRequest context);
+public List<MonthlyFeeCalculationResult> processCalculation(Contract contractWithProductsAndSuspensions, DefaultPeriod period);
+public List<MonthlyFeeCalculationResult> processCalculation(Contract contractWithProductsAndSuspensions, CalculationRequest context);
 
 // Writer 메서드들
 public void writeResults(List<MonthlyFeeCalculationResult> results, DefaultPeriod period);
@@ -161,10 +161,10 @@ public class MonthlyFeeCalculationProcessor
     @Override
     public List<MonthlyFeeCalculationResult> process(ContractDto contractDto) throws Exception {
         // DTO → 도메인 변환
-        Contract contract = dtoToDomainConverter.convertToContract(contractDto);
+        Contract contractWithProductsAndSuspensions = dtoToDomainConverter.convertToContract(contractDto);
         
         // 계산 수행 (MonthlyFeeCalculatorService의 processCalculation 활용)
-        return monthlyFeeCalculatorService.processCalculation(contract, billingPeriod);
+        return monthlyFeeCalculatorService.processCalculation(contractWithProductsAndSuspensions, billingPeriod);
     }
 }
 ```
