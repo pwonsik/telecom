@@ -18,7 +18,9 @@ public class ContractQueryRepository implements ContractQueryPort {
     private final ContractDtoToDomainConverter converter;
 
     @Override
-    public List<ContractWithProductsAndSuspensions> findContractsAndProductInventoriesByContractIds(List<Long> contractIds, LocalDate billingStartDate, LocalDate billingEndDate) {
+    public List<ContractWithProductsAndSuspensions> findContractsAndProductInventoriesByContractIds(
+        List<Long> contractIds, LocalDate billingStartDate, LocalDate billingEndDate
+    ) {
         List<ContractDto> contractDtos = contractQueryMapper.findContractsAndProductInventoriesByContractIds(contractIds, billingStartDate, billingEndDate);
         return converter.convertToContracts(contractDtos);
     }

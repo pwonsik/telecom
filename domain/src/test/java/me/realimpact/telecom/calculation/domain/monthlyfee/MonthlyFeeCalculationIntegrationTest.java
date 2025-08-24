@@ -1,8 +1,18 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
+import me.realimpact.telecom.calculation.api.BillingCalculationType;
+import me.realimpact.telecom.calculation.api.CalculationRequest;
+import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
+import me.realimpact.telecom.calculation.domain.CalculationResult;
+import me.realimpact.telecom.calculation.domain.monthlyfee.policy.*;
+import me.realimpact.telecom.calculation.port.out.ContractQueryPort;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -12,23 +22,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
-import me.realimpact.telecom.calculation.api.BillingCalculationType;
-import me.realimpact.telecom.calculation.api.CalculationRequest;
-import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
-import me.realimpact.telecom.calculation.domain.CalculationResult;
-import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy;
-import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeFactorPolicy;
-import me.realimpact.telecom.calculation.domain.monthlyfee.policy.RangeRule;
-import me.realimpact.telecom.calculation.domain.monthlyfee.policy.StepFactorPolicy;
-import me.realimpact.telecom.calculation.domain.monthlyfee.policy.TierFactorPolicy;
-import me.realimpact.telecom.calculation.port.out.ContractQueryPort;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 
 @ExtendWith(MockitoExtension.class)

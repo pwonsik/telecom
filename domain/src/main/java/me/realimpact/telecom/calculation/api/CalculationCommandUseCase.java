@@ -1,5 +1,7 @@
 package me.realimpact.telecom.calculation.api;
 
+import java.util.List;
+
 public interface CalculationCommandUseCase {
-    CalculationResult calculate(CalculationRequest context);
+    List<CalculationResponse> calculate(CalculationRequest context);
 }

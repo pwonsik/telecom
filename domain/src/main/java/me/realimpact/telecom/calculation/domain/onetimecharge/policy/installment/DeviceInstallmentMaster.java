@@ -2,7 +2,6 @@ package me.realimpact.telecom.calculation.domain.onetimecharge.policy.installmen
 
 import lombok.RequiredArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 

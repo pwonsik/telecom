@@ -1,11 +1,6 @@
 package me.realimpact.telecom.testgen.mapper;
 
-import me.realimpact.telecom.testgen.entity.ContractEntity;
-import me.realimpact.telecom.testgen.entity.ProductEntity;
-import me.realimpact.telecom.testgen.entity.SuspensionEntity;
-import me.realimpact.telecom.testgen.entity.DeviceInstallmentMasterEntity;
-import me.realimpact.telecom.testgen.entity.DeviceInstallmentDetailEntity;
-import me.realimpact.telecom.testgen.entity.InstallationHistoryEntity;
+import me.realimpact.telecom.testgen.entity.*;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;

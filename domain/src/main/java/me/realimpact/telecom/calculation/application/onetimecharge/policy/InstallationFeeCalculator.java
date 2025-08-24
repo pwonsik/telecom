@@ -1,13 +1,14 @@
 package me.realimpact.telecom.calculation.application.onetimecharge.policy;
 
 import lombok.RequiredArgsConstructor;
-import me.realimpact.telecom.calculation.api.CalculationRequest;
 import me.realimpact.telecom.calculation.application.Calculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation.InstallationHistory;
 import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper;
+import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import me.realimpact.telecom.calculation.port.out.InstallationHistoryQueryPort;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -19,17 +20,16 @@ import java.util.List;
  */
 @RequiredArgsConstructor
 @Service
+@Order(23)
 public class InstallationFeeCalculator implements Calculator<InstallationHistory> {
     private final InstallationHistoryQueryPort installationHistoryQueryPort;
+    private final CalculationResultSavePort calculationResultSavePort;
 
-    public InstallationFeeCalculator(InstallationHistoryMapper installationHistoryMapper) {
-        this.installationHistoryMapper = installationHistoryMapper;
-    }
-
-    findInstallationHistories
     @Override
     public List<InstallationHistory> read(CalculationContext ctx, List<Long> contractIds) {
-        return installationHistoryQueryPort.findInstallations(contractIds, ctx.billingStartDate(), ctx.billingEndDate());
+        return installationHistoryQueryPort.findInstallations(
+            contractIds, ctx.billingStartDate(), ctx.billingEndDate()
+        );
     }
 
     @Override
@@ -45,12 +45,13 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
                         null,
                         null,
                         BigDecimal.valueOf(input.fee())
+                )
         );
     }
 
     @Override
     public void write(CalculationContext ctx, List<CalculationResult> output) {
-
+        calculationResultSavePort.batchSave(ctx, output);
     }
 
     @Override

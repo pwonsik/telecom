@@ -1,7 +1,6 @@
 package me.realimpact.telecom.calculation.infrastructure.adapter;
 
 import lombok.RequiredArgsConstructor;
-import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation.InstallationHistory;
 import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper;
 import me.realimpact.telecom.calculation.infrastructure.converter.OneTimeChargeDtoConverter;
@@ -19,8 +18,11 @@ public class InstallationHistoryRepository implements InstallationHistoryQueryPo
     private final OneTimeChargeDtoConverter oneTimeChargeDtoConverter;
 
     @Override
-    public List<InstallationHistory> findInstallations(List<Long> contractIds, LocalDate billingStartDate, LocalDate billingEndDate) {
-        List<InstallationHistoryDto> installationHistoryDtos = installationHistoryMapper.findInstallationsByContractIds(contractIds, billingEndDate)
+    public List<InstallationHistory> findInstallations(
+        List<Long> contractIds, LocalDate billingStartDate, LocalDate billingEndDate
+    ) {
+        List<InstallationHistoryDto> installationHistoryDtos =
+            installationHistoryMapper.findInstallationsByContractIds(contractIds, billingEndDate);
         return oneTimeChargeDtoConverter.convertToInstallationHistories(installationHistoryDtos);
     }
 }

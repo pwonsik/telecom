@@ -21,9 +21,9 @@ import java.util.List;
 public class CalculationResultRepository implements CalculationResultSavePort {
 
     private final CalculationResultMapper calculationResultMapper;
-    private final CalculationResultFlattener calculationResultFlattener;
 
-    public void save(CalculationContext calculationContext, List<CalculationResult> results) {
+    @Override
+    public void batchSave(CalculationContext ctx, List<CalculationResult> results) {
         if (results == null || results.isEmpty()) {
             log.warn("No calculation results to save");
             return;
@@ -32,8 +32,7 @@ public class CalculationResultRepository implements CalculationResultSavePort {
         log.info("Starting batch save for {} calculation results", results.size());
 
         try {
-            var flattenedResults = calculationResultFlattener.flattenResults(calculationContext, results);
-            int insertedRows = calculationResultMapper.batchInsertCalculationResults(flattenedResults);
+            int insertedRows = calculationResultMapper.batchInsertCalculationResults(results);
             log.info("Successfully inserted {} records", insertedRows);
             
         } catch (Exception e) {

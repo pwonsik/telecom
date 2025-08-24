@@ -1,6 +1,8 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee.policy;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactor;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -8,9 +10,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import me.realimpact.telecom.calculation.domain.monthlyfee.AdditionalBillingFactor;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class RangeFactorPolicyTest {
 

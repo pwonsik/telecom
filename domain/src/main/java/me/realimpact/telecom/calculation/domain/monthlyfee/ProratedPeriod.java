@@ -1,18 +1,17 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.temporal.TemporalAdjuster;
-import java.util.List;
-import java.util.Optional;
-
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Suspension.SuspensionType;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Builder

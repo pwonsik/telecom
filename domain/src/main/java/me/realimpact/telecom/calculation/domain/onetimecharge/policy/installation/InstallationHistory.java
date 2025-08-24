@@ -1,6 +1,5 @@
 package me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**

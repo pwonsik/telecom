@@ -1,10 +1,10 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee;
 
+import lombok.RequiredArgsConstructor;
+
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
-
-import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class AdditionalBillingFactor extends Temporal {

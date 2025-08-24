@@ -2,26 +2,24 @@ package me.realimpact.telecom.billing.batch.reader;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.realimpact.telecom.billing.batch.CalculationParameters;
 import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper;
-import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
-
 import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.DeviceInstallmentMapper;
 import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.support.ListItemReader;
-import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.beans.factory.annotation.Value;
-
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
 
 @StepScope
 @RequiredArgsConstructor
@@ -32,23 +30,13 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
     private final InstallationHistoryMapper installationHistoryMapper;
     private final DeviceInstallmentMapper deviceInstallmentMapper;
     private final SqlSessionFactory sqlSessionFactory;
-    
-    @Value("#{jobParameters['billingStartDate']}")
-    private String billingStartDateStr;
-    
-    @Value("#{jobParameters['billingEndDate']}")
-    private String billingEndDateStr;
-    
-    @Value("#{jobParameters['contractId']}")
-    private String contractIdStr;
+    private final CalculationParameters calculationParameters;
     
     private static final int chunkSize = CHUNK_SIZE;
     
     private MyBatisCursorItemReader<Long> contractIdReader;
     private ListItemReader<ContractDto> currentChunkReader;
     private boolean initialized = false;
-    private LocalDate billingStartDate;
-    private LocalDate billingEndDate;
     
     @Override
     public void open(ExecutionContext executionContext) throws ItemStreamException {
@@ -96,35 +84,18 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
     private void initializeContractIdReader() {
         log.info("=== ChunkedContractReader 초기화 ===");
         log.info("chunkSize: {}", chunkSize);
-        log.info("billingStartDateStr: [{}]", billingStartDateStr);
-        log.info("billingEndDateStr: [{}]", billingEndDateStr);
-        log.info("contractIdStr: [{}]", contractIdStr);
-
-        Map<String, Object> parameterValues = getParameterValues();
 
         contractIdReader = new MyBatisCursorItemReader<>();
         contractIdReader.setSqlSessionFactory(sqlSessionFactory);
         contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findContractIds");
-        contractIdReader.setParameterValues(parameterValues);
+        contractIdReader.setParameterValues(getParameterValues());
     }
 
     private Map<String, Object> getParameterValues() {
-        if (billingStartDateStr == null || billingStartDateStr.trim().isEmpty() ||
-            billingEndDateStr == null || billingEndDateStr.trim().isEmpty()) {
-            throw new IllegalArgumentException("billingStartDate and billingEndDate are required job parameters");
-        }
-
-        billingStartDate = LocalDate.parse(billingStartDateStr);
-        billingEndDate = LocalDate.parse(billingEndDateStr);
-
-        Long contractId = (contractIdStr == null || contractIdStr.trim().isEmpty())
-            ? null
-            : Long.parseLong(contractIdStr.trim());
-
         Map<String, Object> parameterValues = new HashMap<>();
-        parameterValues.put("contractId", contractId);
-        parameterValues.put("billingStartDate", billingStartDate);
-        parameterValues.put("billingEndDate", billingEndDate);
+        parameterValues.put("contractId", calculationParameters.contractIds());
+        parameterValues.put("billingStartDate", calculationParameters.billingStartDate());
+        parameterValues.put("billingEndDate", calculationParameters.billingEndDate());
         return parameterValues;
     }
 
@@ -150,10 +121,21 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
         //log.info("읽어온 contractIds: {}", contractIds.size() <= 10 ? contractIds : contractIds.subList(0, 10) + "...");
         
         // contract ID들로 bulk 조회하여 ContractDto 리스트 생성
-        List<ContractDto> contractDtos = contractQueryMapper.findContractsByIds(contractIds, billingStartDate, billingEndDate);
+        List<ContractDto> contractDtos =
+            contractQueryMapper.findContractsAndProductInventoriesByContractIds(
+                contractIds, calculationParameters.billingStartDate(), calculationParameters.billingEndDate());
+
         contractDtos.forEach(contractDto -> {
-            contractDto.setInstallationHistories(installationHistoryMapper.findInstallationsByContractIds(contractIds, billingEndDate));
-            contractDto.setDeviceInstallments(deviceInstallmentMapper.findInstallmentsByContractIds(contractIds, billingEndDate));
+            contractDto.setInstallationHistories(
+                installationHistoryMapper.findInstallationsByContractIds(
+                    contractIds, calculationParameters.billingEndDate()
+                )
+            );
+            contractDto.setDeviceInstallments(
+                deviceInstallmentMapper.findInstallmentsByContractIds(
+                    contractIds, calculationParameters.billingEndDate()
+                )
+            );
         });
 
         // todo - 여기에 각종 요금항목을 계산하기 위한 기초 데이터를 load하는 로직 넣는다.

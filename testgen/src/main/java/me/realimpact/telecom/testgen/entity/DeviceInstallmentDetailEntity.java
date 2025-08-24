@@ -1,8 +1,8 @@
 package me.realimpact.telecom.testgen.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

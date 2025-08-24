@@ -1,5 +1,8 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -7,9 +10,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter

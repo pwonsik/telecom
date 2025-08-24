@@ -3,8 +3,8 @@ package me.realimpact.telecom.calculation.infrastructure.converter;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation.InstallationHistory;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentDetail;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentMaster;
-import me.realimpact.telecom.calculation.infrastructure.dto.DeviceInstallmentDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.DeviceInstallmentDetailDto;
+import me.realimpact.telecom.calculation.infrastructure.dto.DeviceInstallmentDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.InstallationHistoryDto;
 import org.springframework.stereotype.Component;
 

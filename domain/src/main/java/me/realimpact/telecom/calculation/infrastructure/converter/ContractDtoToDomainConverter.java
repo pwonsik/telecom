@@ -2,7 +2,10 @@ package me.realimpact.telecom.calculation.infrastructure.converter;
 
 import me.realimpact.telecom.calculation.domain.monthlyfee.*;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy;
-import me.realimpact.telecom.calculation.infrastructure.dto.*;
+import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
+import me.realimpact.telecom.calculation.infrastructure.dto.MonthlyChargeItemDto;
+import me.realimpact.telecom.calculation.infrastructure.dto.ProductDto;
+import me.realimpact.telecom.calculation.infrastructure.dto.SuspensionDto;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

@@ -1,10 +1,10 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee;
 
-import java.time.LocalDate;
-
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+
+import java.time.LocalDate;
 
 @Getter
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

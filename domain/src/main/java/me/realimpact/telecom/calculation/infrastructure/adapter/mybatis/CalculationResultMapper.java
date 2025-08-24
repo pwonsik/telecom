@@ -1,6 +1,6 @@
 package me.realimpact.telecom.calculation.infrastructure.adapter.mybatis;
 
-import me.realimpact.telecom.calculation.infrastructure.dto.FlatCalculationResultDto;
+import me.realimpact.telecom.calculation.domain.CalculationResult;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -19,6 +19,6 @@ public interface CalculationResultMapper {
      * @return 삽입된 행 수
      */
     int batchInsertCalculationResults(
-        @Param("items") List<FlatCalculationResultDto> items
+        @Param("items") List<CalculationResult> items
     );
 }

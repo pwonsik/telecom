@@ -6,7 +6,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /**
  * CalculationResult 테이블과 매핑되는 DTO

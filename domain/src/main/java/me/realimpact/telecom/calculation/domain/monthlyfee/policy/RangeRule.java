@@ -1,9 +1,9 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee.policy;
 
-import java.math.BigDecimal;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+
+import java.math.BigDecimal;
 
 @RequiredArgsConstructor
 @Getter

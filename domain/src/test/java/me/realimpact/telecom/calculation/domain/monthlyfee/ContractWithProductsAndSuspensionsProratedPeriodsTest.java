@@ -1,9 +1,8 @@
 package me.realimpact.telecom.calculation.domain.monthlyfee;
 
+import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

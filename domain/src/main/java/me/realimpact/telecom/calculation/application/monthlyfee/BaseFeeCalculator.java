@@ -1,25 +1,24 @@
 package me.realimpact.telecom.calculation.application.monthlyfee;
 
+import lombok.RequiredArgsConstructor;
+import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
+import me.realimpact.telecom.calculation.application.Calculator;
+import me.realimpact.telecom.calculation.domain.CalculationContext;
+import me.realimpact.telecom.calculation.domain.CalculationResult;
+import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsAndSuspensions;
+import me.realimpact.telecom.calculation.domain.monthlyfee.DefaultPeriod;
+import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
+import me.realimpact.telecom.calculation.port.out.ContractQueryPort;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
-import me.realimpact.telecom.calculation.application.Calculator;
-import me.realimpact.telecom.calculation.domain.CalculationContext;
-import me.realimpact.telecom.calculation.domain.CalculationResult;
-import me.realimpact.telecom.calculation.domain.monthlyfee.*;
-import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.CalculationResultMapper;
-import me.realimpact.telecom.calculation.infrastructure.converter.CalculationResultFlattener;
-import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
-import org.springframework.stereotype.Service;
-
-import lombok.RequiredArgsConstructor;
-import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
-import me.realimpact.telecom.calculation.api.CalculationRequest;
-import me.realimpact.telecom.calculation.port.out.ContractQueryPort;
-
 @Service
 @RequiredArgsConstructor
+@Order(10)
 public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSuspensions> {
 
     private final ContractQueryPort contractQueryPort;
@@ -36,28 +35,31 @@ public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSusp
     }
 
     @Override
-    public List<ContractWithProductsAndSuspensions> read(CalculationContext calculationContext, List<Long> contractIds) {
-        DefaultPeriod billingPeriod = createBillingPeriod(calculationContext);
+    public List<ContractWithProductsAndSuspensions> read(CalculationContext ctx, List<Long> contractIds) {
+        DefaultPeriod billingPeriod = createBillingPeriod(ctx);
         return contractQueryPort.findContractsAndProductInventoriesByContractIds(
-            context.contractIds(), billingPeriod.getStartDate(), billingPeriod.getEndDate()
+            contractIds, billingPeriod.getStartDate(), billingPeriod.getEndDate()
         );
     }
 
     @Override
-    public List<CalculationResult> process(CalculationContext calculationContext, ContractWithProductsAndSuspensions contractWithProductInventoriesAndSuspensions) {
+    public List<CalculationResult> process(
+        CalculationContext ctx,
+        ContractWithProductsAndSuspensions contractWithProductInventoriesAndSuspensions
+    ) {
         return contractWithProductInventoriesAndSuspensions.buildProratedPeriods().stream()
-            .map(proratedPeriod -> proratedPeriod.calculate(calculationContext))
+            .map(proratedPeriod -> proratedPeriod.calculate(ctx))
             .filter(Objects::nonNull)
             .toList();
     }
 
     @Override
-    public void write(CalculationContext calculationContext, List<CalculationResult> output) {
-        calculationResultSavePort.save(calculationContext, output);
+    public void write(CalculationContext ctx, List<CalculationResult> output) {
+        calculationResultSavePort.batchSave(ctx, output);
     }
 
     @Override
-    public void post(CalculationContext calculationContext, List<CalculationResult> output) {
+    public void post(CalculationContext ctx, List<CalculationResult> output) {
         // do nothing
     }
 
