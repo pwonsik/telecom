@@ -6,6 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Spring Boot 3-based telecom billing calculation system implementing hexagonal architecture for Korean telecommunication services. The system calculates monthly fees with complex pro-rated billing logic following TMForum specifications.
 
+**Project Name**: `telecom-billing`  
+**Group ID**: `me.realimpact.telecom.billing`  
+**Version**: `0.0.1-SNAPSHOT`  
+**Java Version**: 21  
+**Spring Boot Version**: 3.2.4
+
 ## Development Commands
 
 ### Build and Test
@@ -53,28 +59,41 @@ The system includes comprehensive batch processing capabilities:
 ## Architecture
 
 ### Module Structure
-- **domain**: Core business logic with hexagonal architecture (library module, no Spring Boot executable)
+- **domain**: Core business logic with hexagonal architecture (library JAR module, bootJar disabled)
+  - Dependencies: Spring Data JPA, MyBatis, QueryDSL, MySQL Connector
+  - Contains: Business entities, use cases, application services, infrastructure adapters
 - **web-service**: REST API layer depending on domain
+  - Dependencies: Spring Web, domain module
+  - Database: H2 in-memory for testing/development
 - **batch**: Spring Batch processing layer depending on domain for large-scale calculations
+  - Dependencies: Spring Batch, MyBatis, domain module, MySQL Connector
+  - Features: Multi-threaded processing, chunk-based processing, MySQL connection pooling
 - **testgen**: Test data generation utility with JavaFaker
+  - Dependencies: Spring Boot Starter, MyBatis, MySQL Connector, JavaFaker
+  - Purpose: Generate realistic test data for development and testing
 
 ### Hexagonal Architecture
-The domain module follows strict hexagonal architecture:
-- `api/`: Inbound ports (use cases)
-- `application/`: Application services implementing use cases
-- `domain/`: Core business entities and logic
-- `port/out/`: Outbound ports for external dependencies
+The domain module follows strict hexagonal architecture with clear package structure:
+- `api/`: Inbound ports (use cases) - `CalculationCommandUseCase`
+- `application/`: Application services implementing use cases - `CalculationCommandService`, calculators
+- `domain/`: Core business entities and logic - `ContractWithProductsAndSuspensions`, policies, pricing models
+- `infrastructure/`: Adapters and external integrations
+  - `adapter/`: Repository implementations
+  - `dto/`: Data transfer objects
+  - `converter/`: Domain-DTO conversion logic
+- `port/out/`: Outbound ports for external dependencies - `CalculationResultSavePort`, `ContractQueryPort`
 
 ### Key Business Components
 
 #### Monthly Fee Calculation Flow
-1. **CalculationUseCase**: Main entry point implementing `CalculationCommandUseCase`
-2. **MonthlyFeeCalculator**: Core calculator handling pro-rated billing logic
-3. **ProratedPeriodBuilder**: Splits billing periods based on contractWithProductsAndSuspensions changes, suspensions, and product changes
-4. **Pricing Policies**: Strategy pattern for different pricing models (Flat rate, Range-based, Tier-based, Unit price, etc.)
+1. **CalculationCommandService**: Main application service implementing `CalculationCommandUseCase`
+2. **BaseFeeCalculator**: Core calculator handling pro-rated billing logic and monthly fee calculations
+3. **ProratedPeriodBuilder**: Splits billing periods based on contract changes, suspensions, and product changes
+4. **Pricing Policies**: Strategy pattern for different pricing models implemented via `DefaultMonthlyChargingPolicyFactory`
+5. **One-time Charge Calculators**: `DeviceInstallmentCalculator`, `InstallationFeeCalculator` for non-recurring charges
 
 #### Policy Strategy Pattern
-The system uses strategy pattern for pricing policies via `MonthlyChargingPolicyFactory`:
+The system uses strategy pattern for pricing policies via `DefaultMonthlyChargingPolicyFactory`:
 - `FlatRatePolicy`: Standard flat rate billing
 - `MatchingFactorPolicy`: B2B products with matching criteria
 - `RangeFactorPolicy`: Range-based pricing
@@ -99,19 +118,24 @@ The system uses strategy pattern for pricing policies via `MonthlyChargingPolicy
 - **Calculation period**: Maximum one month (1st to end of month)
 
 ### Technology Stack
-- Spring Boot 3.x with Java 21
-- JPA with QueryDSL for database queries
-- MyBatis for complex SQL queries and batch processing
-- JUnit 5 for testing (avoid mocking in domain tests)
-- Spring Batch for large-scale data processing
-- MySQL as primary database
-- Hexagonal architecture with clear separation of concerns
+- **Spring Boot 3.2.4** with **Java 21**
+- **JPA with QueryDSL 5.0.0** for domain entity queries
+- **MyBatis 3.0.3** for complex SQL queries and batch processing with cursor-based reading
+- **Spring Batch** for large-scale multi-threaded data processing
+- **MySQL** as primary database with HikariCP connection pooling
+- **H2** for web-service development/testing
+- **JUnit 5** for testing (avoid mocking in domain tests)
+- **Lombok** for reducing boilerplate code
+- **JavaFaker** for test data generation
+- **Hexagonal architecture** with clear separation of concerns
 
 ### Testing
-- Domain tests should avoid mocking
-- Integration tests exist in `MonthlyFeeCalculationIntegrationTest`
-- Use descriptive test method names reflecting business scenarios
-- Test various pricing policy combinations
+- **Domain tests**: Avoid mocking, focus on business logic testing
+- **Integration tests**: `MonthlyFeeCalculationIntegrationTest` for end-to-end scenarios
+- **Policy tests**: Individual test classes for each pricing policy (`FlatRatePolicyTest`, `TierFactorPolicyTest`, etc.)
+- **Converter tests**: `ContractDtoToDomainConverterTest` for data transformation logic
+- **Test naming**: Use descriptive method names reflecting business scenarios
+- **Coverage**: Test various pricing policy combinations and edge cases
 
 ## Key Business Context
 
@@ -127,10 +151,11 @@ The core complexity lies in accurately segmenting billing periods when contracts
 ## Spring Batch Architecture
 
 ### Multi-threaded Processing Design
-- **Reader**: Single-threaded data reading using MyBatisCursorItemReader wrapped in SynchronizedItemStreamReader
-- **Processor**: Multi-threaded parallel processing via TaskExecutor (configurable via `threadCount` job parameter)
-- **Writer**: Thread-safe batch writing with custom MonthlyFeeCalculationResultWriter using @Transactional
-- **Chunk Size**: Configurable via constants, typically 100 items per chunk for optimal performance
+- **Reader**: `ChunkedContractReader` for bulk contract reading, wrapped in `SynchronizedItemStreamReader` for thread safety
+- **Processor**: `MonthlyFeeCalculationProcessor` with multi-threaded parallel processing via `TaskExecutor`
+- **Writer**: `MonthlyFeeCalculationResultWriter` with thread-safe batch writing using `@Transactional`
+- **Chunk Size**: Configured via `BatchConstants.CHUNK_SIZE`, typically 100 items per chunk
+- **Thread Pool**: `ThreadPoolTaskExecutor` with configurable core/max pool sizes and queue capacity
 
 ### Batch Job Parameters
 - **billingStartDate** (required): Billing period start date (YYYY-MM-DD format)
@@ -146,16 +171,20 @@ MyBatis queries support conditional WHERE clauses for flexible usage:
 - Batch processing: full dataset queries with `contractId = null`
 
 #### Complex Data Reading Strategy
-Current implementation uses MyBatisCursorItemReader for streaming large datasets:
-- Cursor-based reading prevents memory overflow
-- SynchronizedItemStreamReader ensures thread-safety in multi-threaded environment
-- SQL fragment reuse (`contractSelectClause`, `contractFilterConditions`, `contractOrderByClause`)
+Current implementation uses `ChunkedContractReader` for efficient bulk reading:
+- Reads contract IDs in chunks, then bulk loads related data
+- Prevents memory overflow with controlled batch sizes
+- Uses `ContractQueryMapper` for complex SQL with joins and subqueries
+- Supports both single contract processing (`contractId` parameter) and full dataset processing
+- Integrates with `InstallationHistoryMapper` and `DeviceInstallmentMapper` for one-time charges
 
-#### Key Composite Keys for Proper Pagination
-- contractWithProductsAndSuspensions key: contractId
-- product key: contractId, productOfferingId, effectiveStartDateTime, effectiveEndDateTime
-- suspension key: contractId, suspensionType, effectiveStartDateTime, effectiveEndDateTime
-- ProductOffering key: productId, chargeItemId
+#### Key Composite Keys for Proper Data Grouping
+- **Contract key**: `contractId`
+- **Product key**: `contractId`, `productOfferingId`, `effectiveStartDateTime`, `effectiveEndDateTime`
+- **Suspension key**: `contractId`, `suspensionType`, `effectiveStartDateTime`, `effectiveEndDateTime`  
+- **ProductOffering key**: `productId`, `chargeItemId`
+- **Device Installment key**: `contractId`, `deviceInstallmentId`
+- **Installation History key**: `contractId`, `installationDate`
 
 #### Critical ORDER BY Requirements
 ORDER BY clauses must maintain consistent sorting for proper pagination and MyBatis ResultMap grouping:
@@ -166,10 +195,11 @@ ORDER BY c.contract_id, po.product_offering_id, p.effective_start_date_time,
 ```
 
 ### Batch Processing Considerations
-- **ExecutorType Conflicts**: Avoid MyBatisPagingItemReader in multi-threaded environments due to ExecutorType.BATCH conflicts with existing transactions
-- **Transaction Management**: Use Spring's declarative transaction management (@Transactional) in Writers, not manual SqlSession management
-- **Memory Management**: Cursor-based readers prevent memory issues with large datasets
-- **Thread Safety**: Always wrap non-thread-safe readers with SynchronizedItemStreamReader for multi-threaded processing
+- **Reader Design**: Uses custom `ChunkedContractReader` instead of MyBatisPagingItemReader to avoid ExecutorType conflicts
+- **Transaction Management**: Uses Spring's declarative `@Transactional` in Writers, avoiding manual SqlSession management
+- **Memory Management**: Chunk-based processing with controlled batch sizes prevents memory issues
+- **Thread Safety**: `SynchronizedItemStreamReader` wrapper ensures thread-safe reading in multi-threaded environment
+- **Connection Pooling**: HikariCP configuration optimized for multi-threaded batch processing (max pool size: 20)
 
 For detailed MyBatis paging usage, see `MYBATIS_PAGING_USAGE.md`
 
@@ -196,7 +226,14 @@ Spring Batch stores execution metadata in these tables:
 - `BATCH_STEP_EXECUTION`: Step-level execution metrics
 
 ### Performance Optimization
-- **Chunk Size**: Balance between transaction size and memory usage (typically 100-1000)
-- **Thread Count**: Configure via job parameter, usually 4-16 threads depending on system resources
-- **Database Connection Pool**: Ensure adequate connections for multi-threaded processing
-- **JVM Memory**: Set appropriate heap size for large dataset processing: `-Xmx2g`
+- **Chunk Size**: Configured via `BatchConstants.CHUNK_SIZE`, typically 100 for optimal performance
+- **Thread Count**: Configurable via `threadCount` job parameter (default: 8 threads)
+- **Connection Pool**: HikariCP optimized for batch processing
+  - Maximum pool size: 20
+  - Minimum idle: 8  
+  - Connection timeout: 60s
+- **MyBatis Configuration**: 
+  - Default fetch size: 100
+  - Statement timeout: 0 (unlimited for batch)
+  - Cache disabled for batch processing
+- **JVM Memory**: Recommended `-Xmx2g` for large dataset processing
