@@ -54,7 +54,8 @@ java -jar batch/build/libs/batch-0.0.1-SNAPSHOT.jar --billingStartDate=2024-03-0
 The system includes comprehensive batch processing capabilities:
 - Use `./run-batch-jar.sh` for interactive batch execution
 - For full batch processing guide, see `BATCH_EXECUTION_GUIDE.md`
-- Supports both full contractWithProductsAndSuspensions processing and single contractWithProductsAndSuspensions processing via `contractId` parameter
+- Supports both full contract processing and single contract processing via `contractId` parameter
+- Includes one-time charge processing for installation fees and device installments
 
 ## Architecture
 
@@ -113,7 +114,7 @@ The system uses strategy pattern for pricing policies via `DefaultMonthlyChargin
 ### Business Rules Implementation
 - **Pro-rated calculation**: Contract start date is included, end date is excluded
 - **Suspension periods**: Apply suspension billing rates defined per product
-- **Period segmentation**: Overlap contractWithProductsAndSuspensions history with service status history for accurate billing
+- **Period segmentation**: Overlap contract history with service status history for accurate billing
 - **OCP principle**: New B2B products must be addable without modifying existing code
 - **Calculation period**: Maximum one month (1st to end of month)
 
@@ -152,22 +153,24 @@ The core complexity lies in accurately segmenting billing periods when contracts
 
 ### Multi-threaded Processing Design
 - **Reader**: `ChunkedContractReader` for bulk contract reading, wrapped in `SynchronizedItemStreamReader` for thread safety
-- **Processor**: `MonthlyFeeCalculationProcessor` with multi-threaded parallel processing via `TaskExecutor`
-- **Writer**: `MonthlyFeeCalculationResultWriter` with thread-safe batch writing using `@Transactional`
+- **Processor**: `CalculationProcessor` with multi-threaded parallel processing via `TaskExecutor`
+- **Writer**: `CalculationWriter` with thread-safe batch writing using `@Transactional`
 - **Chunk Size**: Configured via `BatchConstants.CHUNK_SIZE`, typically 100 items per chunk
 - **Thread Pool**: `ThreadPoolTaskExecutor` with configurable core/max pool sizes and queue capacity
 
 ### Batch Job Parameters
 - **billingStartDate** (required): Billing period start date (YYYY-MM-DD format)
 - **billingEndDate** (required): Billing period end date (YYYY-MM-DD format)  
-- **contractId** (optional): Specific contractWithProductsAndSuspensions ID for single contractWithProductsAndSuspensions processing
+- **contractId** (optional): Specific contract ID for single contract processing
+- **billingCalculationType** (required): Type of billing calculation (e.g., MONTHLY_FEE)
+- **billingCalculationPeriod** (required): Period for calculation (e.g., MONTHLY)
 - **threadCount** (optional): Number of threads for parallel processing (default: 8)
 
 ### MyBatis Configuration for Batch Processing
 
 #### Dual Usage Pattern
 MyBatis queries support conditional WHERE clauses for flexible usage:
-- Web service: single contractWithProductsAndSuspensions queries with `contractId` parameter
+- Web service: single contract queries with `contractId` parameter
 - Batch processing: full dataset queries with `contractId = null`
 
 #### Complex Data Reading Strategy

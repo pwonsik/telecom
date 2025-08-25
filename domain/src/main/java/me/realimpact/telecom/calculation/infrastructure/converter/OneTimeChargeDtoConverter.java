@@ -8,6 +8,7 @@ import me.realimpact.telecom.calculation.infrastructure.dto.DeviceInstallmentDto
 import me.realimpact.telecom.calculation.infrastructure.dto.InstallationHistoryDto;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -24,7 +25,7 @@ public class OneTimeChargeDtoConverter {
             dto.contractId(),
             dto.sequenceNumber(),
             dto.installationDate(),
-            dto.installationFee(),
+            dto.installationFee().longValue(),
             dto.billedFlag()
         );
     }
@@ -44,7 +45,7 @@ public class OneTimeChargeDtoConverter {
     public DeviceInstallmentDetail convertToDeviceInstallmentDetail(DeviceInstallmentDetailDto dto) {
         return new DeviceInstallmentDetail(
             dto.installmentRound(),
-            dto.installmentAmount()
+            dto.installmentAmount().longValue()
         );
     }
     
@@ -54,7 +55,7 @@ public class OneTimeChargeDtoConverter {
     public DeviceInstallmentDetailDto convertToDeviceInstallmentDetailDto(DeviceInstallmentDetail domain) {
         return new DeviceInstallmentDetailDto(
             domain.installmentRound(),
-            domain.installmentAmount(),
+            BigDecimal.valueOf(domain.installmentAmount()),
             null // billingCompletedDate는 domain에 없으므로 null
         );
     }
@@ -72,33 +73,13 @@ public class OneTimeChargeDtoConverter {
             dto.contractId(),
             dto.installmentSequence(),
             dto.installmentStartDate(),
-            dto.totalInstallmentAmount(),
+            dto.totalInstallmentAmount().longValue(),
             dto.installmentMonths(),
             dto.billedCount(),
             details
         );
     }
-    
-    /**
-     * DeviceInstallmentMaster 도메인 객체를 DeviceInstallmentDto로 변환
-     */
-    public DeviceInstallmentDto convertToDeviceInstallmentDto(DeviceInstallmentMaster domain) {
-        List<DeviceInstallmentDetailDto> detailDtos = domain.deviceInstallmentDetailList().stream()
-            .map(this::convertToDeviceInstallmentDetailDto)
-            .toList();
-            
-        return new DeviceInstallmentDto(
-            domain.contractId(),
-            domain.installmentSequence(),
-            domain.installmentStartDate(),
-            domain.totalInstallmentAmount(),
-            domain.installmentMonths(),
-            domain.billedCount(),
-            detailDtos
-        );
-    }
 
-    
     /**
      * DeviceInstallmentDto 리스트를 DeviceInstallmentMaster 도메인 객체 리스트로 변환
      */

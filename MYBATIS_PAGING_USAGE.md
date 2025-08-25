@@ -96,9 +96,9 @@ public class ContractBatchConfig {
     // 2. Processor: 계산 수행
     @Bean
     public ItemProcessor<ContractDto, MonthlyFeeCalculationResult> contractProcessor() {
-        return contractDto -> {
+        return contractProductsSuspensionsDto -> {
             // DTO를 도메인 객체로 변환
-            Contract contractWithProductsAndSuspensions = converter.convertToContract(contractDto);
+            Contract contractWithProductsAndSuspensions = converter.convertToContract(contractProductsSuspensionsDto);
             
             // 월정액 요금 계산 수행
             List<MonthlyFeeCalculationResult> results = calculator.calculate(contractWithProductsAndSuspensions);

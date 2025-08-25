@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.api.CalculationCommandUseCase;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
 import me.realimpact.telecom.calculation.api.CalculationResponse;
+import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
-import me.realimpact.telecom.calculation.domain.CalculationResult;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +15,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CalculationCommandService implements CalculationCommandUseCase {
 
-    private final List<Calculator<?>> calculators;
+    // 장점이 있을까..
+    //private final List<? extends Calculator<?>> calculators;
+
+    private final BaseFeeCalculator baseFeeCalculator;
 
     @Transactional
     @Override
@@ -27,15 +30,16 @@ public class CalculationCommandService implements CalculationCommandUseCase {
             calculationRequest.billingCalculationPeriod()
         );
         List<Long> contractIds = calculationRequest.contractIds();
-        List<CalculationResult> calculationResults =
-            calculators.stream()
-                .flatMap(calculator -> calculator.execute(ctx, contractIds).stream())
-                .toList();
-        return calculationResults.stream()
-            .map(calculationResult ->
-                new CalculationResponse(calculationResult.contractId(), calculationResult.fee().longValue())
-            )
-            .toList();
+//        List<CalculationResult> calculationResults =
+//            calculators.stream()
+//                .flatMap(calculator -> calculator.execute(ctx, contractIds).stream())
+//                .toList();
+//        return calculationResults.stream()
+//            .map(calculationResult ->
+//                new CalculationResponse(calculationResult.contractId(), calculationResult.fee().longValue())
+//            )
+//            .toList();
+        return null;
     }
 
 }

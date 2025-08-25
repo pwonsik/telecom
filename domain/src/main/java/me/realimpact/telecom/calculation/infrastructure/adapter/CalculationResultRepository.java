@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.CalculationResultMapper;
-import me.realimpact.telecom.calculation.infrastructure.converter.CalculationResultFlattener;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import org.springframework.stereotype.Repository;
 
@@ -23,7 +22,7 @@ public class CalculationResultRepository implements CalculationResultSavePort {
     private final CalculationResultMapper calculationResultMapper;
 
     @Override
-    public void batchSave(CalculationContext ctx, List<CalculationResult> results) {
+    public void save(CalculationContext ctx, List<CalculationResult> results) {
         if (results == null || results.isEmpty()) {
             log.warn("No calculation results to save");
             return;

@@ -159,9 +159,9 @@ public class MonthlyFeeCalculationProcessor
     implements ItemProcessor<ContractDto, List<MonthlyFeeCalculationResult>> {
     
     @Override
-    public List<MonthlyFeeCalculationResult> process(ContractDto contractDto) throws Exception {
+    public List<MonthlyFeeCalculationResult> process(ContractDto contractProductsSuspensionsDto) throws Exception {
         // DTO → 도메인 변환
-        Contract contractWithProductsAndSuspensions = dtoToDomainConverter.convertToContract(contractDto);
+        Contract contractWithProductsAndSuspensions = dtoToDomainConverter.convertToContract(contractProductsSuspensionsDto);
         
         // 계산 수행 (MonthlyFeeCalculatorService의 processCalculation 활용)
         return monthlyFeeCalculatorService.processCalculation(contractWithProductsAndSuspensions, billingPeriod);

@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
 import me.realimpact.telecom.billing.batch.CalculationResultGroup;
 import me.realimpact.telecom.billing.batch.processor.CalculationProcessor;
+import me.realimpact.telecom.billing.batch.reader.CalculationTarget;
 import me.realimpact.telecom.billing.batch.reader.ChunkedContractReader;
 import me.realimpact.telecom.billing.batch.writer.CalculationWriter;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
@@ -13,13 +14,10 @@ import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculato
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
 import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.CalculationResultMapper;
-import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper;
-import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.DeviceInstallmentMapper;
-import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper;
-import me.realimpact.telecom.calculation.infrastructure.converter.CalculationResultFlattener;
 import me.realimpact.telecom.calculation.infrastructure.converter.ContractDtoToDomainConverter;
 import me.realimpact.telecom.calculation.infrastructure.converter.OneTimeChargeDtoConverter;
-import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
+import me.realimpact.telecom.calculation.infrastructure.dto.ContractProductsSuspensionsDto;
+import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.batch.core.Job;
@@ -58,16 +56,15 @@ public class CalculationBatchConfig {
     private final SqlSessionFactory sqlSessionFactory;
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
-    private final BaseFeeCalculator monthlyFeeCalculatorService;
+
     private final ContractDtoToDomainConverter contractDtoToDomainConverter;
     private final OneTimeChargeDtoConverter oneTimeChargeDtoConverter;
-    private final CalculationResultMapper calculationResultMapper;
-    private final CalculationResultFlattener calculationResultFlattener;
-    private final InstallationHistoryMapper installationHistoryMapper;
-    private final DeviceInstallmentMapper deviceInstallmentMapper;
-    private final ContractQueryMapper contractQueryMapper;
+
+    private final BaseFeeCalculator baseFeeCalculator;
     private final DeviceInstallmentCalculator deviceInstallmentCalculator;
     private final InstallationFeeCalculator installationFeeCalculator;
+
+    private final CalculationResultSavePort calculationResultSavePort;
 
     @Bean
     @StepScope
@@ -134,11 +131,11 @@ public class CalculationBatchConfig {
     @StepScope
     public ChunkedContractReader chunkedContractReader(CalculationParameters calculationParameters) {
         return new ChunkedContractReader(
-            contractQueryMapper,
-            installationHistoryMapper,
-            deviceInstallmentMapper,
-            sqlSessionFactory,
-            calculationParameters
+                baseFeeCalculator,
+                installationFeeCalculator,
+                deviceInstallmentCalculator,
+                sqlSessionFactory,
+                calculationParameters
         );
     }
     
@@ -147,22 +144,20 @@ public class CalculationBatchConfig {
      */
     @Bean
     @StepScope  
-    public SynchronizedItemStreamReader<ContractDto> contractReader(CalculationParameters calculationParameters) {
-        SynchronizedItemStreamReader<ContractDto> reader = new SynchronizedItemStreamReader<>();
+    public SynchronizedItemStreamReader<CalculationTarget> contractReader(CalculationParameters calculationParameters) {
+        SynchronizedItemStreamReader<CalculationTarget> reader = new SynchronizedItemStreamReader<>();
         reader.setDelegate(chunkedContractReader(calculationParameters));  // ChunkedContractReader 사용
         return reader;
     }
 
     @Bean
     @StepScope
-    public ItemProcessor<ContractDto, CalculationResultGroup> calculationProcessor(CalculationParameters calculationParameters) {
+    public ItemProcessor<CalculationTarget, CalculationResultGroup> calculationProcessor(CalculationParameters calculationParameters) {
         return new CalculationProcessor(
-            monthlyFeeCalculatorService,
-            installationFeeCalculator,
-            deviceInstallmentCalculator,
-            contractDtoToDomainConverter,
-            oneTimeChargeDtoConverter,
-            calculationParameters
+                baseFeeCalculator,
+                installationFeeCalculator,
+                deviceInstallmentCalculator,
+                calculationParameters
         );
     }
 
@@ -172,8 +167,7 @@ public class CalculationBatchConfig {
     @Bean
     @StepScope
     public ItemWriter<CalculationResultGroup> calculationWriter(CalculationParameters calculationParameters) {
-        return new CalculationWriter(
-            calculationResultMapper, calculationParameters);
+        return new CalculationWriter(calculationResultSavePort, calculationParameters);
     }
 
 
@@ -183,7 +177,7 @@ public class CalculationBatchConfig {
     @Bean
     public Step monthlyFeeCalculationStep(CalculationParameters calculationParameters) {
         return new StepBuilder("monthlyFeeCalculationStep", jobRepository)
-                .<ContractDto, CalculationResultGroup>chunk(CHUNK_SIZE, transactionManager)  // 상수화된 chunk size 사용
+                .<CalculationTarget, CalculationResultGroup>chunk(CHUNK_SIZE, transactionManager)  // 상수화된 chunk size 사용
                 .reader(contractReader(calculationParameters))  // Thread-Safe Reader 사용
                 .processor(calculationProcessor(calculationParameters))  // @StepScope Processor 사용
                 .writer(calculationWriter(calculationParameters))        // @StepScope Writer 사용

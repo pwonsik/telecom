@@ -8,20 +8,22 @@ import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsAndSuspensions;
 import me.realimpact.telecom.calculation.domain.monthlyfee.DefaultPeriod;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
-import me.realimpact.telecom.calculation.port.out.ContractQueryPort;
+import me.realimpact.telecom.calculation.port.out.ProductQueryPort;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Order(10)
 public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSuspensions> {
 
-    private final ContractQueryPort contractQueryPort;
+    private final ProductQueryPort productQueryPort;
     private final CalculationResultSavePort calculationResultSavePort;
 
     private DefaultPeriod createBillingPeriod(CalculationContext calculationContext) {
@@ -35,11 +37,11 @@ public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSusp
     }
 
     @Override
-    public List<ContractWithProductsAndSuspensions> read(CalculationContext ctx, List<Long> contractIds) {
+    public Map<Long, List<ContractWithProductsAndSuspensions>> read(CalculationContext ctx, List<Long> contractIds) {
         DefaultPeriod billingPeriod = createBillingPeriod(ctx);
-        return contractQueryPort.findContractsAndProductInventoriesByContractIds(
+        return productQueryPort.findContractsAndProductInventoriesByContractIds(
             contractIds, billingPeriod.getStartDate(), billingPeriod.getEndDate()
-        );
+        ).stream().collect(Collectors.groupingBy(ContractWithProductsAndSuspensions::getContractId));
     }
 
     @Override
@@ -55,7 +57,7 @@ public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSusp
 
     @Override
     public void write(CalculationContext ctx, List<CalculationResult> output) {
-        calculationResultSavePort.batchSave(ctx, output);
+        calculationResultSavePort.save(ctx, output);
     }
 
     @Override
@@ -67,6 +69,7 @@ public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSusp
      * 테스트를 위한 계산 메서드 (결과 반환)
      */
     public List<CalculationResult> calculateAndReturn(CalculationContext calculationContext, List<Long> contractIds) {
-        return read(calculationContext, contractIds).stream().flatMap(obj -> process(calculationContext, obj).stream()).toList();
+        return read(calculationContext, contractIds).values().stream()
+                .flatMap(obj -> process(calculationContext, obj.get(0)).stream()).toList();
     }
 }

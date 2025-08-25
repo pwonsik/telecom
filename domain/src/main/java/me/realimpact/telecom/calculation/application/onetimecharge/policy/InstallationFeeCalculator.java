@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 설치비 계산기
@@ -26,10 +28,10 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
     private final CalculationResultSavePort calculationResultSavePort;
 
     @Override
-    public List<InstallationHistory> read(CalculationContext ctx, List<Long> contractIds) {
+    public Map<Long, List<InstallationHistory>> read(CalculationContext ctx, List<Long> contractIds) {
         return installationHistoryQueryPort.findInstallations(
             contractIds, ctx.billingStartDate(), ctx.billingEndDate()
-        );
+        ).stream().collect(Collectors.groupingBy(InstallationHistory::contractId));
     }
 
     @Override
@@ -51,7 +53,7 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
 
     @Override
     public void write(CalculationContext ctx, List<CalculationResult> output) {
-        calculationResultSavePort.batchSave(ctx, output);
+        calculationResultSavePort.save(ctx, output);
     }
 
     @Override

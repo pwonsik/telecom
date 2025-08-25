@@ -3,10 +3,10 @@ package me.realimpact.telecom.billing.batch.reader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
-import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper;
-import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.DeviceInstallmentMapper;
-import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper;
-import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
+import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
+import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
+import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
+import me.realimpact.telecom.calculation.infrastructure.dto.ContractProductsSuspensionsDto;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -14,28 +14,27 @@ import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.support.ListItemReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
 
 @StepScope
 @RequiredArgsConstructor
 @Slf4j
-public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
-    
-    private final ContractQueryMapper contractQueryMapper;
-    private final InstallationHistoryMapper installationHistoryMapper;
-    private final DeviceInstallmentMapper deviceInstallmentMapper;
+public class ChunkedContractReader implements ItemStreamReader<CalculationTarget> {
+
+    private final BaseFeeCalculator baseFeeCalculator;
+    private final InstallationFeeCalculator installationFeeCalculator;
+    private final DeviceInstallmentCalculator deviceInstallmentCalculator;
+
     private final SqlSessionFactory sqlSessionFactory;
     private final CalculationParameters calculationParameters;
     
     private static final int chunkSize = CHUNK_SIZE;
     
     private MyBatisCursorItemReader<Long> contractIdReader;
-    private ListItemReader<ContractDto> currentChunkReader;
+    private ListItemReader<CalculationTarget> currentChunkReader;
     private boolean initialized = false;
     
     @Override
@@ -62,10 +61,10 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
     }
     
     @Override
-    public ContractDto read() throws Exception {
+    public CalculationTarget read() throws Exception {
         // 현재 청크에서 아이템을 읽기 시도
         if (currentChunkReader != null) {
-            ContractDto item = currentChunkReader.read();
+            CalculationTarget item = currentChunkReader.read();
             if (item != null) {
                 return item;
             }
@@ -117,33 +116,35 @@ public class ChunkedContractReader implements ItemStreamReader<ContractDto> {
             currentChunkReader = null;
             return;
         }
-        
-        //log.info("읽어온 contractIds: {}", contractIds.size() <= 10 ? contractIds : contractIds.subList(0, 10) + "...");
-        
-        // contract ID들로 bulk 조회하여 ContractDto 리스트 생성
-        List<ContractDto> contractDtos =
-            contractQueryMapper.findContractsAndProductInventoriesByContractIds(
-                contractIds, calculationParameters.billingStartDate(), calculationParameters.billingEndDate());
 
-        contractDtos.forEach(contractDto -> {
-            contractDto.setInstallationHistories(
-                installationHistoryMapper.findInstallationsByContractIds(
-                    contractIds, calculationParameters.billingEndDate()
-                )
-            );
-            contractDto.setDeviceInstallments(
-                deviceInstallmentMapper.findInstallmentsByContractIds(
-                    contractIds, calculationParameters.billingEndDate()
-                )
-            );
-        });
-
-        // todo - 여기에 각종 요금항목을 계산하기 위한 기초 데이터를 load하는 로직 넣는다.
-        
-        log.info("생성된 ContractDto 개수: {}", contractDtos.size());
-        
         // ListItemReader로 감싸서 하나씩 반환할 수 있도록 설정
-        currentChunkReader = new ListItemReader<>(contractDtos);
+        currentChunkReader = new ListItemReader<>(getCalculationTargets(contractIds));
+    }
+
+    private List<CalculationTarget> getCalculationTargets(List<Long> contractIds) {
+        // todo - 여기에 각종 요금항목을 계산하기 위한 기초 데이터를 load하는 로직 넣는다.
+        // 월정액
+        var contractWithProductsAndSuspensionsMap = baseFeeCalculator.read(calculationParameters.toCalculationContext(), contractIds);
+        // 설치비
+        var installationHistoriesMap = installationFeeCalculator.read(calculationParameters.toCalculationContext(), contractIds);
+        // 할부
+        var deviceInstallmentMastersMap = deviceInstallmentCalculator.read(calculationParameters.toCalculationContext(), contractIds);
+
+        List<CalculationTarget> calculationTargets = new ArrayList<>();
+        // 모든 조회 대상을 calculationTarget으로 모은다.
+        for (Long contractId : contractIds) {
+            CalculationTarget calculationTarget = new CalculationTarget(
+                    contractId,
+                    contractWithProductsAndSuspensionsMap.getOrDefault(contractId, Collections.emptyList()),
+                    installationHistoriesMap.getOrDefault(contractId, Collections.emptyList()),
+                    deviceInstallmentMastersMap.getOrDefault(contractId, Collections.emptyList())
+            );
+            calculationTargets.add(calculationTarget);
+        }
+
+        log.info("생성된 calculationTargets 개수: {}", calculationTargets.size());
+
+        return calculationTargets;
     }
 
 }

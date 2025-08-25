@@ -5,9 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
 import me.realimpact.telecom.billing.batch.CalculationResultGroup;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
-import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.CalculationResultMapper;
-import me.realimpact.telecom.calculation.infrastructure.converter.CalculationResultFlattener;
-import me.realimpact.telecom.calculation.infrastructure.dto.FlatCalculationResultDto;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
@@ -32,9 +29,7 @@ public class CalculationWriter implements ItemWriter<CalculationResultGroup> {
         List<CalculationResult> calculationResults = chunk.getItems().stream()
             .flatMap(calculationResultGroup -> calculationResultGroup.calculationResults().stream())
             .toList();
-        // 단일 배치 Insert 실행 - 스프링이 트랜잭션을 관리
-        calculationResultSavePort.batchSave(
-            calculationParameters.toCalculationContext(), calculationResults
-        );
+
+        calculationResultSavePort.save(calculationParameters.toCalculationContext(), calculationResults);
     }
 }

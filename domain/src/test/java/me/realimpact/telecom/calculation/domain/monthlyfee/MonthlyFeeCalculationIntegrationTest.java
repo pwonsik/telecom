@@ -4,9 +4,11 @@ import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.BillingCalculationType;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
+import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.*;
-import me.realimpact.telecom.calculation.port.out.ContractQueryPort;
+import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
+import me.realimpact.telecom.calculation.port.out.ProductQueryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,7 +34,10 @@ import static org.mockito.Mockito.when;
 class MonthlyFeeCalculationIntegrationTest {
 
     @Mock
-    private ContractQueryPort contractQueryPort;
+    private ProductQueryPort productQueryPort;
+
+    @Mock
+    private CalculationResultSavePort calculationResultSavePort;
 
     private BaseFeeCalculator calculator;
 
@@ -146,7 +151,7 @@ class MonthlyFeeCalculationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        calculator = new BaseFeeCalculator(contractQueryPort);
+        calculator = new BaseFeeCalculator(productQueryPort, calculationResultSavePort);
     }
 
     @Test
@@ -178,18 +183,18 @@ class MonthlyFeeCalculationIntegrationTest {
             List.of()         // additionalBillingFactors
         );
 
-        when(contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(any(), any(), any())).thenReturn(List.of(contractWithProductInventoriesAndSuspensionsWithProduct));
+        when(productQueryPort.findContractsAndProductInventoriesByContractIds(any(), any(), any()))
+                .thenReturn(List.of(contractWithProductInventoriesAndSuspensionsWithProduct));
 
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
         // when
-        List<CalculationResult> results = calculator.calculateAndReturn(request);
+        List<CalculationResult> results = calculator.execute(createCalculationContext(), List.of(CONTRACT_ID));
 
         // then
         assertThat(results).hasSize(1);
-        CalculationResult result = results.get(0);
         // 3/15 ~ 3/31 실제 계산된 요금 확인 (일할 계산)
-        BigDecimal totalFee = result.items().stream()
+        BigDecimal totalFee = results.stream()
             .map(CalculationResult::fee)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         
@@ -241,17 +246,15 @@ class MonthlyFeeCalculationIntegrationTest {
             List.of(billingFactors)  // additionalBillingFactors  
         );
         
-        when(contractQueryPort.findContractWithProductsChargeItemsAndSuspensions(any(), any(), any())).thenReturn(List.of(contractWithProductInventoriesAndSuspensionsWithProductAndSuspension));
+        when(productQueryPort.findContractsAndProductInventoriesByContractIds(any(), any(), any())).thenReturn(List.of(contractWithProductInventoriesAndSuspensionsWithProductAndSuspension));
 
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
         // when
-        List<CalculationResult> results = calculator.calculateAndReturn(request);
+        List<CalculationResult> results = calculator.execute(createCalculationContext(), List.of(CONTRACT_ID));
 
         // then
-        assertThat(results).hasSize(1);
-        CalculationResult result = results.get(0);
-        assertThat(result.items()).hasSize(3);  // 3개 기간별 항목
+        assertThat(results).hasSize(3);
 
         /* 
          * 1~5 : 12000
@@ -260,7 +263,7 @@ class MonthlyFeeCalculationIntegrationTest {
          */
          
         // 각 기간별 항목 확인
-        List<CalculationResult> items = result.items();
+        List<CalculationResult> items = results;
             
         // 3/1 ~ 3/9 (9일)
         assertThat(items.get(0).fee().setScale(0, RoundingMode.FLOOR))
@@ -280,11 +283,20 @@ class MonthlyFeeCalculationIntegrationTest {
 
     private CalculationRequest createCalculationRequest(BillingCalculationType billingCalculationType, BillingCalculationPeriod billingCalculationPeriod) {
         return new CalculationRequest(
-            CONTRACT_ID,
+            List.of(CONTRACT_ID),
             BILLING_START_DATE,
             BILLING_END_DATE,
             billingCalculationType,
             billingCalculationPeriod
+        );
+    }
+
+    private CalculationContext createCalculationContext() {
+        return new CalculationContext(
+            BILLING_START_DATE,
+            BILLING_END_DATE,
+            BillingCalculationType.REVENUE_CONFIRMATION,
+            BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH
         );
     }
 }

@@ -2,7 +2,7 @@ package me.realimpact.telecom.calculation.infrastructure.converter;
 
 import me.realimpact.telecom.calculation.domain.monthlyfee.*;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy;
-import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
+import me.realimpact.telecom.calculation.infrastructure.dto.ContractProductsSuspensionsDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.MonthlyChargeItemDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.ProductDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.SuspensionDto;
@@ -15,13 +15,13 @@ import java.util.stream.Collectors;
 
 @Component
 public class ContractDtoToDomainConverter {
-    public List<ContractWithProductsAndSuspensions> convertToContracts(List<ContractDto> dto) {
+    public List<ContractWithProductsAndSuspensions> convertToContracts(List<ContractProductsSuspensionsDto> dto) {
         return dto.stream()
             .map(this::convertToContract)
             .toList();
     }
 
-    public ContractWithProductsAndSuspensions convertToContract(ContractDto dto) {
+    public ContractWithProductsAndSuspensions convertToContract(ContractProductsSuspensionsDto dto) {
         // Products 변환
         List<Product> products = dto.getProducts() != null ? 
             convertToProducts(dto.getProducts()) : List.of();

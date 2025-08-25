@@ -8,6 +8,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 단말할부금 계산기
@@ -18,8 +19,8 @@ import java.util.List;
 public class DeviceInstallmentCalculator implements Calculator<DeviceInstallmentMaster> {
 
     @Override
-    public List<DeviceInstallmentMaster> read(CalculationContext calculationContext, List<Long> contractIds) {
-        return List.of();
+    public Map<Long, List<DeviceInstallmentMaster>> read(CalculationContext calculationContext, List<Long> contractIds) {
+        return Map.of();
     }
 
     @Override

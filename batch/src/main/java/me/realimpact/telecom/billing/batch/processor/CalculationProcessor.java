@@ -4,19 +4,23 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
 import me.realimpact.telecom.billing.batch.CalculationResultGroup;
-import me.realimpact.telecom.calculation.application.Calculator;
+import me.realimpact.telecom.billing.batch.reader.CalculationTarget;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
+import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsAndSuspensions;
 import me.realimpact.telecom.calculation.infrastructure.converter.ContractDtoToDomainConverter;
 import me.realimpact.telecom.calculation.infrastructure.converter.OneTimeChargeDtoConverter;
-import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
+import me.realimpact.telecom.calculation.infrastructure.dto.ContractProductsSuspensionsDto;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 /**
@@ -26,55 +30,62 @@ import java.util.stream.Stream;
 @StepScope
 @RequiredArgsConstructor
 @Slf4j
-public class CalculationProcessor implements ItemProcessor<ContractDto, CalculationResultGroup> {
+public class CalculationProcessor implements ItemProcessor<CalculationTarget, CalculationResultGroup> {
 
     private final BaseFeeCalculator baseFeeCalculator;
     private final InstallationFeeCalculator installationFeeCalculator;
     private final DeviceInstallmentCalculator deviceInstallmentCalculator;
 
-    private final ContractDtoToDomainConverter contractDtoToDomainConverter;
-    private final OneTimeChargeDtoConverter oneTimeChargeDtoConverter;
     private final CalculationParameters calculationParameters;
 
     @Override
-    public CalculationResultGroup process(ContractDto contractDto) throws Exception {
+    public CalculationResultGroup process(CalculationTarget calculationTarget) throws Exception {
         try {
-            log.debug("Processing contract calculation for contractId: {}", contractDto.getContractId());
-            
-            // 1. DTO를 도메인 객체로 변환
-            ContractWithProductsAndSuspensions contractWithProductsAndSuspensions =
-                contractDtoToDomainConverter.convertToContract(contractDto);
+            log.debug("Processing contract calculation for contractId: {}", calculationTarget.contractId());
+            List<CalculationResult> calculationResults = new ArrayList<>();
 
-            // 2. 월정액 계산 수행 (순수 계산 로직만)
-            List<CalculationResult> baseFeeCalculationResult = baseFeeCalculator.process(
-                calculationParameters.toCalculationContext(),
-                contractWithProductsAndSuspensions
+            // 월정액 계산
+            processAndAddResults(
+                    calculationTarget.contractWithProductsAndSuspensions(),
+                    baseFeeCalculator::process,
+                    calculationParameters.toCalculationContext(),
+                    calculationResults
             );
-            List<CalculationResult> installationFeeCalculationResult = contractDto.getInstallationHistories().stream()
-                .flatMap(installationHistoryDto -> installationFeeCalculator.process(
-                        calculationParameters.toCalculationContext(), oneTimeChargeDtoConverter.convertToInstallationHistory(installationHistoryDto)
-                    ).stream()
-                )
-                .toList();
 
-            List<CalculationResult> deviceInstallmentFeeCalculationResult = contractDto.getDeviceInstallments().stream()
-                .flatMap(deviceInstallmentDto -> deviceInstallmentCalculator.process(
-                        calculationParameters.toCalculationContext(), oneTimeChargeDtoConverter.convertToDeviceInstallmentMaster(deviceInstallmentDto)
-                    ).stream()
-                )
-                .toList();
-
-            return new CalculationResultGroup(
-                Stream.of(
-                    baseFeeCalculationResult,
-                    installationFeeCalculationResult,
-                    deviceInstallmentFeeCalculationResult
-                ).flatMap(List::stream).toList()
+            // 설치비
+            processAndAddResults(
+                    calculationTarget.installationHistories(),
+                    installationFeeCalculator::process,
+                    calculationParameters.toCalculationContext(),
+                    calculationResults
             );
-            
+
+            // 할부
+            processAndAddResults(
+                    calculationTarget.deviceInstallmentMasters(),
+                    deviceInstallmentCalculator::process,
+                    calculationParameters.toCalculationContext(),
+                    calculationResults
+            );
+
+            return new CalculationResultGroup(calculationResults);
         } catch (Exception e) {
-            log.error("Failed to process contract calculation for contractId: {}", contractDto.getContractId(), e);
+            log.error("Failed to process contract calculation for contractId: {}", calculationTarget.contractId(), e);
             throw e;
         }
     }
+
+    private <T> void processAndAddResults(
+            Collection<T> items,
+            BiFunction<CalculationContext, T, List<CalculationResult>> processor,
+            CalculationContext context,
+            List<CalculationResult> results
+    ) {
+        results.addAll(
+                items.stream()
+                        .flatMap(item -> processor.apply(context, item).stream())
+                        .toList()
+        );
+    }
+
 }

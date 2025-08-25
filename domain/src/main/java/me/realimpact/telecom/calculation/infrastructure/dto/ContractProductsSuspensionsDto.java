@@ -10,7 +10,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ContractDto {
+public class ContractProductsSuspensionsDto {
     private Long contractId;
     private LocalDate subscribedAt;
     private LocalDate initiallySubscribedAt;
@@ -21,7 +21,4 @@ public class ContractDto {
     
     private List<ProductDto> products;
     private List<SuspensionDto> suspensions;
-
-    private List<InstallationHistoryDto> installationHistories;
-    private List<DeviceInstallmentDto> deviceInstallments;
 }

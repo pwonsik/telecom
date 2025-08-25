@@ -3,7 +3,7 @@ package me.realimpact.telecom.calculation.infrastructure.converter;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsAndSuspensions;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Product;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Suspension;
-import me.realimpact.telecom.calculation.infrastructure.dto.ContractDto;
+import me.realimpact.telecom.calculation.infrastructure.dto.ContractProductsSuspensionsDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.MonthlyChargeItemDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.ProductDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.SuspensionDto;
@@ -18,7 +18,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ContractDtoToDomainConverterTest {
+class ContractProductsSuspensionsDtoToDomainConverterTest {
 
     private ContractDtoToDomainConverter converter;
 
@@ -58,7 +58,7 @@ class ContractDtoToDomainConverterTest {
         suspensionDto.setEffectiveEndDateTime(LocalDateTime.of(2024, 6, 30, 23, 59, 59));
         suspensionDto.setSuspensionTypeDescription("일시정지");
 
-        ContractDto dto = new ContractDto();
+        ContractProductsSuspensionsDto dto = new ContractProductsSuspensionsDto();
         dto.setContractId(12345L);
         dto.setSubscribedAt(LocalDate.of(2024, 1, 1));
         dto.setInitiallySubscribedAt(LocalDate.of(2023, 12, 15));
@@ -92,7 +92,7 @@ class ContractDtoToDomainConverterTest {
     @Test
     void convertToContract_빈_Products_Suspensions_처리() {
         // Given - Contract DTO without products and suspensions
-        ContractDto dto = new ContractDto();
+        ContractProductsSuspensionsDto dto = new ContractProductsSuspensionsDto();
         dto.setContractId(12345L);
         dto.setSubscribedAt(LocalDate.of(2024, 1, 1));
         dto.setInitiallySubscribedAt(LocalDate.of(2023, 12, 15));
@@ -244,18 +244,18 @@ class ContractDtoToDomainConverterTest {
         suspension2.setEffectiveStartDateTime(LocalDateTime.of(2024, 9, 1, 0, 0, 0));
         suspension2.setEffectiveEndDateTime(LocalDateTime.of(2024, 9, 10, 23, 59, 59));
         
-        ContractDto contractDto = new ContractDto();
-        contractDto.setContractId(12345L);
-        contractDto.setSubscribedAt(LocalDate.of(2024, 1, 1));
-        contractDto.setInitiallySubscribedAt(LocalDate.of(2023, 12, 15));
-        contractDto.setTerminatedAt(LocalDate.of(2024, 12, 31));
-        contractDto.setBillingStartDate(LocalDate.of(2024, 1, 1));
-        contractDto.setBillingEndDate(LocalDate.of(2024, 1, 31));
-        contractDto.setProducts(Arrays.asList(product1, product2));
-        contractDto.setSuspensions(Arrays.asList(suspension1, suspension2));
+        ContractProductsSuspensionsDto contractProductsSuspensionsDto = new ContractProductsSuspensionsDto();
+        contractProductsSuspensionsDto.setContractId(12345L);
+        contractProductsSuspensionsDto.setSubscribedAt(LocalDate.of(2024, 1, 1));
+        contractProductsSuspensionsDto.setInitiallySubscribedAt(LocalDate.of(2023, 12, 15));
+        contractProductsSuspensionsDto.setTerminatedAt(LocalDate.of(2024, 12, 31));
+        contractProductsSuspensionsDto.setBillingStartDate(LocalDate.of(2024, 1, 1));
+        contractProductsSuspensionsDto.setBillingEndDate(LocalDate.of(2024, 1, 31));
+        contractProductsSuspensionsDto.setProducts(Arrays.asList(product1, product2));
+        contractProductsSuspensionsDto.setSuspensions(Arrays.asList(suspension1, suspension2));
         
         // When
-        ContractWithProductsAndSuspensions contractWithProductsAndSuspensions = converter.convertToContract(contractDto);
+        ContractWithProductsAndSuspensions contractWithProductsAndSuspensions = converter.convertToContract(contractProductsSuspensionsDto);
         
         // Then - Contract 기본 정보
         assertThat(contractWithProductsAndSuspensions.getContractId()).isEqualTo(12345L);
