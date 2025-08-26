@@ -1,18 +1,26 @@
 package me.realimpact.telecom.calculation.domain;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Suspension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-public record CalculationResult(
-        Long contractId,
-    LocalDate billingStartDate,
-    LocalDate billingEndDate,
-    String productOfferingId,
-    String chargeItemId,
-    LocalDate effectiveStartDate,
-    LocalDate effectiveEndDate,
-    Suspension.SuspensionType suspensionType,
-    BigDecimal fee) {
+@Getter
+@Setter
+@RequiredArgsConstructor
+public class CalculationResult {
+    private final Long contractId;
+    private final LocalDate billingStartDate;
+    private final LocalDate billingEndDate;
+    private final String productOfferingId;
+    private final String chargeItemId;
+    private final LocalDate effectiveStartDate;
+    private final LocalDate effectiveEndDate;
+    private final Suspension.SuspensionType suspensionType;
+    private final BigDecimal fee;
+    private final Object domain;
 }

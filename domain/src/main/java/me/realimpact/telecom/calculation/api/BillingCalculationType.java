@@ -2,6 +2,9 @@ package me.realimpact.telecom.calculation.api;
 
 import lombok.Getter;
 
+import java.util.Arrays;
+import java.util.NoSuchElementException;
+
 @Getter
 public enum BillingCalculationType {
     REALTIME_CHARGE_INQUIRY("O6", "실시간요금조회"),
@@ -19,5 +22,12 @@ public enum BillingCalculationType {
 
     public boolean includeBillingEndDate() {
         return this == REVENUE_CONFIRMATION || this == REVENUE_ESTIMATION || this == FUTURE_CHARGE_INQUIRY;
+    }
+
+    public static BillingCalculationType fromCode(String code) {
+        return Arrays.stream(BillingCalculationType.values())
+                .filter(period -> period.getCode().equals(code))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("No enum constant with code " + code));
     }
 }

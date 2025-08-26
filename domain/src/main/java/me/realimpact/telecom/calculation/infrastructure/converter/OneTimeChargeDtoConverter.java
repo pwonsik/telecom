@@ -22,11 +22,11 @@ public class OneTimeChargeDtoConverter {
      */
     public InstallationHistory convertToInstallationHistory(InstallationHistoryDto dto) {
         return new InstallationHistory(
-            dto.contractId(),
-            dto.sequenceNumber(),
-            dto.installationDate(),
-            dto.installationFee().longValue(),
-            dto.billedFlag()
+            dto.getContractId(),
+            dto.getSequenceNumber(),
+            dto.getInstallationDate(),
+            dto.getInstallationFee().longValue(),
+            dto.getBilledFlag()
         );
     }
     
@@ -44,38 +44,27 @@ public class OneTimeChargeDtoConverter {
      */
     public DeviceInstallmentDetail convertToDeviceInstallmentDetail(DeviceInstallmentDetailDto dto) {
         return new DeviceInstallmentDetail(
-            dto.installmentRound(),
-            dto.installmentAmount().longValue()
+            dto.getInstallmentRound(),
+            dto.getInstallmentAmount().longValue()
         );
     }
-    
-    /**
-     * DeviceInstallmentDetail 도메인 객체를 DeviceInstallmentDetailDto로 변환
-     */
-    public DeviceInstallmentDetailDto convertToDeviceInstallmentDetailDto(DeviceInstallmentDetail domain) {
-        return new DeviceInstallmentDetailDto(
-            domain.installmentRound(),
-            BigDecimal.valueOf(domain.installmentAmount()),
-            null // billingCompletedDate는 domain에 없으므로 null
-        );
-    }
-    
+
     /**
      * DeviceInstallmentDto를 DeviceInstallmentMaster 도메인 객체로 변환
      */
     public DeviceInstallmentMaster convertToDeviceInstallmentMaster(DeviceInstallmentDto dto) {
-        List<DeviceInstallmentDetail> details = dto.details() != null ?
-            dto.details().stream()
+        List<DeviceInstallmentDetail> details = dto.getDetails() != null ?
+            dto.getDetails().stream()
                 .map(this::convertToDeviceInstallmentDetail)
                 .toList() : List.of();
                 
         return new DeviceInstallmentMaster(
-            dto.contractId(),
-            dto.installmentSequence(),
-            dto.installmentStartDate(),
-            dto.totalInstallmentAmount().longValue(),
-            dto.installmentMonths(),
-            dto.billedCount(),
+            dto.getContractId(),
+            dto.getInstallmentSequence(),
+            dto.getInstallmentStartDate(),
+            dto.getTotalInstallmentAmount().longValue(),
+            dto.getInstallmentMonths(),
+            dto.getBilledCount(),
             details
         );
     }

@@ -62,7 +62,8 @@ public class ProratedPeriod extends Temporal {
             getStartDate(),
             getEndDate(),
             suspension.map(Suspension::getSuspensionType).orElse(null),
-            proratedFee
+            proratedFee,
+                null
         );
     }
 

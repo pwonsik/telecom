@@ -5,20 +5,20 @@
 
     <!-- Contract Batch Insert -->
     <insert id="insertContracts" parameterType="java.util.List">
-        INSERT INTO contractWithProductsAndSuspensions (
+        INSERT INTO contract (
             contract_id, 
             subscribed_at, 
             initially_subscribed_at, 
             terminated_at, 
             preffered_termination_date
         ) VALUES
-        <foreach collection="list" item="contractWithProductsAndSuspensions" separator=",">
+        <foreach collection="list" item="contract" separator=",">
             (
-                #{contractWithProductsAndSuspensions.contractId},
-                #{contractWithProductsAndSuspensions.subscribedAt},
-                #{contractWithProductsAndSuspensions.initiallySubscribedAt},
-                #{contractWithProductsAndSuspensions.terminatedAt},
-                #{contractWithProductsAndSuspensions.prefferedTerminationDate}
+                #{contract.contractId},
+                #{contract.subscribedAt},
+                #{contract.initiallySubscribedAt},
+                #{contract.terminatedAt},
+                #{contract.prefferedTerminationDate}
             )
         </foreach>
     </insert>
@@ -79,7 +79,7 @@
     <!-- Contract IDs 조회 -->
     <select id="selectContractIds" resultType="Long">
         SELECT contract_id 
-        FROM contractWithProductsAndSuspensions
+        FROM contract
         ORDER BY contract_id
     </select>
 
@@ -105,7 +105,7 @@
     </delete>
     
     <delete id="truncateContracts">
-        DELETE FROM contractWithProductsAndSuspensions
+        DELETE FROM contract
     </delete>
     
     <delete id="truncateDeviceInstallmentDetails">

@@ -61,13 +61,13 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
             );
 
             // 할부
-            processAndAddResults(
-                    calculationTarget.deviceInstallmentMasters(),
-                    deviceInstallmentCalculator::process,
-                    calculationParameters.toCalculationContext(),
-                    calculationResults
-            );
-
+//            processAndAddResults(
+//                    calculationTarget.deviceInstallmentMasters(),
+//                    deviceInstallmentCalculator::process,
+//                    calculationParameters.toCalculationContext(),
+//                    calculationResults
+//            );
+            log.info("{}", calculationTarget);
             return new CalculationResultGroup(calculationResults);
         } catch (Exception e) {
             log.error("Failed to process contract calculation for contractId: {}", calculationTarget.contractId(), e);

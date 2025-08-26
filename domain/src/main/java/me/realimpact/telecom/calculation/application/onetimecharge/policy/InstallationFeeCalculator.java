@@ -7,6 +7,7 @@ import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation.InstallationHistory;
 import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
+import me.realimpact.telecom.calculation.port.out.InstallationHistoryCommandPort;
 import me.realimpact.telecom.calculation.port.out.InstallationHistoryQueryPort;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 @Order(23)
 public class InstallationFeeCalculator implements Calculator<InstallationHistory> {
     private final InstallationHistoryQueryPort installationHistoryQueryPort;
+    private final InstallationHistoryCommandPort installationHistoryCommandPort;
     private final CalculationResultSavePort calculationResultSavePort;
 
     @Override
@@ -38,15 +40,16 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
     public List<CalculationResult> process(CalculationContext ctx, InstallationHistory input) {
         return List.of(
                 new CalculationResult(
-                        null,
+                        input.contractId(),
+                        ctx.billingStartDate(),
+                        ctx.billingEndDate(),
+                        "INST",
+                        "INST",
                         ctx.billingStartDate(),
                         ctx.billingEndDate(),
                         null,
-                        "INST",
-                        null,
-                        null,
-                        null,
-                        BigDecimal.valueOf(input.fee())
+                        BigDecimal.valueOf(input.fee()),
+                        input
                 )
         );
     }
@@ -58,6 +61,8 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
 
     @Override
     public void post(CalculationContext ctx, List<CalculationResult> output) {
-
+        output.forEach(calculationResult -> {
+            installationHistoryCommandPort.updateChargeStatus((InstallationHistory)calculationResult.getDomain());
+        });
     }
 }

@@ -80,7 +80,7 @@
             s.suspension_type_code,
             s.suspension_type_description
             
-        FROM contractWithProductsAndSuspensions c
+        FROM contract c
         INNER JOIN product p ON c.contract_id = p.contract_id
         INNER JOIN product_offering po ON p.product_offering_id = po.product_offering_id
         INNER JOIN monthly_charge_item mci ON po.product_offering_id = mci.product_offering_id
@@ -88,7 +88,7 @@
     </sql>
 
     <!-- 공통 WHERE 조건을 SQL fragment로 분리 -->
-    <sql id="contractFilterConditions">
+    <sql id="contractFilterClause">
         <!-- 계약 ID 조건 (조건부) -->
         WHERE 1=1
         AND c.contract_id IN

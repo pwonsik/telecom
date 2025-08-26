@@ -32,4 +32,12 @@
         ORDER BY ih.contract_id, ih.sequence_number
     </select>
 
+    <!-- 설치내역 청구 상태 업데이트 -->
+    <update id="updateBilledFlag">
+        UPDATE installation_history 
+        SET billed_flag = 'Y'
+        WHERE contract_id = #{contractId}
+          AND sequence_number = #{sequenceNumber}
+    </update>
+
 </mapper>

@@ -24,4 +24,16 @@ public interface InstallationHistoryMapper {
         @Param("contractIds") List<Long> contractIds,
         @Param("billingEndDate") LocalDate billingEndDate
     );
+    
+    /**
+     * 설치내역의 청구 상태를 업데이트한다
+     * 
+     * @param contractId 계약 ID
+     * @param sequenceNumber 일련번호  
+     * @return 업데이트된 행 수
+     */
+    int updateBilledFlag(
+        @Param("contractId") Long contractId,
+        @Param("sequenceNumber") Long sequenceNumber
+    );
 }

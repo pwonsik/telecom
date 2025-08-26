@@ -2,6 +2,8 @@ package me.realimpact.telecom.billing.batch.runner;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
+import me.realimpact.telecom.calculation.api.BillingCalculationType;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
@@ -21,7 +23,7 @@ import org.springframework.stereotype.Component;
 public class BatchCommandLineRunner implements CommandLineRunner {
 
     private final JobLauncher jobLauncher;
-    private final Job monthlyFeeCalculationJob;
+    private final Job calculationJob;
 
     @Override
     public void run(String... args) throws Exception {
@@ -31,12 +33,13 @@ public class BatchCommandLineRunner implements CommandLineRunner {
         // 명령행 인수 파싱
         String billingStartDate = getArgumentValue(args, "billingStartDate");
         String billingEndDate = getArgumentValue(args, "billingEndDate");
-        String contractId = getArgumentValue(args, "contractId");
-        String parallelDegree = getArgumentValue(args, "parallelDegree");
+        String contractIds = getArgumentValue(args, "contractIds");
         String threadCount = getArgumentValue(args, "threadCount");
+        String billingCalculationType = getArgumentValue(args, "billingCalculationType");;
+        String billingCalculationPeriod = getArgumentValue(args, "billingCalculationPeriod");;
 
-        log.info("파싱된 파라미터 - billingStartDate: {}, billingEndDate: {}, contractId: {}, parallelDegree: {}, threadCount: {}", 
-                billingStartDate, billingEndDate, contractId, parallelDegree, threadCount);
+        log.info("파싱된 파라미터 - billingStartDate: {}, billingEndDate: {}, contractId: {}, parallelDegree: {}, threadCount: {}, billingCalculationType: {}, billingCalculationPeriod: {}",
+                billingStartDate, billingEndDate, contractIds, threadCount, billingCalculationType, billingCalculationPeriod);
 
         // 필수 파라미터 검증
         if (billingStartDate == null || billingEndDate == null) {
@@ -49,8 +52,7 @@ public class BatchCommandLineRunner implements CommandLineRunner {
         log.info("=== 월정액 계산 배치 시작 ===");
         log.info("청구 시작일: {}", billingStartDate);
         log.info("청구 종료일: {}", billingEndDate);
-        log.info("계약 ID: {}", contractId != null ? contractId : "전체");
-        log.info("병렬도: {}", parallelDegree != null ? parallelDegree : "4 (기본값)");
+        log.info("계약 ID: {}", contractIds != null ? contractIds : "전체");
         log.info("쓰레드 수: {}", threadCount != null ? threadCount : "4 (기본값)");
 
         try {
@@ -58,18 +60,15 @@ public class BatchCommandLineRunner implements CommandLineRunner {
             JobParametersBuilder builder = new JobParametersBuilder()
                     .addString("billingStartDate", billingStartDate)
                     .addString("billingEndDate", billingEndDate)
+                    .addString("billingCalculationType", billingCalculationType)
+                    .addString("billingCalculationPeriod", billingCalculationPeriod)
                     .addLong("timestamp", System.currentTimeMillis()); // 중복 실행 방지
             
             // contractId가 null이 아닌 경우에만 추가
-            if (contractId != null && !contractId.trim().isEmpty()) {
-                builder.addString("contractId", contractId);
+            if (contractIds != null && !contractIds.trim().isEmpty()) {
+                builder.addString("contractIds", contractIds);
             }
-            
-            // parallelDegree가 null이 아닌 경우에만 추가 (기본값은 Spring에서 처리)
-            if (parallelDegree != null && !parallelDegree.trim().isEmpty()) {
-                builder.addString("parallelDegree", parallelDegree);
-            }
-            
+
             // threadCount가 null이 아닌 경우에만 추가 (기본값은 Spring에서 처리)
             if (threadCount != null && !threadCount.trim().isEmpty()) {
                 builder.addString("threadCount", threadCount);
@@ -80,7 +79,7 @@ public class BatchCommandLineRunner implements CommandLineRunner {
             log.info("생성된 Job Parameters: {}", jobParameters);
 
             // 배치 작업 실행
-            jobLauncher.run(monthlyFeeCalculationJob, jobParameters);
+            jobLauncher.run(calculationJob, jobParameters);
             
             log.info("=== 월정액 계산 배치 완료 ===");
             

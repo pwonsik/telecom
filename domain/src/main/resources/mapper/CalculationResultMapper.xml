@@ -22,7 +22,7 @@
             #{item.billingStartDate},
             #{item.billingEndDate},
             #{item.productOfferingId},
-            #{item.monthlyChargeItemId},
+            #{item.chargeItemId},
             #{item.effectiveStartDate},
             #{item.effectiveEndDate},
             #{item.suspensionType},

@@ -77,21 +77,33 @@ The system includes comprehensive batch processing capabilities:
 The domain module follows strict hexagonal architecture with clear package structure:
 - `api/`: Inbound ports (use cases) - `CalculationCommandUseCase`
 - `application/`: Application services implementing use cases - `CalculationCommandService`, calculators
+  - `monthlyfee/`: Monthly fee calculation components - `BaseFeeCalculator`, `ProratedPeriodBuilder`
+  - `onetimecharge/`: One-time charge calculators - `InstallationFeeCalculator`, `DeviceInstallmentCalculator`
 - `domain/`: Core business entities and logic - `ContractWithProductsAndSuspensions`, policies, pricing models
 - `infrastructure/`: Adapters and external integrations
-  - `adapter/`: Repository implementations
-  - `dto/`: Data transfer objects
-  - `converter/`: Domain-DTO conversion logic
-- `port/out/`: Outbound ports for external dependencies - `CalculationResultSavePort`, `ContractQueryPort`
+  - `adapter/`: Repository implementations with separate `mybatis/` subpackage
+  - `dto/`: Data transfer objects with converter classes
+  - `converter/`: Domain-DTO conversion logic - `ContractDtoToDomainConverter`, `OneTimeChargeDtoConverter`
+- `port/out/`: Outbound ports for external dependencies - `CalculationResultSavePort`, `ProductQueryPort`, `InstallationHistoryQueryPort`, `DeviceInstallmentQueryPort`
 
 ### Key Business Components
 
+#### Unified Calculator Pattern
+All calculators now follow a standardized `Calculator<I>` interface pattern with consistent lifecycle methods:
+
+1. **Calculator Interface**: Generic `Calculator<I>` with `read`, `process`, `write`, `post` methods and default `execute` implementation
+2. **BaseFeeCalculator**: Monthly fee calculator implementing `Calculator<ContractWithProductsAndSuspensions>`
+3. **InstallationFeeCalculator**: One-time installation fee calculator implementing `Calculator<InstallationHistory>`
+4. **DeviceInstallmentCalculator**: Device installment calculator implementing `Calculator<DeviceInstallmentMaster>`
+5. **Order-based Execution**: Calculators use `@Order` annotation for controlled execution sequence
+6. **CalculationTarget Record**: Unified data structure containing all calculation inputs
+7. **CalculationContext**: Domain object encapsulating calculation parameters and context
+
 #### Monthly Fee Calculation Flow
-1. **CalculationCommandService**: Main application service implementing `CalculationCommandUseCase`
-2. **BaseFeeCalculator**: Core calculator handling pro-rated billing logic and monthly fee calculations
-3. **ProratedPeriodBuilder**: Splits billing periods based on contract changes, suspensions, and product changes
-4. **Pricing Policies**: Strategy pattern for different pricing models implemented via `DefaultMonthlyChargingPolicyFactory`
-5. **One-time Charge Calculators**: `DeviceInstallmentCalculator`, `InstallationFeeCalculator` for non-recurring charges
+1. **CalculationCommandService**: Orchestrates multiple calculators using the unified pattern
+2. **ProratedPeriodBuilder**: Splits billing periods based on contract changes, suspensions, and product changes
+3. **Pricing Policies**: Strategy pattern for different pricing models via `DefaultMonthlyChargingPolicyFactory`
+4. **Stream-based Processing**: Functional approach using flatMap for result aggregation
 
 #### Policy Strategy Pattern
 The system uses strategy pattern for pricing policies via `DefaultMonthlyChargingPolicyFactory`:
@@ -105,11 +117,19 @@ The system uses strategy pattern for pricing policies via `DefaultMonthlyChargin
 ## Development Rules
 
 ### Code Style
-- Use **record** for DTOs
-- Use **Lombok** annotations to minimize boilerplate code
+- Use **record** for DTOs and parameter objects (`CalculationTarget`, `CalculationParameters`)
+- Use **Lombok** annotations to minimize boilerplate code (`@RequiredArgsConstructor`, `@Getter`, etc.)
 - Follow clean code principles with well-named variables and methods
 - JPA entities should have 'JpaEntity' suffix to avoid naming conflicts
 - JpaRepository interfaces should have 'JpaRepository' suffix
+- Prefer **Stream API** for collection processing and functional transformations
+
+### Calculator Pattern Implementation
+- All calculators must implement `Calculator<I>` interface
+- Use `@Order` annotation to control execution sequence
+- Implement all lifecycle methods: `read`, `process`, `write`, `post`
+- Leverage default `execute` method with Stream API for consistent processing
+- Use method references and functional interfaces where possible
 
 ### Business Rules Implementation
 - **Pro-rated calculation**: Contract start date is included, end date is excluded
@@ -133,30 +153,47 @@ The system uses strategy pattern for pricing policies via `DefaultMonthlyChargin
 ### Testing
 - **Domain tests**: Avoid mocking, focus on business logic testing
 - **Integration tests**: `MonthlyFeeCalculationIntegrationTest` for end-to-end scenarios
+- **Calculator tests**: Individual test classes for each calculator following the unified pattern
 - **Policy tests**: Individual test classes for each pricing policy (`FlatRatePolicyTest`, `TierFactorPolicyTest`, etc.)
-- **Converter tests**: `ContractDtoToDomainConverterTest` for data transformation logic
+- **Converter tests**: `ContractDtoToDomainConverterTest`, `OneTimeChargeDtoConverter` for data transformation logic
+- **Batch tests**: Test `CalculationTarget` processing and batch job parameter handling
 - **Test naming**: Use descriptive method names reflecting business scenarios
-- **Coverage**: Test various pricing policy combinations and edge cases
+- **Coverage**: Test various pricing policy combinations, calculator interactions, and edge cases
+
+### Domain Model Evolution
+- **CalculationTarget**: Record containing all calculation inputs (`contractWithProductsAndSuspensions`, `installationHistories`, `deviceInstallmentMasters`)
+- **CalculationParameters**: Record encapsulating batch job parameters with `toCalculationContext()` conversion method
+- **CalculationContext**: Domain object representing calculation context with billing dates and parameters
+- **CalculationResult**: Unified result object for all calculation types (monthly fees, installation fees, installments)
+- **ContractWithProductsAndSuspensions**: Main domain entity (evolved from `Contract`) with product and suspension relationships
+- **InstallationHistory**: Domain object for installation fee calculations
+- **DeviceInstallmentMaster**: Domain object for device installment calculations
 
 ## Key Business Context
 
 This system implements Korean telecom billing with these specific requirements:
-- Monthly fee calculation with complex pro-rating rules
-- Support for service suspensions with configurable billing rates  
-- B2B products with multiple pricing strategies
-- TMForum specification compliance
-- Historical data tracking for all billing factors
+- **Monthly fee calculation** with complex pro-rating rules and suspension handling
+- **One-time charges** including installation fees and device installment processing
+- **Service suspensions** with configurable billing rates and period-based calculations
+- **B2B products** with multiple pricing strategies and dynamic policy selection
+- **TMForum specification** compliance with extensible architecture
+- **Historical data tracking** for all billing factors with audit trail support
 
-The core complexity lies in accurately segmenting billing periods when contracts, products, and service states change, then applying the correct pricing policy to each segment.
+The core complexity lies in:
+1. **Period Segmentation**: Accurately splitting billing periods when contracts, products, and service states change
+2. **Policy Application**: Applying the correct pricing policy to each calculated segment
+3. **Data Orchestration**: Coordinating multiple data sources (contracts, products, suspensions, installations, installments)
+4. **Calculation Unification**: Processing different charge types through a unified calculator pattern
 
 ## Spring Batch Architecture
 
 ### Multi-threaded Processing Design
-- **Reader**: `ChunkedContractReader` for bulk contract reading, wrapped in `SynchronizedItemStreamReader` for thread safety
-- **Processor**: `CalculationProcessor` with multi-threaded parallel processing via `TaskExecutor`
+- **Reader**: `ChunkedContractReader` reads contract IDs and builds `CalculationTarget` objects, wrapped in `SynchronizedItemStreamReader` for thread safety
+- **Processor**: `CalculationProcessor` processes `CalculationTarget` using multiple calculators with unified interface
 - **Writer**: `CalculationWriter` with thread-safe batch writing using `@Transactional`
 - **Chunk Size**: Configured via `BatchConstants.CHUNK_SIZE`, typically 100 items per chunk
 - **Thread Pool**: `ThreadPoolTaskExecutor` with configurable core/max pool sizes and queue capacity
+- **Calculator Orchestration**: Multiple calculators executed in sequence based on `@Order` annotation
 
 ### Batch Job Parameters
 - **billingStartDate** (required): Billing period start date (YYYY-MM-DD format)
@@ -173,13 +210,15 @@ MyBatis queries support conditional WHERE clauses for flexible usage:
 - Web service: single contract queries with `contractId` parameter
 - Batch processing: full dataset queries with `contractId = null`
 
-#### Complex Data Reading Strategy
-Current implementation uses `ChunkedContractReader` for efficient bulk reading:
-- Reads contract IDs in chunks, then bulk loads related data
-- Prevents memory overflow with controlled batch sizes
-- Uses `ContractQueryMapper` for complex SQL with joins and subqueries
-- Supports both single contract processing (`contractId` parameter) and full dataset processing
-- Integrates with `InstallationHistoryMapper` and `DeviceInstallmentMapper` for one-time charges
+#### Enhanced Batch Processing Architecture
+Current implementation uses unified data processing with `CalculationTarget`:
+- **ChunkedContractReader**: Reads contract IDs in chunks, loads all related data types
+- **CalculationTarget**: Record containing `contractWithProductsAndSuspensions`, `installationHistories`, `deviceInstallmentMasters`
+- **ProductQueryMapper**: Renamed from `ContractQueryMapper`, handles complex contract and product data
+- **Specialized Mappers**: `InstallationHistoryMapper`, `DeviceInstallmentMapper` for one-time charges
+- **Unified Processing**: Single `CalculationProcessor` handles multiple calculation types
+- **CalculationParameters**: Record encapsulating batch job parameters with `toCalculationContext()` method
+- **BatchConstants**: Centralized configuration for chunk sizes and processing parameters
 
 #### Key Composite Keys for Proper Data Grouping
 - **Contract key**: `contractId`
@@ -198,11 +237,20 @@ ORDER BY c.contract_id, po.product_offering_id, p.effective_start_date_time,
 ```
 
 ### Batch Processing Considerations
-- **Reader Design**: Uses custom `ChunkedContractReader` instead of MyBatisPagingItemReader to avoid ExecutorType conflicts
+- **Reader Design**: Uses custom `ChunkedContractReader` with `CalculationTarget` construction instead of MyBatisPagingItemReader to avoid ExecutorType conflicts
 - **Transaction Management**: Uses Spring's declarative `@Transactional` in Writers, avoiding manual SqlSession management
 - **Memory Management**: Chunk-based processing with controlled batch sizes prevents memory issues
 - **Thread Safety**: `SynchronizedItemStreamReader` wrapper ensures thread-safe reading in multi-threaded environment
 - **Connection Pooling**: HikariCP configuration optimized for multi-threaded batch processing (max pool size: 20)
+- **Data Loading Strategy**: Bulk loading of related data (products, suspensions, installations, installments) in single query operations
+- **Calculator Integration**: Seamless integration of multiple calculators through unified interface pattern
+
+### Infrastructure Layer Updates
+- **MyBatis Mapper Organization**: All mappers moved to `infrastructure.adapter.mybatis` subpackage
+- **ProductQueryMapper**: Renamed from `ContractQueryMapper` with enhanced complex SQL queries for contract and product data
+- **Specialized Mappers**: `InstallationHistoryMapper`, `DeviceInstallmentMapper` for one-time charge data
+- **Converter Classes**: `ContractDtoToDomainConverter`, `OneTimeChargeDtoConverter` for clean DTO-to-domain transformation
+- **Repository Adaptation**: Updated repository implementations to work with new port interfaces
 
 For detailed MyBatis paging usage, see `MYBATIS_PAGING_USAGE.md`
 
@@ -240,3 +288,46 @@ Spring Batch stores execution metadata in these tables:
   - Statement timeout: 0 (unlimited for batch)
   - Cache disabled for batch processing
 - **JVM Memory**: Recommended `-Xmx2g` for large dataset processing
+
+## New Development Patterns and Best Practices
+
+### Stream API Usage Patterns
+- **Functional Processing**: Prefer Stream API with `flatMap` for processing collections of calculation results
+- **Method References**: Use method references (`Calculator::process`, `List::stream`) for cleaner code
+- **Null-Safe Operations**: Use `Optional` and null-safe stream operations for robust data processing
+
+### Generic Helper Methods
+For repetitive collection processing patterns, use generic helper methods:
+```java
+private <T> void processAndAddResults(
+    Collection<T> items,
+    BiFunction<CalculationContext, T, List<CalculationResult>> processor,
+    CalculationContext context,
+    List<CalculationResult> results
+) {
+    results.addAll(
+        items.stream()
+            .flatMap(item -> processor.apply(context, item).stream())
+            .toList()
+    );
+}
+```
+
+### Calculator Pattern Best Practices
+- **Interface Compliance**: Always implement the complete `Calculator<I>` interface
+- **Order Management**: Use `@Order` annotation for controlled execution sequence
+- **Default Method Leverage**: Use the default `execute` method unless custom logic is required
+- **Stream-based Processing**: Prefer functional approaches over imperative loops
+- **Context Passing**: Always pass `CalculationContext` for consistent parameter access
+
+### Record Usage Guidelines
+- **Immutable Data**: Use records for immutable data structures (`CalculationTarget`, `CalculationParameters`)
+- **Parameter Objects**: Group related parameters into records for cleaner method signatures
+- **Conversion Methods**: Add conversion methods like `toCalculationContext()` for seamless transformations
+- **Builder Pattern Alternative**: Records can often replace complex builders for simple data structures
+
+### MyBatis Mapper Patterns
+- **Consistent Naming**: Use descriptive method names that reflect business intent
+- **Bulk Operations**: Design queries to support both single-item and bulk processing
+- **ResultMap Organization**: Structure complex ResultMaps with proper key definitions for data grouping
+- **SQL Fragment Reuse**: Use `<sql>` fragments for reusable query parts (SELECT, WHERE, ORDER BY clauses)

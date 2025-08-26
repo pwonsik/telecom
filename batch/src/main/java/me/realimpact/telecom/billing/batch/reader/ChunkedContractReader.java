@@ -92,9 +92,9 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
 
     private Map<String, Object> getParameterValues() {
         Map<String, Object> parameterValues = new HashMap<>();
-        parameterValues.put("contractId", calculationParameters.contractIds());
-        parameterValues.put("billingStartDate", calculationParameters.billingStartDate());
-        parameterValues.put("billingEndDate", calculationParameters.billingEndDate());
+        parameterValues.put("billingStartDate", calculationParameters.getBillingStartDate());
+        parameterValues.put("billingEndDate", calculationParameters.getBillingEndDate());
+        parameterValues.put("contractIds", calculationParameters.getContractIds());
         return parameterValues;
     }
 

@@ -86,8 +86,8 @@ public class CalculationBatchConfig {
                 .map(Long::parseLong)
                 .toList();
 
-        BillingCalculationType billingCalculationType = BillingCalculationType.valueOf(billingCalculationTypeStr);
-        BillingCalculationPeriod billingCalculationPeriod = BillingCalculationPeriod.valueOf(billingCalculationPeriodStr);
+        BillingCalculationType billingCalculationType = BillingCalculationType.fromCode(billingCalculationTypeStr);
+        BillingCalculationPeriod billingCalculationPeriod = BillingCalculationPeriod.fromCode(billingCalculationPeriodStr);
 
         int threadCount = Integer.parseInt(threadCountStr);
 
@@ -106,9 +106,12 @@ public class CalculationBatchConfig {
     @Bean
     @JobScope
     public TaskExecutor taskExecutor(CalculationParameters calculationParameters) {
+        int threadCount = calculationParameters.getThreadCount();
+        int maxThreadCount = threadCount * 2;
+
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(calculationParameters.threadCount());        // Job Parameter로 받은 쓰레드 수
-        executor.setMaxPoolSize(calculationParameters.threadCount() * 2);     // 최대 쓰레드 수
+        executor.setCorePoolSize(threadCount);        // Job Parameter로 받은 쓰레드 수
+        executor.setMaxPoolSize(maxThreadCount);     // 최대 쓰레드 수
         executor.setQueueCapacity(1000);               // 대기 큐 크기
         executor.setThreadNamePrefix("batch-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
@@ -116,8 +119,8 @@ public class CalculationBatchConfig {
         executor.initialize();
         
         log.info("=== TaskExecutor 설정 ===");
-        log.info("쓰레드 수: {}", calculationParameters.threadCount());
-        log.info("최대 쓰레드 수: {}", calculationParameters.threadCount() * 2);
+        log.info("쓰레드 수: {}", threadCount);
+        log.info("최대 쓰레드 수: {}", maxThreadCount);
         
         return executor;
     }

@@ -195,7 +195,7 @@ class MonthlyFeeCalculationIntegrationTest {
         assertThat(results).hasSize(1);
         // 3/15 ~ 3/31 실제 계산된 요금 확인 (일할 계산)
         BigDecimal totalFee = results.stream()
-            .map(CalculationResult::fee)
+            .map(CalculationResult::getFee)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         
         // 실제 일할 계산 로직을 따라 계산된 결과와 비교
@@ -266,15 +266,15 @@ class MonthlyFeeCalculationIntegrationTest {
         List<CalculationResult> items = results;
             
         // 3/1 ~ 3/9 (9일)
-        assertThat(items.get(0).fee().setScale(0, RoundingMode.FLOOR))
+        assertThat(items.get(0).getFee().setScale(0, RoundingMode.FLOOR))
             .isEqualByComparingTo(BigDecimal.valueOf((long)((12000 * 5 + 10000 * 5 + 8000 * 5) * (9.0/31))));  
         
         // 3/10 ~ 3/19 (10일) - 정지 기간
-        assertThat(items.get(1).fee().setScale(0, RoundingMode.FLOOR))
+        assertThat(items.get(1).getFee().setScale(0, RoundingMode.FLOOR))
             .isEqualByComparingTo(BigDecimal.ZERO);
         
         // 3/20 ~ 3/30 (11일) - 실제 계산에서는 30일까지인 것 같음
-        assertThat(items.get(2).fee().setScale(0, RoundingMode.FLOOR))
+        assertThat(items.get(2).getFee().setScale(0, RoundingMode.FLOOR))
             .isEqualByComparingTo(BigDecimal.valueOf((long)((12000 * 5 + 10000 * 5 + 8000 * 5) * (11.0/31))));  // 150000 * 11/31
     }
 
