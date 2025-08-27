@@ -8,6 +8,7 @@ import me.realimpact.telecom.billing.batch.reader.CalculationTarget;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
+import me.realimpact.telecom.calculation.application.vat.VatCalculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsAndSuspensions;
@@ -35,6 +36,7 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
     private final BaseFeeCalculator baseFeeCalculator;
     private final InstallationFeeCalculator installationFeeCalculator;
     private final DeviceInstallmentCalculator deviceInstallmentCalculator;
+    private final VatCalculator vatCalculator;
 
     private final CalculationParameters calculationParameters;
 
@@ -55,7 +57,12 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
             // 할부
             results.addAll(process(calculationTarget.deviceInstallmentMasters(), deviceInstallmentCalculator::process, ctx));
 
-            log.info("{}", calculationTarget);
+            // VAT 계산 (기존 결과 기반)
+            List<CalculationResult> vatResults = vatCalculator.calculateVat(ctx, results);
+            results.addAll(vatResults);
+
+            log.info("Processed {} calculation results (including {} VAT results) for contractId: {}", 
+                     results.size(), vatResults.size(), calculationTarget.contractId());
 
             return new CalculationResultGroup(results);
         } catch (Exception e) {

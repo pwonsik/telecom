@@ -13,6 +13,7 @@ import me.realimpact.telecom.calculation.api.BillingCalculationType;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
+import me.realimpact.telecom.calculation.application.vat.VatCalculator;
 import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.CalculationResultMapper;
 import me.realimpact.telecom.calculation.infrastructure.converter.ContractDtoToDomainConverter;
 import me.realimpact.telecom.calculation.infrastructure.converter.OneTimeChargeDtoConverter;
@@ -63,6 +64,8 @@ public class CalculationBatchConfig {
     private final BaseFeeCalculator baseFeeCalculator;
     private final DeviceInstallmentCalculator deviceInstallmentCalculator;
     private final InstallationFeeCalculator installationFeeCalculator;
+
+    private final VatCalculator vatCalculator;
 
     private final CalculationResultSavePort calculationResultSavePort;
 
@@ -160,6 +163,7 @@ public class CalculationBatchConfig {
                 baseFeeCalculator,
                 installationFeeCalculator,
                 deviceInstallmentCalculator,
+                vatCalculator,
                 calculationParameters
         );
     }

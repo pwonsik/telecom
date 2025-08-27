@@ -7,3 +7,8 @@ mybatis:
     cache-enabled: false
     default-fetch-size: 100
     default-statement-timeout: 30
+
+billing:
+  vat:
+    vat-rate: 0.10
+    enabled: true
