@@ -42,50 +42,36 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
     public CalculationResultGroup process(CalculationTarget calculationTarget) throws Exception {
         try {
             log.debug("Processing contract calculation for contractId: {}", calculationTarget.contractId());
-            List<CalculationResult> calculationResults = new ArrayList<>();
+            List<CalculationResult> results = new ArrayList<>();
+
+            CalculationContext ctx = calculationParameters.toCalculationContext();
 
             // 월정액 계산
-            processAndAddResults(
-                    calculationTarget.contractWithProductsAndSuspensions(),
-                    baseFeeCalculator::process,
-                    calculationParameters.toCalculationContext(),
-                    calculationResults
-            );
+            results.addAll(process(calculationTarget.contractWithProductsAndSuspensions(), baseFeeCalculator::process, ctx));
 
             // 설치비
-            processAndAddResults(
-                    calculationTarget.installationHistories(),
-                    installationFeeCalculator::process,
-                    calculationParameters.toCalculationContext(),
-                    calculationResults
-            );
+            results.addAll(process(calculationTarget.installationHistories(), installationFeeCalculator::process, ctx));
 
             // 할부
-//            processAndAddResults(
-//                    calculationTarget.deviceInstallmentMasters(),
-//                    deviceInstallmentCalculator::process,
-//                    calculationParameters.toCalculationContext(),
-//                    calculationResults
-//            );
+            results.addAll(process(calculationTarget.deviceInstallmentMasters(), deviceInstallmentCalculator::process, ctx));
+
             log.info("{}", calculationTarget);
-            return new CalculationResultGroup(calculationResults);
+
+            return new CalculationResultGroup(results);
         } catch (Exception e) {
             log.error("Failed to process contract calculation for contractId: {}", calculationTarget.contractId(), e);
             throw e;
         }
     }
 
-    private <T> void processAndAddResults(
+    private <T> List<CalculationResult> process(
             Collection<T> items,
             BiFunction<CalculationContext, T, List<CalculationResult>> processor,
-            CalculationContext context,
-            List<CalculationResult> results
+            CalculationContext context
     ) {
-        results.addAll(
-                items.stream()
-                        .flatMap(item -> processor.apply(context, item).stream())
-                        .toList()
-        );
+        return items.stream()
+                .flatMap(item -> processor.apply(context, item).stream())
+                .toList();
     }
 
 }

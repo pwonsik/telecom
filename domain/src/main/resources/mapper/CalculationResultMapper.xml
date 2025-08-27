@@ -10,7 +10,7 @@
             billing_start_date,
             billing_end_date,
             product_offering_id,
-            monthly_charge_item_id,
+            charge_item_id,
             effective_start_date,
             effective_end_date,
             suspension_type,

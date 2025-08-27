@@ -6,6 +6,7 @@ import me.realimpact.telecom.billing.batch.CalculationParameters;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
+import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractProductsSuspensionsDto;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
@@ -122,13 +123,14 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
     }
 
     private List<CalculationTarget> getCalculationTargets(List<Long> contractIds) {
+        CalculationContext ctx = calculationParameters.toCalculationContext();
         // todo - 여기에 각종 요금항목을 계산하기 위한 기초 데이터를 load하는 로직 넣는다.
         // 월정액
-        var contractWithProductsAndSuspensionsMap = baseFeeCalculator.read(calculationParameters.toCalculationContext(), contractIds);
+        var contractWithProductsAndSuspensionsMap = baseFeeCalculator.read(ctx, contractIds);
         // 설치비
-        var installationHistoriesMap = installationFeeCalculator.read(calculationParameters.toCalculationContext(), contractIds);
+        var installationHistoriesMap = installationFeeCalculator.read(ctx, contractIds);
         // 할부
-        var deviceInstallmentMastersMap = deviceInstallmentCalculator.read(calculationParameters.toCalculationContext(), contractIds);
+        var deviceInstallmentMastersMap = deviceInstallmentCalculator.read(ctx, contractIds);
 
         List<CalculationTarget> calculationTargets = new ArrayList<>();
         // 모든 조회 대상을 calculationTarget으로 모은다.

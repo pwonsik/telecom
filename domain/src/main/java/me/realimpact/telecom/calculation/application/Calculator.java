@@ -32,7 +32,7 @@ public interface Calculator<I> {
     List<CalculationResult> process(CalculationContext ctx, I input);
     
     /**
-     * 계산 결과를 저장한다
+     * 계산 결과를 저장한다... 필요없는듯하다.
      * 
      * @param output 계산 결과 목록
      */

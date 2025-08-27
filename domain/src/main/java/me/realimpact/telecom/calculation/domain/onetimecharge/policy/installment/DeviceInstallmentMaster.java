@@ -1,6 +1,9 @@
 package me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
+import me.realimpact.telecom.calculation.api.BillingCalculationType;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,6 +18,7 @@ import java.util.List;
  * @param installmentMonths 할부 개월수
  * @param billedCount 할부 청구 횟수
  */
+@Getter
 @RequiredArgsConstructor
 public class DeviceInstallmentMaster {
     private final Long contractId;
@@ -25,11 +29,21 @@ public class DeviceInstallmentMaster {
     private final Integer billedCount;
     private final List<DeviceInstallmentDetail> deviceInstallmentDetailList;
 
-    public Long getFee() {
-        return deviceInstallmentDetailList.stream()
-                .filter(deviceInstallmentDetail -> deviceInstallmentDetail.installmentRound() == this.billedCount + 1)
-                .findFirst()
-                .map(DeviceInstallmentDetail::installmentAmount)
-                .orElse(0L);
+    public Long getFee(BillingCalculationType billingCalculationType, BillingCalculationPeriod billingCalculationPeriod) {
+        // 해지 가정이면 전체 금액. 아니면 이달치 리턴
+        if (billingCalculationType.isTerminationAssumed()) {
+            return deviceInstallmentDetailList.stream().mapToLong(DeviceInstallmentDetail::installmentAmount).sum();
+        } else {
+            // 당월, 전당월의 전월이면 현재까지 청구된 차수의 다음 차수. 전당월의 당월이면 현재까지 청구된 차수의 다다음 차수
+            int nextChargeIncrement = switch (billingCalculationPeriod) {
+                case POST_BILLING_CURRENT_MONTH, PRE_BILLING_PREVIOUS_MONTH -> 1;
+                case PRE_BILLING_CURRENT_MONTH -> 2;
+            };
+            return deviceInstallmentDetailList.stream()
+                    .filter(deviceInstallmentDetail -> deviceInstallmentDetail.installmentRound() == this.billedCount + nextChargeIncrement)
+                    .findFirst()
+                    .map(DeviceInstallmentDetail::installmentAmount)
+                    .orElse(0L);
+        }
     }
 }
