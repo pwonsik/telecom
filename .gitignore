@@ -92,6 +92,7 @@ docker-compose.override.yml
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+!**/port/**/*.java
 
 ### Maven ###
 target/
