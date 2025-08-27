@@ -44,7 +44,7 @@ public class DeviceInstallmentCalculator implements Calculator<DeviceInstallment
                         ctx.billingStartDate(),
                         ctx.billingEndDate(),
                         null,
-                        BigDecimal.valueOf(input.getFee()),
+                        BigDecimal.valueOf(input.getFee(ctx.billingCalculationType(), ctx.billingCalculationPeriod())),
                         input
                 )
         );

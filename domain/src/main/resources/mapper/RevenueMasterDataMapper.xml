@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.RevenueMasterDataMapper">
+
+    <resultMap id="revenueMasterDataResult" type="RevenueMasterDataDto">
+        <!-- Primary Key -->
+        <id property="revenueItemId" column="revenue_item_id"/>
+        <id property="effectiveEndDate" column="effective_end_date"/>
+        <!-- 일반 컬럼 -->
+        <result property="effectiveStartDate" column="effective_start_date"/>
+        <result property="revenueItemName" column="revenue_item_name"/>
+        <result property="overdueChargeRevenueItemId" column="overdue_charge_revenue_item_id"/>
+        <result property="vatRevenueItemId" column="vat_revenue_item_id"/>
+    </resultMap>
+
+    <!-- 기준일 기준으로 유효한 수익 마스터 데이터 조회 -->
+    <select id="findByBaseDate" resultMap="revenueMasterDataResult">
+        SELECT 
+            revenue_item_id,
+            effective_start_date,
+            effective_end_date,
+            revenue_item_name,
+            overdue_charge_revenue_item_id,
+            vat_revenue_item_id
+        FROM revenue_master_data
+        WHERE #{baseDate} BETWEEN effective_start_date AND effective_end_date
+        ORDER BY revenue_item_id, effective_start_date
+    </select>
+
+</mapper>
