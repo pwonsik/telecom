@@ -99,6 +99,15 @@ All calculators now follow a standardized `Calculator<I>` interface pattern with
 6. **CalculationTarget Record**: Unified data structure containing all calculation inputs
 7. **CalculationContext**: Domain object encapsulating calculation parameters and context
 
+#### Revenue Tracking and Caching
+The system now includes comprehensive revenue tracking capabilities:
+
+1. **RevenueMasterData**: Domain entity for revenue item master data management
+2. **RevenueMasterDataCacheService**: In-memory caching service with `@PostConstruct` initialization
+3. **Revenue Item Integration**: ChargeItem includes `revenueItemId` for revenue tracking
+4. **Caching Strategy**: Application startup loads all revenue master data into memory for performance
+5. **Revenue Repository Pattern**: `RevenueMasterDataQueryPort` and repository implementation with DTO conversion
+
 #### Monthly Fee Calculation Flow
 1. **CalculationCommandService**: Orchestrates multiple calculators using the unified pattern
 2. **ProratedPeriodBuilder**: Splits billing periods based on contract changes, suspensions, and product changes
@@ -161,6 +170,8 @@ The system uses strategy pattern for pricing policies via `DefaultMonthlyChargin
 - **Coverage**: Test various pricing policy combinations, calculator interactions, and edge cases
 
 ### Domain Model Evolution
+
+#### Core Domain Entities
 - **CalculationTarget**: Record containing all calculation inputs (`contractWithProductsAndSuspensions`, `installationHistories`, `deviceInstallmentMasters`)
 - **CalculationParameters**: Record encapsulating batch job parameters with `toCalculationContext()` conversion method
 - **CalculationContext**: Domain object representing calculation context with billing dates and parameters
@@ -168,6 +179,23 @@ The system uses strategy pattern for pricing policies via `DefaultMonthlyChargin
 - **ContractWithProductsAndSuspensions**: Main domain entity (evolved from `Contract`) with product and suspension relationships
 - **InstallationHistory**: Domain object for installation fee calculations
 - **DeviceInstallmentMaster**: Domain object for device installment calculations
+
+#### ChargeItem Evolution (Major Refactoring)
+The system underwent a major refactoring from MonthlyChargeItem to ChargeItem with revenue tracking:
+
+- **ChargeItem**: Renamed from `MonthlyChargeItem` to support all charge types (monthly + one-time)
+- **Revenue Integration**: Added `revenueItemId` field for comprehensive revenue tracking
+- **Database Schema**: `monthly_charge_item` table renamed to `charge_item` with `revenue_item_id` column
+- **MyBatis Updates**: All XML mappings updated to reflect new table and field names
+- **Domain Consistency**: Unified charge item representation across monthly and one-time charges
+- **DTO Alignment**: All DTOs updated to match new domain model structure
+
+#### Revenue Master Data Architecture
+- **RevenueMasterData**: Domain record for revenue item master data (`revenueItemId`, `revenueItemName`, `revenueTypeCode`)
+- **RevenueMasterDataDto**: Infrastructure DTO with database mapping
+- **RevenueMasterDataConverter**: Conversion logic between domain and DTO layers
+- **RevenueMasterDataCacheService**: Application service with in-memory caching and `@PostConstruct` initialization
+- **Repository Pattern**: `RevenueMasterDataRepository` implementing `RevenueMasterDataQueryPort`
 
 ## Key Business Context
 
@@ -232,9 +260,11 @@ Current implementation uses unified data processing with `CalculationTarget`:
 ORDER BY clauses must maintain consistent sorting for proper pagination and MyBatis ResultMap grouping:
 ```sql
 ORDER BY c.contract_id, po.product_offering_id, p.effective_start_date_time, 
-         p.effective_end_date_time, mci.charge_item_id, s.suspension_type_code,
+         p.effective_end_date_time, ci.charge_item_id, s.suspension_type_code,
          s.effective_start_date_time, s.effective_end_date_time
 ```
+
+Note: Updated from `mci.charge_item_id` to `ci.charge_item_id` following the MonthlyChargeItem → ChargeItem refactoring.
 
 ### Batch Processing Considerations
 - **Reader Design**: Uses custom `ChunkedContractReader` with `CalculationTarget` construction instead of MyBatisPagingItemReader to avoid ExecutorType conflicts
@@ -331,3 +361,55 @@ private <T> void processAndAddResults(
 - **Bulk Operations**: Design queries to support both single-item and bulk processing
 - **ResultMap Organization**: Structure complex ResultMaps with proper key definitions for data grouping
 - **SQL Fragment Reuse**: Use `<sql>` fragments for reusable query parts (SELECT, WHERE, ORDER BY clauses)
+
+## Recent Major Changes (2024)
+
+### ChargeItem Refactoring
+Completed major refactoring from MonthlyChargeItem to ChargeItem with revenue tracking:
+
+**Database Changes:**
+```sql
+-- Table renamed and enhanced
+RENAME TABLE monthly_charge_item TO charge_item;
+ALTER TABLE charge_item ADD COLUMN revenue_item_id VARCHAR(50) NOT NULL COMMENT '수익 항목 ID';
+```
+
+**Domain Model Changes:**
+- `MonthlyChargeItem` → `ChargeItem` class rename
+- Added `revenueItemId` field for revenue tracking
+- Updated all constructor calls and field references
+- Unified charge item representation across calculation types
+
+**Infrastructure Updates:**
+- `MonthlyChargeItemDto` → `ChargeItemDto` with revenue fields
+- MyBatis XML mappings updated to new table and column names
+- All repository implementations updated
+- Test data and sample data updated
+
+### RevenueMasterData Implementation
+Added comprehensive revenue master data management:
+
+**New Components:**
+- `RevenueMasterData` domain record
+- `RevenueMasterDataDto` infrastructure DTO
+- `RevenueMasterDataConverter` conversion logic
+- `RevenueMasterDataCacheService` with `@PostConstruct` caching
+- `RevenueMasterDataRepository` with port implementation
+- Database table: `revenue_master_data`
+
+**Caching Strategy:**
+```java
+@PostConstruct
+public void initCache() {
+    List<RevenueMasterData> allData = revenueMasterDataQueryPort.findAll();
+    cache.clear();
+    allData.forEach(data -> cache.put(data.revenueItemId(), data));
+    log.info("Revenue master data cache initialized with {} items", cache.size());
+}
+```
+
+### Development Guidelines Updates
+- **Jakarta EE Migration**: Use `jakarta.annotation.PostConstruct` instead of `javax.annotation.PostConstruct` for Spring Boot 3 compatibility
+- **Revenue Integration**: All charge items must include valid revenue item IDs
+- **Caching Best Practices**: Use `@PostConstruct` for application startup data loading
+- **Domain Model Consistency**: Maintain unified charge item structure across all calculation types
