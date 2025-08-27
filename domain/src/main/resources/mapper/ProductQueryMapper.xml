@@ -24,11 +24,12 @@
             <result property="terminatedAt" column="product_terminated_at"/>
             <result property="productOfferingName" column="product_offering_name"/>
             
-            <collection property="monthlyChargeItems" ofType="MonthlyChargeItemDto">
-                <!-- MonthlyChargeItem의 key: productOfferingId, chargeItemId -->
+            <collection property="chargeItems" ofType="ChargeItemDto">
+                <!-- ChargeItem의 key: productOfferingId, chargeItemId -->
                 <id property="productOfferingId" column="product_offering_id"/>
                 <id property="chargeItemId" column="charge_item_id"/>
                 <result property="chargeItemName" column="charge_item_name"/>
+                <result property="revenueItemId" column="revenue_item_id"/>
                 <result property="suspensionChargeRatio" column="suspension_charge_ratio"/>
                 <result property="calculationMethodCode" column="calculation_method_code"/>
                 <result property="calculationMethodName" column="calculation_method_name"/>
@@ -67,13 +68,14 @@
             po.product_offering_id,
             po.product_offering_name,
             
-            mci.charge_item_id,
-            mci.charge_item_name,
-            mci.suspension_charge_ratio,
-            mci.calculation_method_code,
-            mci.calculation_method_name,
-            mci.flat_rate_amount,
-            mci.pricing_type,
+            ci.charge_item_id,
+            ci.charge_item_name,
+            ci.revenue_item_id,
+            ci.suspension_charge_ratio,
+            ci.calculation_method_code,
+            ci.calculation_method_name,
+            ci.flat_rate_amount,
+            ci.pricing_type,
             
             s.effective_start_date_time as suspension_effective_start_date_time,
             s.effective_end_date_time as suspension_effective_end_date_time,
@@ -83,7 +85,7 @@
         FROM contract c
         INNER JOIN product p ON c.contract_id = p.contract_id
         INNER JOIN product_offering po ON p.product_offering_id = po.product_offering_id
-        INNER JOIN monthly_charge_item mci ON po.product_offering_id = mci.product_offering_id
+        INNER JOIN charge_item ci ON po.product_offering_id = ci.product_offering_id
         LEFT JOIN suspension s ON c.contract_id = s.contract_id
     </sql>
 
@@ -124,7 +126,7 @@
             po.product_offering_id, 
             p.effective_start_date_time, 
             p.effective_end_date_time,
-            mci.charge_item_id,
+            ci.charge_item_id,
             s.suspension_type_code,
             s.effective_start_date_time,
             s.effective_end_date_time

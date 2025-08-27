@@ -8,9 +8,10 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Getter
-public class MonthlyChargeItem {
+public class ChargeItem {
     private final String chargeItemId;
     private final String chargeItemName;
+    private final String revenueItemId;
     private final BigDecimal suspensionChargeRatio;
     private final CalculationMethod calculationMethod;
     private final Pricing pricing;

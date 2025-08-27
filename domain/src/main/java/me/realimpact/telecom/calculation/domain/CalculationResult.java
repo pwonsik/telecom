@@ -18,6 +18,7 @@ public class CalculationResult {
     private final LocalDate billingEndDate;
     private final String productOfferingId;
     private final String chargeItemId;
+    private final String revenueItemId;
     private final LocalDate effectiveStartDate;
     private final LocalDate effectiveEndDate;
     private final Suspension.SuspensionType suspensionType;

@@ -41,6 +41,7 @@ public class DeviceInstallmentCalculator implements Calculator<DeviceInstallment
                         ctx.billingEndDate(),
                         "HALBU",
                         "HALBU",
+                        "HALBU",
                         ctx.billingStartDate(),
                         ctx.billingEndDate(),
                         null,

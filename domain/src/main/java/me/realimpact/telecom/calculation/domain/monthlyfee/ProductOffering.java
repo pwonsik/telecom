@@ -10,5 +10,5 @@ import java.util.List;
 public class ProductOffering {
     private final String productOfferingId; 
     private final String productOfferingName; 
-    private final List<MonthlyChargeItem> monthlyChargeItems;
+    private final List<ChargeItem> chargeItems;
 }

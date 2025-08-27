@@ -18,6 +18,7 @@ CREATE TABLE calculation_result (
     -- MonthlyFeeCalculationResultItem 정보
     product_offering_id VARCHAR(50) NOT NULL COMMENT '상품 오퍼링 ID',
     charge_item_id VARCHAR(50) NOT NULL COMMENT '과금 항목 ID',
+    revenue_item_id VARCHAR(50) NOT NULL COMMENT '수익 항목 ID',
     effective_start_date DATE NOT NULL COMMENT '유효 시작일',
     effective_end_date DATE NOT NULL COMMENT '유효 종료일',
     suspension_type VARCHAR(30) COMMENT '정지 유형 (TEMPORARY_SUSPENSION, PARTIAL_SUSPENSION 등)',

@@ -49,9 +49,10 @@ class MonthlyFeeCalculationIntegrationTest {
     private static final ProductOffering FLAT_RATE_OFFERING = new ProductOffering(
         "FLAT-001",
         "정액제 상품",
-        List.of(new MonthlyChargeItem(
+        List.of(new ChargeItem(
             "FLAT-001-01",
             "기본료",
+            "FLAT-001-01",
             BigDecimal.ONE,
             CalculationMethod.FLAT_RATE,
             new FlatRatePolicy(BigDecimal.valueOf(30000))
@@ -61,9 +62,10 @@ class MonthlyFeeCalculationIntegrationTest {
     private static final ProductOffering STEP_RATE_OFFERING_NO_CHARGE_WHEN_SUSPENSION = new ProductOffering(
         "STEP-001",
         "구간별 요금제 상품",
-        List.of(new MonthlyChargeItem(
+        List.of(new ChargeItem(
             "STEP-001-01",
             "회선수 기반 요금",
+                "STEP-001-01",
             BigDecimal.ZERO,
             CalculationMethod.STEP_FACTOR,
             new StepFactorPolicy("line_count", List.of(
@@ -78,9 +80,10 @@ class MonthlyFeeCalculationIntegrationTest {
         "RANGE-001",
         "범위별 구간 요금제 상품",
         List.of(
-            new MonthlyChargeItem(
+            new ChargeItem(
                 "RANGE-001-01",
                 "1G 속도 요금",
+                    "RANGE-001-01",
                 BigDecimal.ZERO,
                 CalculationMethod.RANGE_FACTOR,
                 new RangeFactorPolicy("speed", List.of(
@@ -95,16 +98,18 @@ class MonthlyFeeCalculationIntegrationTest {
         "COMPLEX-001",
         "복합 요금제 상품",
         List.of(
-            new MonthlyChargeItem(
+            new ChargeItem(
                 "COMPLEX-001-01",
                 "기본료",
+                    "COMPLEX-001-01",
                 BigDecimal.ZERO,
                 CalculationMethod.FLAT_RATE,
                 new FlatRatePolicy(BigDecimal.valueOf(10000))
             ),
-            new MonthlyChargeItem(
+            new ChargeItem(
                 "COMPLEX-001-02",
                 "5회선 요금",
+                    "COMPLEX-001-02",
                 BigDecimal.ZERO,
                 CalculationMethod.STEP_FACTOR,
                 new StepFactorPolicy("line_count", List.of(
@@ -119,9 +124,10 @@ class MonthlyFeeCalculationIntegrationTest {
         "TIER-001",
         "구간별 누진 요금제 상품",
         List.of(
-            new MonthlyChargeItem(
+            new ChargeItem(
                 "TIER-001-01",
                 "데이터 사용량 기반 요금",
+                    "TIER-001-01",
                 BigDecimal.ZERO,
                 CalculationMethod.TIER_FACTOR,
                 new TierFactorPolicy("data_usage", List.of(
@@ -136,9 +142,10 @@ class MonthlyFeeCalculationIntegrationTest {
     private static final ProductOffering STEP_RATE_OFFERING_WITH_SUSPENSION_CHARGE = new ProductOffering(
         "STEP-002",
         "정지기간 30% 과금 구간별 요금제 상품",
-        List.of(new MonthlyChargeItem(
+        List.of(new ChargeItem(
             "STEP-002-01",
             "회선수 기반 요금",
+                "STEP-002-01",
             BigDecimal.valueOf(0.3),  // 정지기간 30% 과금
             CalculationMethod.STEP_FACTOR,
             new StepFactorPolicy("line_count", List.of(

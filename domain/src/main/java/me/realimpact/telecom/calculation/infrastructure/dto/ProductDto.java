@@ -22,5 +22,5 @@ public class ProductDto {
     
     private String productOfferingName;
     
-    private List<MonthlyChargeItemDto> monthlyChargeItems;
+    private List<ChargeItemDto> chargeItems;
 }

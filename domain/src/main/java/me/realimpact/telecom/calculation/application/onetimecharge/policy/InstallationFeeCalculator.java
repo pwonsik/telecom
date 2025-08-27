@@ -45,6 +45,7 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
                         ctx.billingEndDate(),
                         "INST",
                         "INST",
+                        "INST",
                         ctx.billingStartDate(),
                         ctx.billingEndDate(),
                         null,

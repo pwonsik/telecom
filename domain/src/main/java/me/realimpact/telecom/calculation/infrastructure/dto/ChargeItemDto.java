@@ -9,10 +9,11 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @NoArgsConstructor
-public class MonthlyChargeItemDto {
+public class ChargeItemDto {
     private String productOfferingId;
     private String chargeItemId;
     private String chargeItemName;
+    private String revenueItemId;
     private BigDecimal suspensionChargeRatio;
     private String calculationMethodCode;
     private String calculationMethodName;

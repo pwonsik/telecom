@@ -4,7 +4,7 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsA
 import me.realimpact.telecom.calculation.domain.monthlyfee.Product;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Suspension;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractProductsSuspensionsDto;
-import me.realimpact.telecom.calculation.infrastructure.dto.MonthlyChargeItemDto;
+import me.realimpact.telecom.calculation.infrastructure.dto.ChargeItemDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.ProductDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.SuspensionDto;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,10 +30,11 @@ class ContractProductsSuspensionsDtoToDomainConverterTest {
     @Test
     void convertToContract_중첩구조포함_성공() {
         // Given - Contract DTO with nested products and suspensions
-        MonthlyChargeItemDto chargeItemDto = new MonthlyChargeItemDto();
+        ChargeItemDto chargeItemDto = new ChargeItemDto();
         chargeItemDto.setProductOfferingId("PO001");
         chargeItemDto.setChargeItemId("CI001");
         chargeItemDto.setChargeItemName("기본요금");
+        chargeItemDto.setRevenueItemId("REVENUE_001");
         chargeItemDto.setSuspensionChargeRatio(BigDecimal.valueOf(0.5));
         chargeItemDto.setCalculationMethodCode("FLAT");
         chargeItemDto.setCalculationMethodName("일반적인 정액 요율");
@@ -49,7 +50,7 @@ class ContractProductsSuspensionsDtoToDomainConverterTest {
         productDto.setActivatedAt(LocalDate.of(2024, 1, 1));
         productDto.setTerminatedAt(LocalDate.of(2024, 12, 31));
         productDto.setProductOfferingName("기본상품");
-        productDto.setMonthlyChargeItems(List.of(chargeItemDto));
+        productDto.setChargeItems(List.of(chargeItemDto));
 
         SuspensionDto suspensionDto = new SuspensionDto();
         suspensionDto.setContractId(12345L);
@@ -119,7 +120,7 @@ class ContractProductsSuspensionsDtoToDomainConverterTest {
     @Test
     void convertToProduct_상품정보변환_성공() {
         // Given
-        MonthlyChargeItemDto chargeItemDto = new MonthlyChargeItemDto();
+        ChargeItemDto chargeItemDto = new ChargeItemDto();
         chargeItemDto.setProductOfferingId("PO001");
         chargeItemDto.setChargeItemId("CI001");
         chargeItemDto.setChargeItemName("기본요금");
@@ -138,7 +139,7 @@ class ContractProductsSuspensionsDtoToDomainConverterTest {
         dto.setActivatedAt(LocalDate.of(2024, 1, 1));
         dto.setTerminatedAt(LocalDate.of(2024, 12, 31));
         dto.setProductOfferingName("기본상품");
-        dto.setMonthlyChargeItems(List.of(chargeItemDto));
+        dto.setChargeItems(List.of(chargeItemDto));
 
         // When
         Product product = converter.convertToProduct(dto);
@@ -146,8 +147,8 @@ class ContractProductsSuspensionsDtoToDomainConverterTest {
         // Then
         assertThat(product.getProductOffering().getProductOfferingId()).isEqualTo("PO001");
         assertThat(product.getProductOffering().getProductOfferingName()).isEqualTo("기본상품");
-        assertThat(product.getProductOffering().getMonthlyChargeItems()).hasSize(1);
-        assertThat(product.getProductOffering().getMonthlyChargeItems().get(0).getChargeItemId()).isEqualTo("CI001");
+        assertThat(product.getProductOffering().getChargeItems()).hasSize(1);
+        assertThat(product.getProductOffering().getChargeItems().get(0).getChargeItemId()).isEqualTo("CI001");
     }
 
     @Test
@@ -200,14 +201,14 @@ class ContractProductsSuspensionsDtoToDomainConverterTest {
     @Test
     void convertToContract_통합테스트_전체흐름검증() {
         // Given - 완전한 ContractDto with nested structures
-        MonthlyChargeItemDto chargeItem1 = new MonthlyChargeItemDto();
+        ChargeItemDto chargeItem1 = new ChargeItemDto();
         chargeItem1.setProductOfferingId("PO001");
         chargeItem1.setChargeItemId("CI001");
         chargeItem1.setChargeItemName("기본요금");
         chargeItem1.setSuspensionChargeRatio(BigDecimal.valueOf(0.5));
         chargeItem1.setCalculationMethodCode("FLAT");
-        
-        MonthlyChargeItemDto chargeItem2 = new MonthlyChargeItemDto();
+
+        ChargeItemDto chargeItem2 = new ChargeItemDto();
         chargeItem2.setProductOfferingId("PO001");
         chargeItem2.setChargeItemId("CI002");
         chargeItem2.setChargeItemName("부가요금");
@@ -221,7 +222,7 @@ class ContractProductsSuspensionsDtoToDomainConverterTest {
         product1.setEffectiveEndDateTime(LocalDateTime.of(2024, 6, 30, 23, 59, 59));
         product1.setSubscribedAt(LocalDate.of(2024, 1, 1));
         product1.setProductOfferingName("기본상품");
-        product1.setMonthlyChargeItems(Arrays.asList(chargeItem1, chargeItem2));
+        product1.setChargeItems(Arrays.asList(chargeItem1, chargeItem2));
         
         ProductDto product2 = new ProductDto();
         product2.setContractId(12345L);
@@ -230,7 +231,7 @@ class ContractProductsSuspensionsDtoToDomainConverterTest {
         product2.setEffectiveEndDateTime(LocalDateTime.of(2024, 12, 31, 23, 59, 59));
         product2.setSubscribedAt(LocalDate.of(2024, 7, 1));
         product2.setProductOfferingName("프리미엄상품");
-        product2.setMonthlyChargeItems(List.of(chargeItem1));
+        product2.setChargeItems(List.of(chargeItem1));
         
         SuspensionDto suspension1 = new SuspensionDto();
         suspension1.setContractId(12345L);
@@ -263,9 +264,9 @@ class ContractProductsSuspensionsDtoToDomainConverterTest {
         // Then - Products 검증
         assertThat(contractWithProductsAndSuspensions.getProducts()).hasSize(2);
         assertThat(contractWithProductsAndSuspensions.getProducts().get(0).getProductOffering().getProductOfferingId()).isEqualTo("PO001");
-        assertThat(contractWithProductsAndSuspensions.getProducts().get(0).getProductOffering().getMonthlyChargeItems()).hasSize(2);
+        assertThat(contractWithProductsAndSuspensions.getProducts().get(0).getProductOffering().getChargeItems()).hasSize(2);
         assertThat(contractWithProductsAndSuspensions.getProducts().get(1).getProductOffering().getProductOfferingId()).isEqualTo("PO002");
-        assertThat(contractWithProductsAndSuspensions.getProducts().get(1).getProductOffering().getMonthlyChargeItems()).hasSize(1);
+        assertThat(contractWithProductsAndSuspensions.getProducts().get(1).getProductOffering().getChargeItems()).hasSize(1);
         
         // Then - Suspensions 검증
         assertThat(contractWithProductsAndSuspensions.getSuspensions()).hasSize(2);

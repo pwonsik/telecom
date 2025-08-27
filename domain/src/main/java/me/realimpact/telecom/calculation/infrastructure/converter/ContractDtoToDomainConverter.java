@@ -2,8 +2,8 @@ package me.realimpact.telecom.calculation.infrastructure.converter;
 
 import me.realimpact.telecom.calculation.domain.monthlyfee.*;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.FlatRatePolicy;
+import me.realimpact.telecom.calculation.infrastructure.dto.ChargeItemDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractProductsSuspensionsDto;
-import me.realimpact.telecom.calculation.infrastructure.dto.MonthlyChargeItemDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.ProductDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.SuspensionDto;
 import org.springframework.stereotype.Component;
@@ -65,33 +65,34 @@ public class ContractDtoToDomainConverter {
     }
 
     private ProductOffering convertToProductOffering(ProductDto dto) {
-        List<MonthlyChargeItem> monthlyChargeItems = dto.getMonthlyChargeItems() != null ? 
-            dto.getMonthlyChargeItems().stream()
-                .map(this::convertToMonthlyChargeItem)
+        List<ChargeItem> chargeItems = dto.getChargeItems() != null ? 
+            dto.getChargeItems().stream()
+                .map(this::convertToChargeItem)
                 .collect(Collectors.toList()) : 
             List.of();
                 
         return new ProductOffering(
             dto.getProductOfferingId(),
             dto.getProductOfferingName(),
-            monthlyChargeItems
+            chargeItems
         );
     }
 
-    private MonthlyChargeItem convertToMonthlyChargeItem(MonthlyChargeItemDto dto) {
+    private ChargeItem convertToChargeItem(ChargeItemDto dto) {
         CalculationMethod calculationMethod = CalculationMethod.fromCode(dto.getCalculationMethodCode());
         Pricing pricing = createPricing(dto);
         
-        return new MonthlyChargeItem(
+        return new ChargeItem(
             dto.getChargeItemId(),
             dto.getChargeItemName(),
+            dto.getRevenueItemId(),
             dto.getSuspensionChargeRatio(),
             calculationMethod,
             pricing
         );
     }
 
-    private Pricing createPricing(MonthlyChargeItemDto dto) {
+    private Pricing createPricing(ChargeItemDto dto) {
         // 임시로 CalculationMethod에 따른 기본 Pricing 생성
         // 실제 구현에서는 MonthlyChargingPolicyFactory를 사용해야 함
 //        return switch (dto.getCalculationMethodCode()) {

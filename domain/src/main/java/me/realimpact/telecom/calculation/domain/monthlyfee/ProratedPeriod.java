@@ -21,7 +21,7 @@ public class ProratedPeriod extends Temporal {
     private final ContractWithProductsAndSuspensions contractWithProductsAndSuspensions;
     private final Product product;
     private final ProductOffering productOffering;
-    private final MonthlyChargeItem monthlyChargeItem;
+    private final ChargeItem chargeItem;
     private final Optional<Suspension> suspension;
     private final List<AdditionalBillingFactor> additionalBillingFactors;
 
@@ -32,7 +32,7 @@ public class ProratedPeriod extends Temporal {
     private BigDecimal calculateSuspensionRatio() {
         return suspension
             .map(s -> s.getSuspensionType() == SuspensionType.TEMPORARY_SUSPENSION
-                ? monthlyChargeItem.getSuspensionChargeRatio() 
+                ? chargeItem.getSuspensionChargeRatio() 
                 : BigDecimal.ZERO)
             .orElse(BigDecimal.ONE);
     }
@@ -48,7 +48,7 @@ public class ProratedPeriod extends Temporal {
     }
 
     public CalculationResult calculate(CalculationContext ctx) {
-        BigDecimal proratedFee = monthlyChargeItem.getPrice(additionalBillingFactors)
+        BigDecimal proratedFee = chargeItem.getPrice(additionalBillingFactors)
                 .multiply(BigDecimal.valueOf(this.getUsageDays()))
                 .multiply(calculateSuspensionRatio())
                 .divide(BigDecimal.valueOf(this.getDayOfMonth()), 5, RoundingMode.HALF_UP);
@@ -58,7 +58,8 @@ public class ProratedPeriod extends Temporal {
             ctx.billingStartDate(),
             ctx.billingEndDate(),
             productOffering.getProductOfferingId(),
-            monthlyChargeItem.getChargeItemId(),
+            chargeItem.getChargeItemId(),
+            chargeItem.getRevenueItemId(),
             getStartDate(),
             getEndDate(),
             suspension.map(Suspension::getSuspensionType).orElse(null),

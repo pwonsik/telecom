@@ -103,7 +103,7 @@ public class ContractWithProductsAndSuspensions extends Temporal {
                 continue;
             }
 
-            for (MonthlyChargeItem monthlyChargeItem : product.getProductOffering().getMonthlyChargeItems()) {
+            for (ChargeItem chargeItem : product.getProductOffering().getChargeItems()) {
                 // 해당 기간에 겹치는 정지이력 찾기
                 Optional<Suspension> overlappedSuspension = this.suspensions.stream()
                     .filter(s -> s.overlapsWith(period))
@@ -119,7 +119,7 @@ public class ContractWithProductsAndSuspensions extends Temporal {
                         .contractWithProductsAndSuspensions(this)
                         .product(product)
                         .productOffering(product.getProductOffering())
-                        .monthlyChargeItem(monthlyChargeItem)
+                        .chargeItem(chargeItem)
                         .suspension(overlappedSuspension)
                         .additionalBillingFactors(overlappedAdditionalBillingFactor)
                         .build()

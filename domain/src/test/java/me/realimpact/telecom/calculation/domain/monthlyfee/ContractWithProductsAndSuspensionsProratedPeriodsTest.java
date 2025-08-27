@@ -23,9 +23,10 @@ class ContractWithProductsAndSuspensionsProratedPeriodsTest {
         static final LocalDate BILLING_END_DATE = LocalDate.of(2025, 6, 1);
 
         static ProductOffering createDefaultProductOffering() {
-            MonthlyChargeItem monthlyChargeItem = new MonthlyChargeItem(
+            ChargeItem chargeItem = new ChargeItem(
                 "CHARGE_001",
                 "기본료",
+                "REVENUE_001",
                 BigDecimal.valueOf(0.5),
                 CalculationMethod.FLAT_RATE,
                 new FlatRatePolicy(BigDecimal.valueOf(10000))
@@ -34,7 +35,7 @@ class ContractWithProductsAndSuspensionsProratedPeriodsTest {
             return new ProductOffering(
                 "PO_001",
                 "기본상품",
-                List.of(monthlyChargeItem)
+                List.of(chargeItem)
             );
         }
 

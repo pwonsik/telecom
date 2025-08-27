@@ -53,12 +53,13 @@ CREATE TABLE suspension (
     FOREIGN KEY (contract_id) REFERENCES contractWithProductsAndSuspensions(contract_id)
 ) COMMENT = '정지 정보';
 
--- 5. monthly_charge_item 테이블
-DROP TABLE IF EXISTS monthly_charge_item;
-CREATE TABLE monthly_charge_item (
+-- 5. charge_item 테이블
+DROP TABLE IF EXISTS charge_item;
+CREATE TABLE charge_item (
     product_offering_id VARCHAR(50) NOT NULL COMMENT '상품 오퍼링 ID',
     charge_item_id VARCHAR(50) NOT NULL COMMENT '과금 항목 ID',
     charge_item_name VARCHAR(200) NOT NULL COMMENT '과금 항목명',
+    revenue_item_id VARCHAR(50) NOT NULL COMMENT '수익 항목 ID',
     suspension_charge_ratio DECIMAL(5,4) NOT NULL DEFAULT 0.0000 COMMENT '정지시 과금 비율',
     calculation_method_code VARCHAR(20) NOT NULL COMMENT '계산 방법 코드',
     calculation_method_name VARCHAR(100) NOT NULL COMMENT '계산 방법명',
@@ -68,4 +69,4 @@ CREATE TABLE monthly_charge_item (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
     PRIMARY KEY (product_offering_id, charge_item_id),
     FOREIGN KEY (product_offering_id) REFERENCES product_offering(product_offering_id)
-) COMMENT = '월정액 과금 항목';
+) COMMENT = '과금 항목';
