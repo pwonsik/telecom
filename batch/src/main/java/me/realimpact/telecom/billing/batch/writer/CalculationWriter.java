@@ -30,7 +30,10 @@ public class CalculationWriter implements ItemWriter<CalculationResultGroup> {
             .flatMap(calculationResultGroup -> calculationResultGroup.calculationResults().stream())
             .toList();
 
+        // 1. 계산 결과 저장
         calculationResultSavePort.save(calculationParameters.toCalculationContext(), calculationResults);
-        
+
+        // 2. 각 결과의 후처리 실행
+        calculationResults.forEach(result -> result.executePost(calculationParameters.toCalculationContext()));
     }
 }

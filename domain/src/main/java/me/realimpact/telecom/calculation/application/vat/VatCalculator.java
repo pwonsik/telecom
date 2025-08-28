@@ -24,7 +24,6 @@ public class VatCalculator {
     
     private final VatProperties vatProperties;
     private final RevenueMasterDataCacheService revenueCacheService;
-    private final CalculationResultSavePort calculationResultSavePort;
     
     /**
      * 기존 CalculationResult들을 기반으로 VAT CalculationResult 생성
@@ -59,7 +58,7 @@ public class VatCalculator {
      * VAT 계산 대상인지 확인
      * RevenueMasterData에 vatRevenueItemId가 설정된 경우만 VAT 계산 대상
      */
-    private boolean isVatApplicable(CalculationResult result) {
+    private boolean isVatApplicable(CalculationResult<?> result) {
         if (result.getRevenueItemId() == null) {
             return false;
         }
@@ -78,7 +77,7 @@ public class VatCalculator {
     /**
      * 기존 CalculationResult를 기반으로 VAT CalculationResult 생성
      */
-    private CalculationResult createVatCalculationResult(CalculationContext ctx, CalculationResult originalResult) {
+    private CalculationResult createVatCalculationResult(CalculationContext ctx, CalculationResult<?> originalResult) {
         try {
             RevenueMasterData masterData = revenueCacheService.getRevenueMasterData(originalResult.getRevenueItemId());
             if (masterData == null || masterData.vatRevenueItemId() == null) {
@@ -87,7 +86,7 @@ public class VatCalculator {
             
             BigDecimal vatAmount = calculateVatAmount(originalResult.getFee());
             
-            return new CalculationResult(
+            return new CalculationResult<>(
                 originalResult.getContractId(),
                 originalResult.getBillingStartDate(),
                 originalResult.getBillingEndDate(),
@@ -98,7 +97,8 @@ public class VatCalculator {
                 originalResult.getEffectiveEndDate(),
                 originalResult.getSuspensionType(),
                 vatAmount,
-                originalResult.getDomain() // 원본 도메인 객체 유지
+                null,
+                null // VAT 계산은 후처리가 필요 없음
             );
         } catch (Exception e) {
             log.error("Error creating VAT calculation result for contractId: {}, revenueItemId: {}", 

@@ -8,11 +8,12 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.Suspension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Optional;
 
 @Getter
 @Setter
 @RequiredArgsConstructor
-public class CalculationResult {
+public class CalculationResult<I> {
     private final Long contractId;
     private final LocalDate billingStartDate;
     private final LocalDate billingEndDate;
@@ -23,5 +24,17 @@ public class CalculationResult {
     private final LocalDate effectiveEndDate;
     private final Suspension.SuspensionType suspensionType;
     private final BigDecimal fee;
-    private final Object domain;
+    private final I domain;
+    private final PostProcessor<I> postProcessor;
+    
+    /**
+     * 후처리 작업을 실행한다
+     * 
+     * @param ctx 계산 컨텍스트
+     */
+    public void executePost(CalculationContext ctx) {
+        if (postProcessor != null) {
+            postProcessor.process(ctx, domain);
+        }
+    }
 }

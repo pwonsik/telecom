@@ -37,7 +37,7 @@ public class DeviceInstallmentCalculator implements Calculator<DeviceInstallment
     @Override
     public List<CalculationResult> process(CalculationContext ctx, DeviceInstallmentMaster input) {
         return List.of(
-                new CalculationResult(
+                new CalculationResult<>(
                         input.getContractId(),
                         ctx.billingStartDate(),
                         ctx.billingEndDate(),
@@ -48,20 +48,14 @@ public class DeviceInstallmentCalculator implements Calculator<DeviceInstallment
                         ctx.billingEndDate(),
                         null,
                         BigDecimal.valueOf(input.getFee(ctx.billingCalculationType(), ctx.billingCalculationPeriod())),
-                        input
+                        input,
+                        (ctx_, input_) -> deviceInstallmentCommandPort.updateChargeStatus(input)
                 )
         );
     }
 
-    @Override
-    public void write(CalculationContext ctx, List<CalculationResult> output) {
 
-    }
-
-    @Override
-    public void post(CalculationContext ctx, List<CalculationResult> output) {
-        output.forEach(calculationResult -> {
-            deviceInstallmentCommandPort.updateChargeStatus((DeviceInstallmentMaster) calculationResult.getDomain());
-        });
+    public void post(CalculationContext ctx, DeviceInstallmentMaster input) {
+        deviceInstallmentCommandPort.updateChargeStatus(input);
     }
 }

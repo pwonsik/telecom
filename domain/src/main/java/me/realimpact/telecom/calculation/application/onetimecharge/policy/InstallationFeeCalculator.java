@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 public class InstallationFeeCalculator implements Calculator<InstallationHistory> {
     private final InstallationHistoryQueryPort installationHistoryQueryPort;
     private final InstallationHistoryCommandPort installationHistoryCommandPort;
-    private final CalculationResultSavePort calculationResultSavePort;
 
     @Override
     public Map<Long, List<InstallationHistory>> read(CalculationContext ctx, List<Long> contractIds) {
@@ -39,7 +38,7 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
     @Override
     public List<CalculationResult> process(CalculationContext ctx, InstallationHistory input) {
         return List.of(
-                new CalculationResult(
+                new CalculationResult<>(
                         input.contractId(),
                         ctx.billingStartDate(),
                         ctx.billingEndDate(),
@@ -50,20 +49,9 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
                         ctx.billingEndDate(),
                         null,
                         BigDecimal.valueOf(input.fee()),
-                        input
+                        input,
+                        (ctx_, input_) -> installationHistoryCommandPort.updateChargeStatus(input)
                 )
         );
-    }
-
-    @Override
-    public void write(CalculationContext ctx, List<CalculationResult> output) {
-        calculationResultSavePort.save(ctx, output);
-    }
-
-    @Override
-    public void post(CalculationContext ctx, List<CalculationResult> output) {
-        output.forEach(calculationResult -> {
-            installationHistoryCommandPort.updateChargeStatus((InstallationHistory)calculationResult.getDomain());
-        });
     }
 }

@@ -55,16 +55,6 @@ public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSusp
             .toList();
     }
 
-    @Override
-    public void write(CalculationContext ctx, List<CalculationResult> output) {
-        calculationResultSavePort.save(ctx, output);
-    }
-
-    @Override
-    public void post(CalculationContext ctx, List<CalculationResult> output) {
-        // do nothing
-    }
-
     /**
      * 테스트를 위한 계산 메서드 (결과 반환)
      */

@@ -30,29 +30,12 @@ public interface Calculator<I> {
      * @return 계산 결과
      */
     List<CalculationResult> process(CalculationContext ctx, I input);
-    
-    /**
-     * 계산 결과를 저장한다... 필요없는듯하다.
-     * 
-     * @param output 계산 결과 목록
-     */
-    void write(CalculationContext ctx, List<CalculationResult> output);
-    
-    /**
-     * 계산 완료 후 후처리 작업을 수행한다
-     * 
-     * @param output 계산 결과 목록
-     */
-    void post(CalculationContext ctx, List<CalculationResult> output);
 
     default List<CalculationResult> execute(CalculationContext ctx, List<Long> contractIds) {
         List<CalculationResult> calculationResults = read(ctx, contractIds).values().stream()
                 .flatMap(Collection::stream)
                 .flatMap(item -> process(ctx, item).stream())
                 .toList();
-
-        write(ctx, calculationResults);
-        post(ctx, calculationResults);
         return calculationResults;
     }
 }

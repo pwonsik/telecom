@@ -53,7 +53,7 @@ public class ProratedPeriod extends Temporal {
                 .multiply(calculateSuspensionRatio())
                 .divide(BigDecimal.valueOf(this.getDayOfMonth()), 5, RoundingMode.HALF_UP);
 
-        return new CalculationResult(
+        return new CalculationResult<>(
                 this.contractWithProductsAndSuspensions.getContractId(),
             ctx.billingStartDate(),
             ctx.billingEndDate(),
@@ -64,7 +64,8 @@ public class ProratedPeriod extends Temporal {
             getEndDate(),
             suspension.map(Suspension::getSuspensionType).orElse(null),
             proratedFee,
-                null
+                null,
+                null // BaseFeeCalculator는 후처리가 필요 없음
         );
     }
 
