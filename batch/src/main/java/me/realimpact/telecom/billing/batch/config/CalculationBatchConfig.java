@@ -7,6 +7,7 @@ import me.realimpact.telecom.billing.batch.CalculationResultGroup;
 import me.realimpact.telecom.billing.batch.processor.CalculationProcessor;
 import me.realimpact.telecom.billing.batch.reader.CalculationTarget;
 import me.realimpact.telecom.billing.batch.reader.ChunkedContractReader;
+import me.realimpact.telecom.billing.batch.tasklet.CalculationResultCleanupTasklet;
 import me.realimpact.telecom.billing.batch.writer.CalculationWriter;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.BillingCalculationType;
@@ -14,10 +15,6 @@ import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculato
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
 import me.realimpact.telecom.calculation.application.vat.VatCalculator;
-import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.CalculationResultMapper;
-import me.realimpact.telecom.calculation.infrastructure.converter.ContractDtoToDomainConverter;
-import me.realimpact.telecom.calculation.infrastructure.converter.OneTimeChargeDtoConverter;
-import me.realimpact.telecom.calculation.infrastructure.dto.ContractProductsSuspensionsDto;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
@@ -57,9 +54,6 @@ public class CalculationBatchConfig {
     private final SqlSessionFactory sqlSessionFactory;
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
-
-    private final ContractDtoToDomainConverter contractDtoToDomainConverter;
-    private final OneTimeChargeDtoConverter oneTimeChargeDtoConverter;
 
     private final BaseFeeCalculator baseFeeCalculator;
     private final DeviceInstallmentCalculator deviceInstallmentCalculator;
@@ -179,6 +173,16 @@ public class CalculationBatchConfig {
 
 
     /**
+     * Cleanup Step 설정 - 기존 계산 결과 삭제
+     */
+    @Bean
+    public Step cleanupCalculationResultStep(CalculationResultCleanupTasklet calculationResultCleanupTasklet) {
+        return new StepBuilder("cleanupCalculationResultStep", jobRepository)
+                .tasklet(calculationResultCleanupTasklet, transactionManager)
+                .build();
+    }
+
+    /**
      * Step 설정 - 멀티쓰레드 처리로 성능 최적화
      */
     @Bean
@@ -193,12 +197,13 @@ public class CalculationBatchConfig {
     }
 
     /**
-     * Job 설정
+     * Job 설정 - 삭제 Step 후 계산 Step 순서로 실행
      */
     @Bean
-    public Job monthlyFeeCalculationJob(CalculationParameters calculationParameters) {
+    public Job monthlyFeeCalculationJob(CalculationParameters calculationParameters, CalculationResultCleanupTasklet calculationResultCleanupTasklet) {
         return new JobBuilder("monthlyFeeCalculationJob", jobRepository)
-                .start(monthlyFeeCalculationStep(calculationParameters))
+                .start(cleanupCalculationResultStep(calculationResultCleanupTasklet))     // 1. 기존 결과 삭제
+                .next(monthlyFeeCalculationStep(calculationParameters))         // 2. 새로운 계산 수행
                 .build();
     }
 }

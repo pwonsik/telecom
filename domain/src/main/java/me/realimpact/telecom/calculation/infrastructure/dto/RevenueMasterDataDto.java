@@ -1,5 +1,10 @@
 package me.realimpact.telecom.calculation.infrastructure.dto;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+
 import java.time.LocalDate;
 
 /**
@@ -12,11 +17,15 @@ import java.time.LocalDate;
  * @param overdueChargeRevenueItemId 연체료 수익 항목 ID
  * @param vatRevenueItemId VAT 수익 항목 ID
  */
-public record RevenueMasterDataDto(
-    String revenueItemId,
-    LocalDate effectiveStartDate,
-    LocalDate effectiveEndDate,
-    String revenueItemName,
-    String overdueChargeRevenueItemId,
-    String vatRevenueItemId
-) {}
+@Getter
+@Setter
+@Accessors(fluent = true)
+@NoArgsConstructor
+public class RevenueMasterDataDto {
+    private String revenueItemId;
+    private LocalDate effectiveStartDate;
+    private LocalDate effectiveEndDate;
+    private String revenueItemName;
+    private String overdueChargeRevenueItemId;
+    private String vatRevenueItemId;
+}

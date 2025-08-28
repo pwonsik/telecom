@@ -31,5 +31,6 @@ public class CalculationWriter implements ItemWriter<CalculationResultGroup> {
             .toList();
 
         calculationResultSavePort.save(calculationParameters.toCalculationContext(), calculationResults);
+        
     }
 }

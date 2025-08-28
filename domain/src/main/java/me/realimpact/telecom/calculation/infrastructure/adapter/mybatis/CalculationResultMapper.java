@@ -4,6 +4,7 @@ import me.realimpact.telecom.calculation.domain.CalculationResult;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -21,4 +22,10 @@ public interface CalculationResultMapper {
     int batchInsertCalculationResults(
         @Param("items") List<CalculationResult> items
     );
+
+    /**
+     * 모든 계산 결과를 삭제 (테스트 및 전체 초기화 용도)
+     * @return 삭제된 행 수
+     */
+    int deleteAllCalculationResults();
 }

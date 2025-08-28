@@ -33,4 +33,9 @@
         </foreach>
     </insert>
 
+    <!-- 모든 계산 결과를 삭제 (테스트 및 전체 초기화 용도) -->
+    <delete id="deleteAllCalculationResults">
+        DELETE FROM calculation_result
+    </delete>
+
 </mapper>

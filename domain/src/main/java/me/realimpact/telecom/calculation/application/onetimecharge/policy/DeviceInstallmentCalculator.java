@@ -1,5 +1,6 @@
 package me.realimpact.telecom.calculation.application.onetimecharge.policy;
 
+import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.application.Calculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
@@ -21,9 +22,10 @@ import java.util.stream.Collectors;
  */
 @Service
 @Order(21)
+@RequiredArgsConstructor
 public class DeviceInstallmentCalculator implements Calculator<DeviceInstallmentMaster> {
-    DeviceInstallmentQueryPort deviceInstallmentQueryPort;
-    DeviceInstallmentCommandPort deviceInstallmentCommandPort;
+    private final DeviceInstallmentQueryPort deviceInstallmentQueryPort;
+    private final DeviceInstallmentCommandPort deviceInstallmentCommandPort;
 
     @Override
     public Map<Long, List<DeviceInstallmentMaster>> read(CalculationContext ctx, List<Long> contractIds) {
