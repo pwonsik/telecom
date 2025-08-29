@@ -1,8 +1,10 @@
 package me.realimpact.telecom.calculation.infrastructure.converter;
 
+import me.realimpact.telecom.calculation.domain.onetimecharge.policy.discount.ContractDiscount;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation.InstallationHistory;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentDetail;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentMaster;
+import me.realimpact.telecom.calculation.infrastructure.dto.ContractDiscountDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.DeviceInstallmentDetailDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.DeviceInstallmentDto;
 import me.realimpact.telecom.calculation.infrastructure.dto.InstallationHistoryDto;
@@ -16,7 +18,7 @@ import java.util.List;
  */
 @Component
 public class OneTimeChargeDtoConverter {
-    
+
     /**
      * InstallationHistoryDto를 InstallationHistory 도메인 객체로 변환
      */
@@ -29,7 +31,7 @@ public class OneTimeChargeDtoConverter {
             dto.getBilledFlag()
         );
     }
-    
+
     /**
      * InstallationHistoryDto 리스트를 InstallationHistory 도메인 객체 리스트로 변환
      */
@@ -57,7 +59,7 @@ public class OneTimeChargeDtoConverter {
             dto.getDetails().stream()
                 .map(this::convertToDeviceInstallmentDetail)
                 .toList() : List.of();
-                
+
         return new DeviceInstallmentMaster(
             dto.getContractId(),
             dto.getInstallmentSequence(),
@@ -77,4 +79,5 @@ public class OneTimeChargeDtoConverter {
             .map(this::convertToDeviceInstallmentMaster)
             .toList();
     }
+
 }

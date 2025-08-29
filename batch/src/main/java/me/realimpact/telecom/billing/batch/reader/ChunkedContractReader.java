@@ -4,10 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
+import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
-import me.realimpact.telecom.calculation.infrastructure.dto.ContractProductsSuspensionsDto;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -28,6 +28,7 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
     private final BaseFeeCalculator baseFeeCalculator;
     private final InstallationFeeCalculator installationFeeCalculator;
     private final DeviceInstallmentCalculator deviceInstallmentCalculator;
+    private final DiscountCalculator discountCalculator;
 
     private final SqlSessionFactory sqlSessionFactory;
     private final CalculationParameters calculationParameters;
@@ -131,6 +132,8 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
         var installationHistoriesMap = installationFeeCalculator.read(ctx, contractIds);
         // 할부
         var deviceInstallmentMastersMap = deviceInstallmentCalculator.read(ctx, contractIds);
+        // 할인
+        var contractDiscountsMap = discountCalculator.read(ctx, contractIds);
 
         List<CalculationTarget> calculationTargets = new ArrayList<>();
         // 모든 조회 대상을 calculationTarget으로 모은다.
@@ -139,7 +142,8 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
                     contractId,
                     contractWithProductsAndSuspensionsMap.getOrDefault(contractId, Collections.emptyList()),
                     installationHistoriesMap.getOrDefault(contractId, Collections.emptyList()),
-                    deviceInstallmentMastersMap.getOrDefault(contractId, Collections.emptyList())
+                    deviceInstallmentMastersMap.getOrDefault(contractId, Collections.emptyList()),
+                    contractDiscountsMap.getOrDefault(contractId, Collections.emptyList())
             );
             calculationTargets.add(calculationTarget);
         }

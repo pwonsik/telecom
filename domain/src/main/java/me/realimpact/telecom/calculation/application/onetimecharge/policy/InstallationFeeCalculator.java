@@ -5,6 +5,7 @@ import me.realimpact.telecom.calculation.application.Calculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation.InstallationHistory;
+import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentMaster;
 import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import me.realimpact.telecom.calculation.port.out.InstallationHistoryCommandPort;
@@ -50,8 +51,14 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
                         null,
                         BigDecimal.valueOf(input.fee()),
                         input,
-                        (ctx_, input_) -> installationHistoryCommandPort.updateChargeStatus(input)
+                        this::post
                 )
         );
+    }
+
+    private void post(CalculationContext ctx, InstallationHistory input) {
+        if (ctx.billingCalculationType().isPostable()) {
+            installationHistoryCommandPort.updateChargeStatus(input);
+        }
     }
 }

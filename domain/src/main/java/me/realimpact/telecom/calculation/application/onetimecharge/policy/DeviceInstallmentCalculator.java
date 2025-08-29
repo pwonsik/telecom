@@ -49,13 +49,15 @@ public class DeviceInstallmentCalculator implements Calculator<DeviceInstallment
                         null,
                         BigDecimal.valueOf(input.getFee(ctx.billingCalculationType(), ctx.billingCalculationPeriod())),
                         input,
-                        (ctx_, input_) -> deviceInstallmentCommandPort.updateChargeStatus(input)
+                        this::post
                 )
         );
     }
 
 
     public void post(CalculationContext ctx, DeviceInstallmentMaster input) {
-        deviceInstallmentCommandPort.updateChargeStatus(input);
+        if (ctx.billingCalculationType().isPostable()) {
+            deviceInstallmentCommandPort.updateChargeStatus(input);
+        }
     }
 }

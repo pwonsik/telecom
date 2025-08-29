@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractDiscountMapper">
+
+    <resultMap id="contractDiscountResult" type="ContractDiscountDto">
+        <id property="contractId" column="contract_id"/>
+        <id property="discountId" column="discount_id"/>
+        <id property="discountStartDate" column="discount_start_date"/>
+        <id property="discountEndDate" column="discount_end_date"/>
+        <result property="productOfferingId" column="product_offering_id"/>
+        <result property="discountAplyUnit" column="discount_aply_unit"/>
+        <result property="discountAmt" column="discount_amt"/>
+        <result property="discountRate" column="discount_rate"/>
+    </resultMap>
+
+    <!-- 계약 ID 목록으로 할인 내역 조회 -->
+    <select id="findDiscountsByContractIds" resultMap="contractDiscountResult">
+        SELECT 
+            cd.contract_id,
+            cd.discount_id,
+            cd.discount_start_date,
+            cd.discount_end_date,
+            cd.product_offering_id,
+            cd.discount_aply_unit,
+            cd.discount_amt,
+            cd.discount_rate,
+            cd.discount_applied_amount
+        FROM contract_discount cd
+        WHERE 1=1
+        AND cd.contract_id IN
+        <foreach item="contractId" collection="contractIds" open="(" separator="," close=")">
+            #{contractId}
+        </foreach>
+        <!-- 할인 기간이 청구 기간과 겹치는 경우만 조회 -->
+        AND cd.discount_start_date &lt;= #{billingEndDate}
+        AND cd.discount_end_date &gt;= #{billingStartDate}
+        ORDER BY cd.contract_id, cd.discount_id, cd.discount_start_date, cd.discount_end_date
+    </select>
+
+</mapper>

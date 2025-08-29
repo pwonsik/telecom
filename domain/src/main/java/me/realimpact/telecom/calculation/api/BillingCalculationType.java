@@ -37,4 +37,8 @@ public enum BillingCalculationType {
                 .findFirst()
                 .orElseThrow(() -> new NoSuchElementException("No enum constant with code " + code));
     }
+
+    public boolean isPostable() {
+        return this == REVENUE_CONFIRMATION;
+    }
 }
