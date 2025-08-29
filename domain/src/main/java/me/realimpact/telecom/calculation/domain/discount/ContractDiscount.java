@@ -1,4 +1,4 @@
-package me.realimpact.telecom.calculation.domain.onetimecharge.policy.discount;
+package me.realimpact.telecom.calculation.domain.discount;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

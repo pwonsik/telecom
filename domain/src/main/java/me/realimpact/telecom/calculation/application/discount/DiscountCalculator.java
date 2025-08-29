@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.application.Calculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
-import me.realimpact.telecom.calculation.domain.onetimecharge.policy.discount.ContractDiscount;
+import me.realimpact.telecom.calculation.domain.discount.ContractDiscount;
 import me.realimpact.telecom.calculation.port.out.ContractDiscountCommandPort;
 import me.realimpact.telecom.calculation.port.out.ContractDiscountQueryPort;
 import org.springframework.core.annotation.Order;

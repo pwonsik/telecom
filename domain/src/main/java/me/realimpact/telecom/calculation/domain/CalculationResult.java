@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import me.realimpact.telecom.calculation.domain.monthlyfee.DefaultPeriod;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Suspension;
 
 import java.math.BigDecimal;
@@ -46,42 +47,55 @@ public class CalculationResult<I> {
 
     /**
      * 주어진 기간으로 일할 계산하여 CalculationResult 목록을 반환한다
-     * 
-     * @param startDate 새로운 청구 시작일
-     * @param endDate 새로운 청구 종료일  
+     *
      * @return 일할 계산된 CalculationResult 목록
      */
-    public List<CalculationResult> prorate(LocalDate startDate, LocalDate endDate) {
-        // 입력 검증
-        if (startDate == null || endDate == null) {
-            throw new RuntimeException("startDate and endDate must not be null");
-        }
-        
-        // 기존 유효 기간이 null인 경우 처리
-        if (effectiveStartDate == null || effectiveEndDate == null) {
-            throw new RuntimeException("startDate and endDate must not be null");
-        }
-        
-        // 겹치는 구간 계산 - 두 기간의 교집합
-        LocalDate overlapStart = effectiveStartDate.isAfter(startDate) ? effectiveStartDate : startDate;
-        LocalDate overlapEnd = effectiveEndDate.isBefore(endDate) ? effectiveEndDate : endDate;
+    public List<CalculationResult<I>> prorate(List<DefaultPeriod> periods) {
+        // 모든 날짜 지점들을 정렬하여 구간 경계 생성
+        Stream<LocalDate> effectiveStartDateStream = Stream.of(effectiveStartDate);
+        Stream<LocalDate> effectiveEndDateStream = Stream.of(effectiveEndDate);
+        // periods 중 구간을 분리할 후보군을 선정한다.
+        Stream<LocalDate> startDatesStream = periods.stream()
+            .filter(this::overlapsWith)
+            .map(DefaultPeriod::getStartDate);
 
-        // 겹치는 구간에 대한 일할 계산 결과 생성
-        if (overlapEnd.isAfter(overlapStart) || overlapStart.equals(overlapEnd)) {
-            CalculationResult proratedResult = createProratedResult(overlapStart, overlapEnd);
-            return List.of(proratedResult);
-        }
-        return List.of();
+        Stream<LocalDate> endDatesStream = periods.stream()
+            .filter(this::overlapsWith)
+            .map(DefaultPeriod::getEndDate);
+
+        List<LocalDate> datePoints = Stream.of(
+                effectiveStartDateStream,
+                effectiveEndDateStream,
+                startDatesStream,
+                endDatesStream
+            )
+            .flatMap(datePoint -> datePoint)
+            .sorted()
+            .toList();
+
+        // 각 구간별로 ProratedPeriod 리스트를 생성
+        return IntStream.range(0, datePoints.size() - 1)
+            .mapToObj(i -> DefaultPeriod.of(
+                datePoints.get(i),
+                datePoints.get(i + 1)
+            ))
+            .map(this::createProratedResult)
+            .toList();
+    }
+
+    private boolean overlapsWith(DefaultPeriod period) {
+        return (period.getStartDate().isBefore(effectiveEndDate) || period.getStartDate().isEqual(effectiveEndDate)) &&
+            (effectiveStartDate.isBefore(period.getEndDate()) || effectiveStartDate.isEqual(period.getEndDate()));
     }
     
     /**
      * 주어진 기간에 대한 일할 계산된 CalculationResult를 생성
      */
-    private CalculationResult createProratedResult(LocalDate periodStart, LocalDate periodEnd) {
+    private CalculationResult<I> createProratedResult(DefaultPeriod period) {
         // 원래 기간의 일수 계산
         long originalDays = ChronoUnit.DAYS.between(effectiveStartDate, effectiveEndDate) + 1;
         // 새로운 구간의 일수 계산  
-        long proratedDays = ChronoUnit.DAYS.between(periodStart, periodEnd) + 1;
+        long proratedDays = ChronoUnit.DAYS.between(period.getStartDate(), period.getEndDate()) + 1;
         
         // 일할 비율 계산
         BigDecimal prorateRatio = BigDecimal.valueOf(proratedDays)
@@ -100,8 +114,8 @@ public class CalculationResult<I> {
             productOfferingId,
             chargeItemId,
             revenueItemId,
-            periodStart,      // 새로운 유효 시작일
-            periodEnd,        // 새로운 유효 종료일
+            period.getStartDate(),      // 새로운 유효 시작일
+            period.getEndDate(),        // 새로운 유효 종료일
             suspensionType,
             proratedFee,      // 일할 계산된 금액
             domain,           // 기존 도메인 객체 유지

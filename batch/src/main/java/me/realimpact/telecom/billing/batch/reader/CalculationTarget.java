@@ -1,7 +1,7 @@
 package me.realimpact.telecom.billing.batch.reader;
 
 import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsAndSuspensions;
-import me.realimpact.telecom.calculation.domain.onetimecharge.policy.discount.ContractDiscount;
+import me.realimpact.telecom.calculation.domain.discount.ContractDiscount;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation.InstallationHistory;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentMaster;
 
