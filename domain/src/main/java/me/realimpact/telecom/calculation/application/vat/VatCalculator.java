@@ -32,9 +32,9 @@ public class VatCalculator {
      * @param existingResults 기존 과금 계산 결과 목록
      * @return VAT 계산 결과 목록
      */
-    public List<CalculationResult> calculateVat(
+    public List<CalculationResult<?>> calculateVat(
             CalculationContext ctx, 
-            List<CalculationResult> existingResults) {
+            List<CalculationResult<?>> existingResults) {
         
         if (!vatProperties.isEnabled()) {
             log.debug("VAT calculation is disabled");
@@ -44,10 +44,11 @@ public class VatCalculator {
         log.debug("Starting VAT calculation for {} results with VAT rate: {}", 
                   existingResults.size(), vatProperties.getVatRate());
         
-        List<CalculationResult> vatResults = existingResults.stream()
+        List<CalculationResult<?>> vatResults = existingResults.stream()
                 .filter(this::isVatApplicable)
                 .map(result -> createVatCalculationResult(ctx, result))
                 .filter(Objects::nonNull)
+                .<CalculationResult<?>>map(result -> result)
                 .toList();
         
         log.debug("Generated {} VAT calculation results", vatResults.size());
@@ -77,7 +78,7 @@ public class VatCalculator {
     /**
      * 기존 CalculationResult를 기반으로 VAT CalculationResult 생성
      */
-    private CalculationResult createVatCalculationResult(CalculationContext ctx, CalculationResult<?> originalResult) {
+    private CalculationResult<?> createVatCalculationResult(CalculationContext ctx, CalculationResult<?> originalResult) {
         try {
             RevenueMasterData masterData = revenueCacheService.getRevenueMasterData(originalResult.getRevenueItemId());
             if (masterData == null || masterData.vatRevenueItemId() == null) {
@@ -97,6 +98,7 @@ public class VatCalculator {
                 originalResult.getEffectiveEndDate(),
                 originalResult.getSuspensionType(),
                 vatAmount,
+                BigDecimal.ZERO,
                 null,
                 null // VAT 계산은 후처리가 필요 없음
             );

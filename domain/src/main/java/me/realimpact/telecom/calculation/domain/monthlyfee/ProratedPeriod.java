@@ -47,14 +47,15 @@ public class ProratedPeriod extends Temporal {
         return period.getEndDate();
     }
 
-    public CalculationResult calculate(CalculationContext ctx) {
+    public CalculationResult<ContractWithProductsAndSuspensions> calculate(CalculationContext ctx) {
         BigDecimal proratedFee = chargeItem.getPrice(additionalBillingFactors)
                 .multiply(BigDecimal.valueOf(this.getUsageDays()))
                 .multiply(calculateSuspensionRatio())
                 .divide(BigDecimal.valueOf(this.getDayOfMonth()), 5, RoundingMode.HALF_UP);
+        BigDecimal balance = new BigDecimal(proratedFee.unscaledValue(), proratedFee.scale());
 
         return new CalculationResult<>(
-                this.contractWithProductsAndSuspensions.getContractId(),
+            this.contractWithProductsAndSuspensions.getContractId(),
             ctx.billingStartDate(),
             ctx.billingEndDate(),
             productOffering.getProductOfferingId(),
@@ -64,8 +65,9 @@ public class ProratedPeriod extends Temporal {
             getEndDate(),
             suspension.map(Suspension::getSuspensionType).orElse(null),
             proratedFee,
-                null,
-                null // BaseFeeCalculator는 후처리가 필요 없음
+            balance,
+            null,
+            null // BaseFeeCalculator는 후처리가 필요 없음
         );
     }
 

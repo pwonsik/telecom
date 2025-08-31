@@ -1,10 +1,12 @@
 package me.realimpact.telecom.billing.batch.processor;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
 import me.realimpact.telecom.billing.batch.CalculationResultGroup;
 import me.realimpact.telecom.billing.batch.reader.CalculationTarget;
+import me.realimpact.telecom.calculation.application.discount.CalculationResultProrater;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
@@ -32,16 +34,17 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
     private final BaseFeeCalculator baseFeeCalculator;
     private final InstallationFeeCalculator installationFeeCalculator;
     private final DeviceInstallmentCalculator deviceInstallmentCalculator;
+    private final CalculationResultProrater calculationResultProrater;
     private final DiscountCalculator discountCalculator;
     private final VatCalculator vatCalculator;
 
     private final CalculationParameters calculationParameters;
 
     @Override
-    public CalculationResultGroup process(CalculationTarget calculationTarget) throws Exception {
+    public CalculationResultGroup process(@NonNull CalculationTarget calculationTarget) throws Exception {
         try {
             log.debug("Processing contract calculation for contractId: {}", calculationTarget.contractId());
-            List<CalculationResult> results = new ArrayList<>();
+            List<CalculationResult<?>> results = new ArrayList<>();
 
             CalculationContext ctx = calculationParameters.toCalculationContext();
 
@@ -54,15 +57,17 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
             // 할부
             results.addAll(process(calculationTarget.deviceInstallmentMasters(), deviceInstallmentCalculator::process, ctx));
 
+            // 구간분리
+            results = calculationResultProrater.prorate(results, calculationTarget.discounts());
+
             // 할인
-            results.addAll(process(calculationTarget.contractDiscounts(), discountCalculator::process, ctx));
+            results.addAll(discountCalculator.process(ctx, results, calculationTarget.discounts()));
 
             // VAT 계산 (기존 결과 기반)
-            List<CalculationResult> vatResults = vatCalculator.calculateVat(ctx, results);
-            results.addAll(vatResults);
+            results.addAll(vatCalculator.calculateVat(ctx, results));
 
-            log.info("Processed {} calculation results (including {} VAT results) for contractId: {}", 
-                     results.size(), vatResults.size(), calculationTarget.contractId());
+            log.info("Processed {} calculation results for contractId: {}",
+                     results.size(), calculationTarget.contractId());
 
             return new CalculationResultGroup(results);
         } catch (Exception e) {
@@ -71,13 +76,14 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
         }
     }
 
-    private <T> List<CalculationResult> process(
+    private <T> List<CalculationResult<?>> process(
             Collection<T> items,
-            BiFunction<CalculationContext, T, List<CalculationResult>> processor,
+            BiFunction<CalculationContext, T, List<? extends CalculationResult<?>>> processor,
             CalculationContext context
     ) {
         return items.stream()
                 .flatMap(item -> processor.apply(context, item).stream())
+                .<CalculationResult<?>>map(result -> result)
                 .toList();
     }
 

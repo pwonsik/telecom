@@ -45,7 +45,7 @@ public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSusp
     }
 
     @Override
-    public List<CalculationResult> process(
+    public List<CalculationResult<ContractWithProductsAndSuspensions>> process(
         CalculationContext ctx,
         ContractWithProductsAndSuspensions contractWithProductInventoriesAndSuspensions
     ) {
@@ -58,7 +58,7 @@ public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSusp
     /**
      * 테스트를 위한 계산 메서드 (결과 반환)
      */
-    public List<CalculationResult> calculateAndReturn(CalculationContext calculationContext, List<Long> contractIds) {
+    public List<CalculationResult<ContractWithProductsAndSuspensions>> calculateAndReturn(CalculationContext calculationContext, List<Long> contractIds) {
         return read(calculationContext, contractIds).values().stream()
                 .flatMap(obj -> process(calculationContext, obj.get(0)).stream()).toList();
     }

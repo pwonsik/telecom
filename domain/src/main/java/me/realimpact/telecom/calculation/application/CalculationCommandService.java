@@ -41,13 +41,13 @@ public class CalculationCommandService implements CalculationCommandUseCase {
         List<Long> contractIds = calculationRequest.contractIds();
         
         // 각 계산기 실행
-        List<CalculationResult> results = new ArrayList<>();
+        List<CalculationResult<?>> results = new ArrayList<>();
         results.addAll(baseFeeCalculator.execute(ctx, contractIds));
         results.addAll(installationFeeCalculator.execute(ctx, contractIds));
         results.addAll(deviceInstallmentCalculator.execute(ctx, contractIds));
         
         // VAT 계산 (기존 결과 기반)
-        List<CalculationResult> vatResults = vatCalculator.calculateVat(ctx, results);
+        List<CalculationResult<?>> vatResults = vatCalculator.calculateVat(ctx, results);
         results.addAll(vatResults);
         
         return results.stream()

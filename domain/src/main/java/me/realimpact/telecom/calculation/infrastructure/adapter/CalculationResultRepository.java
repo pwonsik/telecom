@@ -22,7 +22,7 @@ public class CalculationResultRepository implements CalculationResultSavePort {
     private final CalculationResultMapper calculationResultMapper;
 
     @Override
-    public void save(CalculationContext ctx, List<CalculationResult> results) {
+    public void save(CalculationContext ctx, List<CalculationResult<?>> results) {
         if (results == null || results.isEmpty()) {
             log.warn("No calculation results to save");
             return;

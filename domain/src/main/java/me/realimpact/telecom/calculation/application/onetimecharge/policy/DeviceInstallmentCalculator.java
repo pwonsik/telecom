@@ -35,7 +35,9 @@ public class DeviceInstallmentCalculator implements Calculator<DeviceInstallment
     }
 
     @Override
-    public List<CalculationResult> process(CalculationContext ctx, DeviceInstallmentMaster input) {
+    public List<CalculationResult<DeviceInstallmentMaster>> process(CalculationContext ctx, DeviceInstallmentMaster input) {
+        BigDecimal fee = BigDecimal.valueOf(input.getFee(ctx.billingCalculationType(), ctx.billingCalculationPeriod()));
+        BigDecimal balance = new BigDecimal(fee.unscaledValue(), fee.scale());
         return List.of(
                 new CalculationResult<>(
                         input.getContractId(),
@@ -47,7 +49,8 @@ public class DeviceInstallmentCalculator implements Calculator<DeviceInstallment
                         ctx.billingStartDate(),
                         ctx.billingEndDate(),
                         null,
-                        BigDecimal.valueOf(input.getFee(ctx.billingCalculationType(), ctx.billingCalculationPeriod())),
+                        fee,
+                        balance,
                         input,
                         this::post
                 )

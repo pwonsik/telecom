@@ -196,7 +196,7 @@ class MonthlyFeeCalculationIntegrationTest {
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
         // when
-        List<CalculationResult> results = calculator.execute(createCalculationContext(), List.of(CONTRACT_ID));
+        List<CalculationResult<ContractWithProductsAndSuspensions>> results = calculator.execute(createCalculationContext(), List.of(CONTRACT_ID));
 
         // then
         assertThat(results).hasSize(1);
@@ -258,7 +258,7 @@ class MonthlyFeeCalculationIntegrationTest {
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
         // when
-        List<CalculationResult> results = calculator.execute(createCalculationContext(), List.of(CONTRACT_ID));
+        List<CalculationResult<ContractWithProductsAndSuspensions>> results = calculator.execute(createCalculationContext(), List.of(CONTRACT_ID));
 
         // then
         assertThat(results).hasSize(3);
@@ -270,7 +270,7 @@ class MonthlyFeeCalculationIntegrationTest {
          */
          
         // 각 기간별 항목 확인
-        List<CalculationResult> items = results;
+        List<CalculationResult<ContractWithProductsAndSuspensions>> items = results;
             
         // 3/1 ~ 3/9 (9일)
         assertThat(items.get(0).getFee().setScale(0, RoundingMode.FLOOR))

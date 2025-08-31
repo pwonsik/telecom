@@ -15,7 +15,8 @@
             effective_start_date,
             effective_end_date,
             suspension_type,
-            fee
+            fee,
+            balance
         ) VALUES
         <foreach collection="items" item="item" separator=",">
         (
@@ -28,7 +29,8 @@
             #{item.effectiveStartDate},
             #{item.effectiveEndDate},
             #{item.suspensionType},
-            #{item.fee}
+            #{item.fee},
+            #{item.balance}
         )
         </foreach>
     </insert>

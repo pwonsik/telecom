@@ -31,6 +31,7 @@ class CalculationResultTest {
             LocalDate.of(2024, 3, 31),
             null,
             BigDecimal.valueOf(10000),
+            BigDecimal.valueOf(10000),
             null,
                 null
         );
@@ -62,6 +63,7 @@ class CalculationResultTest {
             LocalDate.of(2024, 3, 1),
             LocalDate.of(2024, 3, 31),
             null,
+            BigDecimal.valueOf(10000),
             BigDecimal.valueOf(10000),
             null,
             null // postProcessor is null

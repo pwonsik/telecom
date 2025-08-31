@@ -1,9 +1,9 @@
 package me.realimpact.telecom.calculation.domain;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import lombok.With;
 import me.realimpact.telecom.calculation.domain.monthlyfee.DefaultPeriod;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Suspension;
 
@@ -11,9 +11,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -31,8 +30,10 @@ public class CalculationResult<I> {
     private final LocalDate effectiveEndDate;
     private final Suspension.SuspensionType suspensionType;
     private final BigDecimal fee;
+    private final BigDecimal balance;
     private final I domain;
     private final PostProcessor<I> postProcessor;
+
     
     /**
      * 후처리 작업을 실행한다
@@ -50,10 +51,21 @@ public class CalculationResult<I> {
      *
      * @return 일할 계산된 CalculationResult 목록
      */
-    public List<CalculationResult<I>> prorate(List<DefaultPeriod> periods) {
-        // 모든 날짜 지점들을 정렬하여 구간 경계 생성
-        Stream<LocalDate> effectiveStartDateStream = Stream.of(effectiveStartDate);
-        Stream<LocalDate> effectiveEndDateStream = Stream.of(effectiveEndDate);
+    public List<CalculationResult<?>> prorate(List<DefaultPeriod> periods) {
+        List<LocalDate> datePoints = getDatePoints(periods);
+
+        // 각 구간별로 ProratedPeriod 리스트를 생성
+        // 명시적 타입 힌트. 신기하군
+        return IntStream.range(0, datePoints.size() - 1)
+            .mapToObj(i -> DefaultPeriod.of(
+                datePoints.get(i),
+                datePoints.get(i + 1)
+            ))
+            .<CalculationResult<?>>map(this::createProratedResult)
+            .toList();
+    }
+
+    private List<LocalDate> getDatePoints(List<DefaultPeriod> periods) {
         // periods 중 구간을 분리할 후보군을 선정한다.
         Stream<LocalDate> startDatesStream = periods.stream()
             .filter(this::overlapsWith)
@@ -63,23 +75,9 @@ public class CalculationResult<I> {
             .filter(this::overlapsWith)
             .map(DefaultPeriod::getEndDate);
 
-        List<LocalDate> datePoints = Stream.of(
-                effectiveStartDateStream,
-                effectiveEndDateStream,
-                startDatesStream,
-                endDatesStream
-            )
-            .flatMap(datePoint -> datePoint)
+        return Stream.of(Stream.of(effectiveStartDate), Stream.of(effectiveEndDate), startDatesStream, endDatesStream)
+            .flatMap(Function.identity())
             .sorted()
-            .toList();
-
-        // 각 구간별로 ProratedPeriod 리스트를 생성
-        return IntStream.range(0, datePoints.size() - 1)
-            .mapToObj(i -> DefaultPeriod.of(
-                datePoints.get(i),
-                datePoints.get(i + 1)
-            ))
-            .map(this::createProratedResult)
             .toList();
     }
 
@@ -91,7 +89,7 @@ public class CalculationResult<I> {
     /**
      * 주어진 기간에 대한 일할 계산된 CalculationResult를 생성
      */
-    private CalculationResult<I> createProratedResult(DefaultPeriod period) {
+    private CalculationResult<?> createProratedResult(DefaultPeriod period) {
         // 원래 기간의 일수 계산
         long originalDays = ChronoUnit.DAYS.between(effectiveStartDate, effectiveEndDate) + 1;
         // 새로운 구간의 일수 계산  
@@ -118,6 +116,25 @@ public class CalculationResult<I> {
             period.getEndDate(),        // 새로운 유효 종료일
             suspensionType,
             proratedFee,      // 일할 계산된 금액
+            proratedFee,      // 일할 계산된 금액
+            domain,           // 기존 도메인 객체 유지
+            postProcessor     // 기존 PostProcessor 유지
+        );
+    }
+
+    public CalculationResult<?> debitBalance(BigDecimal balanceToDebit) {
+        return new CalculationResult<>(
+            contractId,
+            billingStartDate,
+            billingEndDate,
+            productOfferingId,
+            chargeItemId,
+            revenueItemId,
+            effectiveStartDate,
+            effectiveEndDate,
+            suspensionType,
+            fee,
+            fee.subtract(balanceToDebit),
             domain,           // 기존 도메인 객체 유지
             postProcessor     // 기존 PostProcessor 유지
         );

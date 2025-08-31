@@ -8,6 +8,7 @@ import me.realimpact.telecom.calculation.application.discount.DiscountCalculator
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
+import me.realimpact.telecom.calculation.domain.discount.ContractDiscounts;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -138,12 +139,16 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
         List<CalculationTarget> calculationTargets = new ArrayList<>();
         // 모든 조회 대상을 calculationTarget으로 모은다.
         for (Long contractId : contractIds) {
+            var discounts = Optional.ofNullable(contractDiscountsMap.get(contractId))
+                .map(ContractDiscounts::discounts)
+                .orElse(Collections.emptyList());
+
             CalculationTarget calculationTarget = new CalculationTarget(
-                    contractId,
-                    contractWithProductsAndSuspensionsMap.getOrDefault(contractId, Collections.emptyList()),
-                    installationHistoriesMap.getOrDefault(contractId, Collections.emptyList()),
-                    deviceInstallmentMastersMap.getOrDefault(contractId, Collections.emptyList()),
-                    contractDiscountsMap.getOrDefault(contractId, Collections.emptyList())
+                contractId,
+                contractWithProductsAndSuspensionsMap.getOrDefault(contractId, Collections.emptyList()),
+                installationHistoriesMap.getOrDefault(contractId, Collections.emptyList()),
+                deviceInstallmentMastersMap.getOrDefault(contractId, Collections.emptyList()),
+                discounts
             );
             calculationTargets.add(calculationTarget);
         }

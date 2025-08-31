@@ -3,15 +3,22 @@
 
 <mapper namespace="me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractDiscountMapper">
 
+    <!-- 개별 할인 정보 ResultMap -->
+    <resultMap id="discountResult" type="DiscountDto">
+        <id property="discountId" column="discount_id"/>
+        <result property="discountStartDate" column="discount_start_date"/>
+        <result property="discountEndDate" column="discount_end_date"/>
+        <result property="productOfferingId" column="product_offering_id"/>
+        <result property="discountApplyUnit" column="discount_aply_unit"/>
+        <result property="discountAmount" column="discount_amt"/>
+        <result property="discountRate" column="discount_rate"/>
+        <result property="discountAppliedAmount" column="discount_applied_amount"/>
+    </resultMap>
+    
+    <!-- 계약 할인 중첩 구조 ResultMap -->
     <resultMap id="contractDiscountResult" type="ContractDiscountDto">
         <id property="contractId" column="contract_id"/>
-        <id property="discountId" column="discount_id"/>
-        <id property="discountStartDate" column="discount_start_date"/>
-        <id property="discountEndDate" column="discount_end_date"/>
-        <result property="productOfferingId" column="product_offering_id"/>
-        <result property="discountAplyUnit" column="discount_aply_unit"/>
-        <result property="discountAmt" column="discount_amt"/>
-        <result property="discountRate" column="discount_rate"/>
+        <collection property="discounts" ofType="DiscountDto" resultMap="discountResult"/>
     </resultMap>
 
     <!-- 계약 ID 목록으로 할인 내역 조회 -->

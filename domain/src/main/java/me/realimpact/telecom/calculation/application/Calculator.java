@@ -29,13 +29,12 @@ public interface Calculator<I> {
      * @param input 입력 데이터
      * @return 계산 결과
      */
-    List<CalculationResult> process(CalculationContext ctx, I input);
+    List<CalculationResult<I>> process(CalculationContext ctx, I input);
 
-    default List<CalculationResult> execute(CalculationContext ctx, List<Long> contractIds) {
-        List<CalculationResult> calculationResults = read(ctx, contractIds).values().stream()
+    default List<CalculationResult<I>> execute(CalculationContext ctx, List<Long> contractIds) {
+        return read(ctx, contractIds).values().stream()
                 .flatMap(Collection::stream)
                 .flatMap(item -> process(ctx, item).stream())
                 .toList();
-        return calculationResults;
     }
 }

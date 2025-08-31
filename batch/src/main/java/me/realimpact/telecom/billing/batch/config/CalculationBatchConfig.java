@@ -11,6 +11,7 @@ import me.realimpact.telecom.billing.batch.tasklet.CalculationResultCleanupTaskl
 import me.realimpact.telecom.billing.batch.writer.CalculationWriter;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.BillingCalculationType;
+import me.realimpact.telecom.calculation.application.discount.CalculationResultProrater;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
@@ -59,6 +60,7 @@ public class CalculationBatchConfig {
     private final BaseFeeCalculator baseFeeCalculator;
     private final DeviceInstallmentCalculator deviceInstallmentCalculator;
     private final InstallationFeeCalculator installationFeeCalculator;
+    private final CalculationResultProrater calculationResultProrater;
 
     private final VatCalculator vatCalculator;
     private final DiscountCalculator discountCalculator;
@@ -160,6 +162,7 @@ public class CalculationBatchConfig {
                 baseFeeCalculator,
                 installationFeeCalculator,
                 deviceInstallmentCalculator,
+                calculationResultProrater,
                 discountCalculator,
                 vatCalculator,
                 calculationParameters

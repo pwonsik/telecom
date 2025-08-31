@@ -1,5 +1,6 @@
 package me.realimpact.telecom.calculation.domain;
 
+import me.realimpact.telecom.calculation.domain.monthlyfee.DefaultPeriod;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -29,6 +30,7 @@ class CalculationResultProrateTest {
             effectiveEnd,
             null,
             originalFee,
+            originalFee,
             null,
             null
         );
@@ -37,12 +39,12 @@ class CalculationResultProrateTest {
         LocalDate newEnd = LocalDate.of(2024, 3, 25);
         
         // when
-        List<CalculationResult> proratedResults = original.prorate(newStart, newEnd);
+        var proratedResults = original.prorate(List.of(DefaultPeriod.of(newStart, newEnd)));
         
         // then
         assertThat(proratedResults).hasSize(1);
         
-        CalculationResult proratedResult = proratedResults.get(0);
+        CalculationResult<?> proratedResult = proratedResults.get(0);
         assertThat(proratedResult.getEffectiveStartDate()).isEqualTo(newStart);
         assertThat(proratedResult.getEffectiveEndDate()).isEqualTo(newEnd);
         
@@ -70,14 +72,14 @@ class CalculationResultProrateTest {
             LocalDate.of(2024, 3, 20),
             null,
             BigDecimal.valueOf(11000), // 11일 * 1000원
+            BigDecimal.valueOf(11000), // 11일 * 1000원
             null,
             null
         );
         
         // when: 3/15 ~ 3/25로 prorate (겹치는 구간: 3/15 ~ 3/20)
-        List<CalculationResult> results = original.prorate(
-            LocalDate.of(2024, 3, 15), 
-            LocalDate.of(2024, 3, 25)
+        var results = original.prorate(
+            List.of(DefaultPeriod.of(LocalDate.of(2024, 3, 15), LocalDate.of(2024, 3, 25)))
         );
         
         // then
@@ -104,14 +106,14 @@ class CalculationResultProrateTest {
             LocalDate.of(2024, 3, 10),
             null,
             BigDecimal.valueOf(10000),
+            BigDecimal.valueOf(11000), // 11일 * 1000원
             null,
             null
         );
         
         // when: 겹치지 않는 기간
-        List<CalculationResult> results = original.prorate(
-            LocalDate.of(2024, 3, 15), 
-            LocalDate.of(2024, 3, 25)
+        var results = original.prorate(
+            List.of(DefaultPeriod.of(LocalDate.of(2024, 3, 15), LocalDate.of(2024, 3, 25)))
         );
         
         // then
@@ -132,18 +134,18 @@ class CalculationResultProrateTest {
             LocalDate.of(2024, 3, 31),
             null,
             BigDecimal.valueOf(31000),
+            BigDecimal.valueOf(31000), // 11일 * 1000원
             null,
             null
         );
         
         // when & then: null 입력
-        assertThat(original.prorate(null, LocalDate.of(2024, 3, 31))).isEmpty();
-        assertThat(original.prorate(LocalDate.of(2024, 3, 1), null)).isEmpty();
+        assertThat(original.prorate(null)).isEmpty();
+        assertThat(original.prorate(List.of())).isEmpty();
         
         // when & then: 잘못된 날짜 순서
         assertThat(original.prorate(
-            LocalDate.of(2024, 3, 31), 
-            LocalDate.of(2024, 3, 1)
+            List.of(DefaultPeriod.of(LocalDate.of(2024, 3, 31), LocalDate.of(2024, 3, 1)))
         )).isEmpty();
     }
 }

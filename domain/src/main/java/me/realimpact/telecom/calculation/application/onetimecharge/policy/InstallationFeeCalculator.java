@@ -37,21 +37,22 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
     }
 
     @Override
-    public List<CalculationResult> process(CalculationContext ctx, InstallationHistory input) {
+    public List<CalculationResult<InstallationHistory>> process(CalculationContext ctx, InstallationHistory input) {
         return List.of(
                 new CalculationResult<>(
-                        input.contractId(),
-                        ctx.billingStartDate(),
-                        ctx.billingEndDate(),
-                        "INST",
-                        "INST",
-                        "INST",
-                        ctx.billingStartDate(),
-                        ctx.billingEndDate(),
-                        null,
-                        BigDecimal.valueOf(input.fee()),
-                        input,
-                        this::post
+                    input.contractId(),
+                    ctx.billingStartDate(),
+                    ctx.billingEndDate(),
+                    "INST",
+                    "INST",
+                    "INST",
+                    ctx.billingStartDate(),
+                    ctx.billingEndDate(),
+                    null,
+                    BigDecimal.valueOf(input.fee()),
+                    BigDecimal.valueOf(input.fee()),
+                    input,
+                    this::post
                 )
         );
     }

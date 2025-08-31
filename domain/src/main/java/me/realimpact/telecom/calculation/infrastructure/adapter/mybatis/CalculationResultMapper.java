@@ -20,7 +20,7 @@ public interface CalculationResultMapper {
      * @return 삽입된 행 수
      */
     int batchInsertCalculationResults(
-        @Param("items") List<CalculationResult> items
+        @Param("items") List<CalculationResult<?>> items
     );
 
     /**

@@ -6,5 +6,5 @@ import me.realimpact.telecom.calculation.domain.CalculationResult;
 import java.util.List;
 
 public interface CalculationResultSavePort {
-    void save(CalculationContext calculationContext, List<CalculationResult> results);
+    void save(CalculationContext calculationContext, List<CalculationResult<?>> results);
 }
