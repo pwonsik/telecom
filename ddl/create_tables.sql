@@ -1,116 +1,223 @@
--- 샘플 데이터 삽입 스크립트
--- 텔레콤 빌링 시스템 테스트용 데이터
+-- MySQL DDL 스크립트
+-- 텔레콤 빌링 시스템 테이블 생성
+
+DROP TABLE IF EXISTS revenue_master_data;
+CREATE TABLE revenue_master_data (
+    -- Primary Key (복합키)
+                                     revenue_item_id VARCHAR(50) NOT NULL COMMENT '수익 항목 ID',
+                                     effective_end_date DATE NOT NULL COMMENT '유효 종료일',
+
+    -- 일반 컬럼
+                                     effective_start_date DATE NOT NULL COMMENT '유효 시작일',
+                                     revenue_item_name VARCHAR(200) NOT NULL COMMENT '수익 항목명',
+                                     overdue_charge_revenue_item_id VARCHAR(50) COMMENT '연체료 수익 항목 ID',
+                                     vat_revenue_item_id VARCHAR(50) COMMENT 'VAT 수익 항목 ID',
+
+    -- 메타데이터
+                                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성 시각',
+                                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 시각',
+
+    -- Primary Key 정의
+                                     PRIMARY KEY (revenue_item_id, effective_end_date)
+
+) COMMENT = '수익 항목 마스터 데이터 (시계열 구조)';
+
+-- 5. charge_item 테이블
+DROP TABLE IF EXISTS charge_item;
+CREATE TABLE charge_item (
+                             product_offering_id VARCHAR(50) NOT NULL COMMENT '상품 오퍼링 ID',
+                             charge_item_id VARCHAR(50) NOT NULL COMMENT '과금 항목 ID',
+                             charge_item_name VARCHAR(200) NOT NULL COMMENT '과금 항목명',
+                             revenue_item_id VARCHAR(50) NOT NULL COMMENT '수익 항목 ID',
+                             suspension_charge_ratio DECIMAL(5,4) NOT NULL DEFAULT 0.0000 COMMENT '정지시 과금 비율',
+                             calculation_method_code VARCHAR(20) NOT NULL COMMENT '계산 방법 코드',
+                             calculation_method_name VARCHAR(100) NOT NULL COMMENT '계산 방법명',
+                             flat_rate_amount DECIMAL(15,2) COMMENT '정액 요금',
+                             pricing_type VARCHAR(20) NOT NULL COMMENT '가격 정책 유형',
+                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
+                             PRIMARY KEY (product_offering_id, charge_item_id)
+) COMMENT = '과금 항목';
+
+DROP TABLE IF EXISTS product;
+CREATE TABLE product (
+                         contract_id BIGINT NOT NULL COMMENT '계약 ID',
+                         product_offering_id VARCHAR(50) NOT NULL COMMENT '상품 오퍼링 ID',
+                         effective_start_date_time DATETIME NOT NULL COMMENT '유효 시작일시',
+                         effective_end_date_time DATETIME NOT NULL COMMENT '유효 종료일시',
+                         subscribed_at DATE NOT NULL COMMENT '가입일',
+                         activated_at DATE COMMENT '활성화일',
+                         terminated_at DATE COMMENT '종료일',
+                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
+                         PRIMARY KEY (contract_id, product_offering_id, effective_start_date_time, effective_end_date_time)
+) COMMENT = '상품 정보';
+
+-- 4. suspension 테이블
+DROP TABLE IF EXISTS suspension;
+CREATE TABLE suspension (
+                            contract_id BIGINT NOT NULL COMMENT '계약 ID',
+                            suspension_type_code VARCHAR(10) NOT NULL COMMENT '정지 유형 코드',
+                            effective_start_date_time DATETIME NOT NULL COMMENT '유효 시작일시',
+                            effective_end_date_time DATETIME NOT NULL COMMENT '유효 종료일시',
+                            suspension_type_description VARCHAR(100) NOT NULL COMMENT '정지 유형 설명',
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
+                            PRIMARY KEY (contract_id, suspension_type_code, effective_start_date_time, effective_end_date_time)
+) COMMENT = '정지 정보';
+
+-- 2. product_offering 테이블
+DROP TABLE IF EXISTS product_offering;
+CREATE TABLE product_offering (
+                                  product_offering_id VARCHAR(50) NOT NULL PRIMARY KEY COMMENT '상품 오퍼링 ID',
+                                  product_offering_name VARCHAR(200) NOT NULL COMMENT '상품 오퍼링 명',
+                                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+                                  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시'
+) COMMENT = '상품 오퍼링 정보';
+
+-- 단말할부 상세 테이블
+DROP TABLE IF EXISTS device_installment_detail;
+CREATE TABLE device_installment_detail (
+                                           contract_id BIGINT NOT NULL COMMENT '계약 ID',
+                                           installment_sequence BIGINT NOT NULL COMMENT '할부 일련번호',
+                                           installment_round INT NOT NULL COMMENT '할부 회차 (1부터 시작)',
+                                           installment_amount DECIMAL(10, 0) NOT NULL COMMENT '회차별 할부금',
+                                           billing_completed_date DATE NULL COMMENT '청구 완료일 (NULL이면 미청구)',
+                                           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+                                           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
+                                           PRIMARY KEY (contract_id, installment_sequence, installment_round)
+) COMMENT = '단말할부 상세';
 
 
+-- 단말할부 마스터 테이블
+DROP TABLE IF EXISTS device_installment_master;
+CREATE TABLE device_installment_master (
+                                           contract_id BIGINT NOT NULL COMMENT '계약 ID',
+                                           installment_sequence BIGINT NOT NULL COMMENT '할부 일련번호',
+                                           installment_start_date DATE NOT NULL COMMENT '할부 시작일',
+                                           total_installment_amount DECIMAL(10, 0) NOT NULL COMMENT '할부금 총액',
+                                           installment_months INT NOT NULL COMMENT '할부 개월수',
+                                           billed_count INT NOT NULL DEFAULT 0 COMMENT '할부 청구 횟수',
+                                           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+                                           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
+                                           PRIMARY KEY (contract_id, installment_sequence)
+) COMMENT = '단말할부 마스터';
 
--- 2. product_offering 테이블 샘플 데이터
-INSERT INTO product_offering (product_offering_id, product_offering_name) VALUES
-                                                                              ('PO001', '5G 프리미엄 요금제'),
-                                                                              ('PO002', 'LTE 표준 요금제'),
-                                                                              ('PO003', 'B2B 전용 요금제'),
-                                                                              ('PO004', 'IoT 특별 요금제');
 
--- 5. charge_item 테이블 샘플 데이터
-INSERT INTO charge_item (product_offering_id, charge_item_id, charge_item_name, revenue_item_id, suspension_charge_ratio, calculation_method_code, calculation_method_name, flat_rate_amount, pricing_type) VALUES
--- PO001 (5G 프리미엄) 과금 항목들
-('PO001', 'CI001', '5G 기본료', 'REV_MONTHLY_001', 0.5000, 'FLAT', '정액제', 89000.00, 'FLAT_RATE'),
-('PO001', 'CI002', '5G 데이터 요금', 'REV_MONTHLY_002', 0.0000, 'FLAT', '정액제', 0.00, 'FLAT_RATE'),
-('PO001', 'CI003', '5G 부가서비스료', 'REV_ADDON_001', 1.0000, 'FLAT', '정액제', 5000.00, 'FLAT_RATE'),
+-- 설치 이력 테이블
+DROP TABLE IF EXISTS installation_history;
+CREATE TABLE installation_history (
+                                      contract_id BIGINT NOT NULL COMMENT '계약 ID',
+                                      sequence_number BIGINT NOT NULL COMMENT '일련번호',
+                                      installation_date DATE NOT NULL COMMENT '설치일',
+                                      installation_fee DECIMAL(10, 0) NOT NULL COMMENT '설치비',
+                                      billed_flag CHAR(1) NOT NULL DEFAULT 'N' COMMENT '청구 여부 (Y/N)',
+                                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+                                      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
+                                      PRIMARY KEY (contract_id, sequence_number)
+) COMMENT = '설치 이력';
 
--- PO002 (LTE 표준) 과금 항목들
-('PO002', 'CI004', 'LTE 기본료', 'REV_MONTHLY_001', 0.5000, 'FLAT', '정액제', 55000.00, 'FLAT_RATE'),
-('PO002', 'CI005', 'LTE 데이터 요금', 'REV_MONTHLY_002', 0.0000, 'FLAT', '정액제', 0.00, 'FLAT_RATE'),
 
--- PO003 (B2B 전용) 과금 항목들
-('PO003', 'CI006', 'B2B 기본료', 'REV_MONTHLY_003', 0.3000, 'MATCHING', '매칭팩터', 100000.00, 'MATCHING_FACTOR'),
-('PO003', 'CI007', 'B2B 회선료', 'REV_MONTHLY_003', 0.5000, 'UNIT_PRICE', '단가곱셈', 5000.00, 'UNIT_PRICE_FACTOR'),
-('PO003', 'CI008', 'B2B 관리비', 'REV_MONTHLY_003', 1.0000, 'RANGE', '구간별', 20000.00, 'RANGE_FACTOR'),
+DROP TABLE IF EXISTS contract;
+CREATE TABLE contract (
+                          contract_id BIGINT NOT NULL PRIMARY KEY COMMENT '계약 ID',
+                          subscribed_at DATE NOT NULL COMMENT '가입일',
+                          initially_subscribed_at DATE NOT NULL COMMENT '최초 가입일',
+                          terminated_at DATE COMMENT '해지일',
+                          preffered_termination_date DATE COMMENT '선호 해지일',
+                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+                          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시'
+) COMMENT = '계약 정보';
 
--- PO004 (IoT 특별) 과금 항목들
-('PO004', 'CI009', 'IoT 기본료', 'REV_MONTHLY_004', 0.0000, 'TIER', '구간별', 1000.00, 'TIER_FACTOR'),
-('PO004', 'CI010', 'IoT 데이터 전송료', 'REV_MONTHLY_004', 0.0000, 'STEP', '단계별', 100.00, 'STEP_FACTOR');
+-- 계약 할인 가입 이력 테이블
+CREATE TABLE contract_discount (
+                                   contract_id BIGINT NOT NULL COMMENT '계약 ID',
+                                   discount_id VARCHAR(50) NOT NULL COMMENT '할인 ID',
+                                   discount_start_date DATE NOT NULL COMMENT '할인 시작일',
+                                   discount_end_date DATE NOT NULL COMMENT '할인 종료일',
+                                   product_offering_id VARCHAR(50) NOT NULL COMMENT '상품 오퍼링 ID',
+                                   discount_aply_unit VARCHAR(10) NOT NULL COMMENT '할인 적용 단위 (RATE:율, AMOUNT:금액)',
+                                   discount_amt BIGINT COMMENT '할인 금액',
+                                   discount_rate DECIMAL(5,4) COMMENT '할인 비율 (예: 0.1000 = 10%)',
+                                   discount_applied_amount DECIMAL(15,2) COMMENT '적용된 할인 금액',
 
--- Revenue Master Data 샘플 데이터
--- VAT 계산 테스트를 위한 기본 수익 항목과 VAT 수익 항목 매핑
+    -- 복합 기본키: 계약ID + 할인ID + 할인 기간
+                                   PRIMARY KEY (contract_id, discount_id, discount_start_date, discount_end_date)
 
--- 1. 월정액 관련 수익 항목
-INSERT INTO revenue_master_data (
-    revenue_item_id,
-    effective_start_date,
-    effective_end_date,
-    revenue_item_name,
-    overdue_charge_revenue_item_id,
-    vat_revenue_item_id
-) VALUES
-      ('REV_MONTHLY_001', '2024-01-01', '2999-12-31', '기본 월정액', 'REV_OVERDUE_001', 'REV_VAT_001'),
-      ('REV_MONTHLY_002', '2024-01-01', '2999-12-31', '프리미엄 월정액', 'REV_OVERDUE_001', 'REV_VAT_002'),
-      ('REV_MONTHLY_003', '2024-01-01', '2999-12-31', '데이터 월정액', 'REV_OVERDUE_001', 'REV_VAT_003'),
-      ('REV_MONTHLY_004', '2024-01-01', '2999-12-31', 'iot 월정액', 'REV_OVERDUE_001', 'REV_VAT_004');
 
--- 2. 일회성 요금 관련 수익 항목
-INSERT INTO revenue_master_data (
-    revenue_item_id,
-    effective_start_date,
-    effective_end_date,
-    revenue_item_name,
-    overdue_charge_revenue_item_id,
-    vat_revenue_item_id
-) VALUES
-      ('REV_INSTALL_001', '2024-01-01', '2999-12-31', '설치비', 'REV_OVERDUE_001', 'REV_VAT_INSTALL_001'),
-      ('REV_DEVICE_001', '2024-01-01', '2999-12-31', '단말 할부금', 'REV_OVERDUE_DEVICE_001', 'REV_VAT_DEVICE_001');
+) COMMENT='계약별 할인 가입 이력을 관리하는 테이블';
 
--- 3. 부가 서비스 관련 수익 항목
-INSERT INTO revenue_master_data (
-    revenue_item_id,
-    effective_start_date,
-    effective_end_date,
-    revenue_item_name,
-    overdue_charge_revenue_item_id,
-    vat_revenue_item_id
-) VALUES
-      ('REV_ADDON_001', '2024-01-01', '2999-12-31', '부가서비스 A', 'REV_OVERDUE_001', 'REV_VAT_ADDON_001'),
-      ('REV_ADDON_002', '2024-01-01', '2999-12-31', '부가서비스 B', 'REV_OVERDUE_002', 'REV_VAT_ADDON_002');
+-- 계약 ID 기준 조회 성능을 위한 인덱스
+CREATE INDEX idx_contract_discount_contract_id ON contract_discount(contract_id);
 
--- 4. VAT 전용 수익 항목 (VAT 계산 결과를 저장하는 항목들)
-INSERT INTO revenue_master_data (
-    revenue_item_id,
-    effective_start_date,
-    effective_end_date,
-    revenue_item_name,
-    overdue_charge_revenue_item_id,
-    vat_revenue_item_id
-) VALUES
--- VAT 항목들은 자기 자신에게 VAT를 적용하지 않음 (vat_revenue_item_id = NULL)
-('REV_VAT_001', '2024-01-01', '2999-12-31', '기본 월정액 VAT', 'REV_OVERDUE_001', NULL),
-('REV_VAT_002', '2024-01-01', '2999-12-31', '프리미엄 월정액 VAT', 'REV_OVERDUE_001', NULL),
-('REV_VAT_003', '2024-01-01', '2999-12-31', '데이터 월정액 VAT', 'REV_OVERDUE_001', NULL),
-('REV_VAT_004', '2024-01-01', '2999-12-31', 'IOT 기본료 VAT', 'REV_OVERDUE_001', NULL),
-('REV_VAT_INSTALL_001', '2024-01-01', '2999-12-31', '설치비 VAT', 'REV_OVERDUE_001', NULL),
-('REV_VAT_DEVICE_001', '2024-01-01', '2999-12-31', '단말 할부금 VAT', 'REV_OVERDUE_DEVICE_001', NULL),
-('REV_VAT_ADDON_001', '2024-01-01', '2999-12-31', '부가서비스 A VAT', 'REV_OVERDUE_001', NULL),
-('REV_VAT_ADDON_002', '2024-01-01', '2999-12-31', '부가서비스 B VAT', 'REV_OVERDUE_001', NULL);
+-- 할인 기간과 청구 기간 겹침 조회를 위한 인덱스
+CREATE INDEX idx_contract_discount_date_range ON contract_discount(discount_start_date, discount_end_date);
 
--- 5. 연체료 관련 수익 항목 (참고용)
-INSERT INTO revenue_master_data (
-    revenue_item_id,
-    effective_start_date,
-    effective_end_date,
-    revenue_item_name,
-    overdue_charge_revenue_item_id,
-    vat_revenue_item_id
-) VALUES
-      ('REV_OVERDUE_001', '2024-01-01', '2999-12-31', '기본 월정액 연체료', NULL, null),
-      ('REV_OVERDUE_DEVICE_001', '2024-01-01', '2999-12-31', '단말 할부금 연체료', NULL, null);
 
--- 7. VAT 면세 대상 수익 항목 (VAT 적용 안 됨)
-INSERT INTO revenue_master_data (
-    revenue_item_id,
-    effective_start_date,
-    effective_end_date,
-    revenue_item_name,
-    overdue_charge_revenue_item_id,
-    vat_revenue_item_id
-) VALUES
-      ('REV_EXEMPT_001', '2024-01-01', '2999-12-31', '면세 서비스 A', 'REV_OVERDUE_EXEMPT_001', NULL),
-      ('REV_EXEMPT_002', '2024-01-01', '2999-12-31', '면세 서비스 B', 'REV_OVERDUE_EXEMPT_002', NULL);
+-- CalculationResult 테이블 생성 스크립트
+-- MonthlyFeeCalculationResult의 각 MonthlyFeeCalculationResultItem을 평면화해서 저장
+-- 단일 테이블로 batch insert 최적화
+
+DROP TABLE IF EXISTS calculation_result;
+
+CREATE TABLE calculation_result (
+    -- Primary Key
+                                    calculation_result_id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT '계산 결과 ID',
+
+    -- Contract 정보 (중복 저장됨)
+                                    contract_id BIGINT NOT NULL COMMENT '계약 ID',
+
+    -- 청구 기간 정보 (중복 저장됨)
+                                    billing_start_date DATE NOT NULL COMMENT '청구 시작일',
+                                    billing_end_date DATE NOT NULL COMMENT '청구 종료일',
+
+    -- MonthlyFeeCalculationResultItem 정보
+                                    product_offering_id VARCHAR(50) NOT NULL COMMENT '상품 오퍼링 ID',
+                                    charge_item_id VARCHAR(50) NOT NULL COMMENT '과금 항목 ID',
+                                    revenue_item_id VARCHAR(50) NOT NULL COMMENT '수익 항목 ID',
+                                    effective_start_date DATE NOT NULL COMMENT '유효 시작일',
+                                    effective_end_date DATE NOT NULL COMMENT '유효 종료일',
+                                    suspension_type VARCHAR(30) COMMENT '정지 유형 (TEMPORARY_SUSPENSION, PARTIAL_SUSPENSION 등)',
+                                    fee DECIMAL(15,2) NOT NULL COMMENT '계산된 요금',
+
+    -- 메타데이터
+                                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성 시각',
+
+    -- 인덱스 (대용량 조회 성능 향상)
+                                    INDEX idx_contract (contract_id)
+) COMMENT = '월정액 요금 계산 결과 (평면화 구조)';
+
+-- 파티셔닝을 위한 준비 (추후 대용량 데이터 처리시 월별 파티셔닝 가능)
+-- ALTER TABLE calculation_result
+-- PARTITION BY RANGE (YEAR(billing_start_date) * 100 + MONTH(billing_start_date)) (
+--     PARTITION p202401 VALUES LESS THAN (202402),
+--     PARTITION p202402 VALUES LESS THAN (202403),
+--     -- 추가 파티션들...
+-- );
+
+-- RevenueMasterData 테이블 생성 스크립트
+-- 수익 항목 마스터 데이터를 저장하는 테이블
+-- 시계열 데이터로 동일한 revenue_item_id가 여러 기간에 걸쳐 다른 설정을 가질 수 있음
+
+DROP TABLE IF EXISTS revenue_master_data;
+CREATE TABLE revenue_master_data (
+    -- Primary Key (복합키)
+                                     revenue_item_id VARCHAR(50) NOT NULL COMMENT '수익 항목 ID',
+                                     effective_end_date DATE NOT NULL COMMENT '유효 종료일',
+
+    -- 일반 컬럼
+                                     effective_start_date DATE NOT NULL COMMENT '유효 시작일',
+                                     revenue_item_name VARCHAR(200) NOT NULL COMMENT '수익 항목명',
+                                     overdue_charge_revenue_item_id VARCHAR(50) COMMENT '연체료 수익 항목 ID',
+                                     vat_revenue_item_id VARCHAR(50) COMMENT 'VAT 수익 항목 ID',
+
+    -- 메타데이터
+                                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성 시각',
+                                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 시각',
+
+    -- Primary Key 정의
+                                     PRIMARY KEY (revenue_item_id, effective_end_date)
+
+) COMMENT = '수익 항목 마스터 데이터 (시계열 구조)';
+
 

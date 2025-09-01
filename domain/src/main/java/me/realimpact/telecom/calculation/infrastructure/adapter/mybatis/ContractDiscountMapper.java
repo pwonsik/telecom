@@ -1,5 +1,6 @@
 package me.realimpact.telecom.calculation.infrastructure.adapter.mybatis;
 
+import me.realimpact.telecom.calculation.domain.discount.Discount;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractDiscountDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -26,4 +27,6 @@ public interface ContractDiscountMapper {
         @Param("billingStartDate") LocalDate billingStartDate,
         @Param("billingEndDate") LocalDate billingEndDate
     );
+
+    void applyDiscount(Discount discount);
 }

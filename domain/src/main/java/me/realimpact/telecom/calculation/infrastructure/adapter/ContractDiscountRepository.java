@@ -2,6 +2,7 @@ package me.realimpact.telecom.calculation.infrastructure.adapter;
 
 import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.domain.discount.ContractDiscounts;
+import me.realimpact.telecom.calculation.domain.discount.Discount;
 import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractDiscountMapper;
 import me.realimpact.telecom.calculation.infrastructure.converter.ContractDiscountDtoConverter;
 import me.realimpact.telecom.calculation.infrastructure.dto.ContractDiscountDto;
@@ -28,7 +29,7 @@ public class ContractDiscountRepository implements ContractDiscountQueryPort, Co
     }
 
     @Override
-    public void updateDiscountStatus(ContractDiscounts contractDiscounts) {
-
+    public void applyDiscount(Discount discount) {
+        contractDiscountMapper.applyDiscount(discount);
     }
 }

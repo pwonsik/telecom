@@ -19,6 +19,7 @@ public class ContractDiscountDtoConverter {
      */
     public Discount convertToDiscount(DiscountDto dto) {
         return new Discount(
+            dto.getContractId(),
             dto.getDiscountId(),
             dto.getDiscountStartDate(),
             dto.getDiscountEndDate(),

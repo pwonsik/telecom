@@ -15,6 +15,7 @@ import java.util.Objects;
 /**
  * 개별 할인 정보
  * 
+ * @param contractId 계약 ID
  * @param discountId 할인 ID
  * @param discountStartDate 할인 시작일
  * @param discountEndDate 할인 종료일
@@ -31,6 +32,7 @@ public class Discount {
     public static final String APPLY_UNIT_RATE = "RATE";
     public static final String APPLY_UNIT_AMOUNT = "AMOUNT";
     
+    private final Long contractId;
     private final String discountId;
     private final LocalDate discountStartDate;
     private final LocalDate discountEndDate;

@@ -15,6 +15,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 public class DiscountDto {
+    private Long contractId;
     private String discountId;
     private LocalDate discountStartDate;
     private LocalDate discountEndDate;

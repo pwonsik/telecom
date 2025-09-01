@@ -79,9 +79,9 @@ public class DiscountCalculator {
     /**
      * 할인 처리 완료 후 상태 업데이트
      */
-    public void post(CalculationContext ctx, ContractDiscounts input) {
+    public void post(CalculationContext ctx, Discount input) {
         if (ctx.billingCalculationType().isPostable()) {
-            contractDiscountCommandPort.updateDiscountStatus(input);
+            contractDiscountCommandPort.applyDiscount(input);
         }
     }
 }
