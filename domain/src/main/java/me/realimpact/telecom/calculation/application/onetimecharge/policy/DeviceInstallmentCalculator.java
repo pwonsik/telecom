@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.application.Calculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
-import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation.InstallationHistory;
+import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeCalculator;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentMaster;
 import me.realimpact.telecom.calculation.port.out.DeviceInstallmentCommandPort;
 import me.realimpact.telecom.calculation.port.out.DeviceInstallmentQueryPort;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @Service
 @Order(21)
 @RequiredArgsConstructor
-public class DeviceInstallmentCalculator implements Calculator<DeviceInstallmentMaster> {
+public class DeviceInstallmentCalculator implements Calculator<DeviceInstallmentMaster>, OneTimeChargeCalculator<DeviceInstallmentMaster> {
     private final DeviceInstallmentQueryPort deviceInstallmentQueryPort;
     private final DeviceInstallmentCommandPort deviceInstallmentCommandPort;
 
@@ -62,5 +62,19 @@ public class DeviceInstallmentCalculator implements Calculator<DeviceInstallment
         if (ctx.billingCalculationType().isPostable()) {
             deviceInstallmentCommandPort.updateChargeStatus(input);
         }
+    }
+    
+    // OneTimeChargeCalculator 인터페이스 구현
+    @Override
+    public Class<DeviceInstallmentMaster> getInputType() {
+        return DeviceInstallmentMaster.class;
+    }
+    
+    @Override
+    public List<CalculationResult<?>> calculate(CalculationContext context, List<DeviceInstallmentMaster> inputs) {
+        return inputs.stream()
+            .flatMap(master -> process(context, master).stream())
+            .map(result -> (CalculationResult<?>) result)
+            .toList();
     }
 }

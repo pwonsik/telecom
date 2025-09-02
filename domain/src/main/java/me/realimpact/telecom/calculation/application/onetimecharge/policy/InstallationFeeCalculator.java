@@ -4,10 +4,8 @@ import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.application.Calculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
+import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeCalculator;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation.InstallationHistory;
-import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentMaster;
-import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper;
-import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import me.realimpact.telecom.calculation.port.out.InstallationHistoryCommandPort;
 import me.realimpact.telecom.calculation.port.out.InstallationHistoryQueryPort;
 import org.springframework.core.annotation.Order;
@@ -25,7 +23,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Service
 @Order(23)
-public class InstallationFeeCalculator implements Calculator<InstallationHistory> {
+public class InstallationFeeCalculator implements Calculator<InstallationHistory>, OneTimeChargeCalculator<InstallationHistory> {
     private final InstallationHistoryQueryPort installationHistoryQueryPort;
     private final InstallationHistoryCommandPort installationHistoryCommandPort;
 
@@ -61,5 +59,19 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
         if (ctx.billingCalculationType().isPostable()) {
             installationHistoryCommandPort.updateChargeStatus(input);
         }
+    }
+    
+    // OneTimeChargeCalculator 인터페이스 구현
+    @Override
+    public Class<InstallationHistory> getInputType() {
+        return InstallationHistory.class;
+    }
+    
+    @Override
+    public List<CalculationResult<?>> calculate(CalculationContext context, List<InstallationHistory> inputs) {
+        return inputs.stream()
+            .flatMap(history -> process(context, history).stream())
+            .map(result -> (CalculationResult<?>) result)
+            .toList();
     }
 }

@@ -1,5 +1,7 @@
 package me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation;
 
+import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
+
 import java.time.LocalDate;
 
 /**
@@ -17,7 +19,7 @@ public record InstallationHistory(
     LocalDate installationDate,
     Long installationFee,
     String billedFlag
-) {
+) implements OneTimeChargeDomain {
     public Long fee() {
         return installationFee();
     }
