@@ -63,11 +63,13 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
             // 할인
             results.addAll(discountCalculator.process(ctx, results, calculationTarget.discounts()));
 
+            // 구간 합치기
+            results = new ArrayList<>(calculationResultProrater.consolidate(results));
+
             // VAT 계산 (기존 결과 기반)
             results.addAll(vatCalculator.calculateVat(ctx, results));
 
-            log.info("Processed {} calculation results for contractId: {}",
-                     results.size(), calculationTarget.contractId());
+            //log.info("Processed {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
 
             return new CalculationResultGroup(results);
         } catch (Exception e) {

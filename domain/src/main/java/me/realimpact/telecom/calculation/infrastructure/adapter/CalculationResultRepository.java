@@ -28,7 +28,7 @@ public class CalculationResultRepository implements CalculationResultSavePort {
             return;
         }
 
-        log.info("Starting batch save for {} calculation results", results.size());
+        //log.info("Starting batch save for {} calculation results", results.size());
 
         try {
             int insertedRows = calculationResultMapper.batchInsertCalculationResults(results);
