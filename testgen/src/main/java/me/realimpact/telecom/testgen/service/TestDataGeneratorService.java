@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.testgen.entity.*;
 import me.realimpact.telecom.testgen.mapper.TestDataMapper;
+import me.realimpact.telecom.testgen.ContractDiscountDataGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 public class TestDataGeneratorService {
 
     private final TestDataMapper testDataMapper;
+    private final ContractDiscountDataGenerator contractDiscountDataGenerator;
     private final Faker faker = new Faker();
     private final Random random = new Random();
     
@@ -146,6 +148,14 @@ public class TestDataGeneratorService {
         if (!allInstallationHistories.isEmpty()) {
             insertInstallationHistoriesBatch(allInstallationHistories);
             log.info("InstallationHistory {} 건 삽입 완료", allInstallationHistories.size());
+        }
+        
+        // Contract Discount 생성
+        try {
+            contractDiscountDataGenerator.generateContractDiscounts();
+        } catch (Exception e) {
+            log.error("Contract Discount 생성 중 오류 발생", e);
+            // 할인 데이터 생성 실패는 전체 프로세스를 중단하지 않음
         }
         
         log.info("테스트 데이터 생성 완료");
@@ -398,8 +408,8 @@ public class TestDataGeneratorService {
             // 할부 시작일: 계약일 이후 랜덤
             LocalDate installmentStartDate = contract.getSubscribedAt().plusDays(random.nextInt(90));
             
-            // 할부 개월수: 12, 24, 36개월 중 랜덤
-            Integer installmentMonths = List.of(12, 24, 36).get(random.nextInt(3));
+            // 할부 개월수: 1, 3, 6개월 중 랜덤 (성능 향상을 위해 단축)
+            Integer installmentMonths = List.of(1, 3, 6).get(random.nextInt(3));
             
             // 할부금 총액: 10만원~100만원, 1만원 단위
             BigDecimal totalAmount = BigDecimal.valueOf((random.nextInt(91) + 10) * 10000);

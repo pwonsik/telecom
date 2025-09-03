@@ -57,9 +57,10 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
                 processOneTimeChargeCalculator(oneTimeChargeCalculator, calculationTarget, ctx, results);
             }
 
-
             // 구간분리
-            results = calculationResultProrater.prorate(results, calculationTarget.discounts());
+            List<CalculationResult<?>> proratedResults = calculationResultProrater.prorate(results, calculationTarget.discounts());
+            log.info("prorate : {} -> {}", results.size(), proratedResults.size());
+            results = new ArrayList<>(proratedResults);
 
             // 할인
             results.addAll(discountCalculator.process(ctx, results, calculationTarget.discounts()));
@@ -99,7 +100,7 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
         return items.stream()
                 .flatMap(item -> processor.apply(context, item).stream())
                 .<CalculationResult<?>>map(result -> result)
-                .toList();
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }
 
 }

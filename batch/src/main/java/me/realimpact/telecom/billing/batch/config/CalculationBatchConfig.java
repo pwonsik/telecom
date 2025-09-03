@@ -77,7 +77,7 @@ public class CalculationBatchConfig {
     public CalculationParameters calculationParameters(
         @Value("#{jobParameters['billingStartDate']}") String billingStartDateStr,
         @Value("#{jobParameters['billingEndDate']}") String billingEndDateStr,
-        @Value("#{jobParameters['contractId']}") String contractIdsStr,
+        @Value("#{jobParameters['contractIds']}") String contractIdsStr,
         @Value("#{jobParameters['threadCount']}") String threadCountStr,
         @Value("#{jobParameters['billingCalculationType']}") String billingCalculationTypeStr,
         @Value("#{jobParameters['billingCalculationPeriod']}") String billingCalculationPeriodStr

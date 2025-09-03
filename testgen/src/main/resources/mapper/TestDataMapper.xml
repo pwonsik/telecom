@@ -188,4 +188,77 @@
         </if>
     </insert>
 
+    <!-- Contract Discount 관련 쿼리 -->
+    
+    <!-- 기존 Contract Discount 데이터 삭제 -->
+    <delete id="deleteAllContractDiscounts">
+        DELETE FROM contract_discount
+    </delete>
+    
+    <!-- Contract-Product 조합 조회 -->
+    <select id="selectContractProducts" 
+            resultType="me.realimpact.telecom.testgen.ContractDiscountDataGenerator$ContractProduct">
+        SELECT DISTINCT 
+            p.contract_id as contractId,
+            p.product_offering_id as productOfferingId
+        FROM product p
+        ORDER BY p.contract_id, p.product_offering_id
+    </select>
+    
+    <!-- Contract Discount 개별 삽입 (호환성) -->
+    <insert id="insertContractDiscount" 
+            parameterType="me.realimpact.telecom.testgen.ContractDiscountDataGenerator$ContractDiscountData">
+        INSERT INTO contract_discount (
+            contract_id,
+            discount_id,
+            discount_start_date,
+            discount_end_date,
+            product_offering_id,
+            discount_aply_unit,
+            discount_amt,
+            discount_rate,
+            discount_applied_amount
+        ) VALUES (
+            #{contractId},
+            #{discountId},
+            #{discountStartDate},
+            #{discountEndDate},
+            #{productOfferingId},
+            #{discountAplyUnit},
+            #{discountAmt},
+            #{discountRate},
+            #{discountAppliedAmount}
+        )
+    </insert>
+    
+    <!-- Contract Discount Bulk 삽입 -->
+    <insert id="insertContractDiscounts" parameterType="java.util.List">
+        <if test="list != null and list.size() > 0">
+            INSERT INTO contract_discount (
+                contract_id,
+                discount_id,
+                discount_start_date,
+                discount_end_date,
+                product_offering_id,
+                discount_aply_unit,
+                discount_amt,
+                discount_rate,
+                discount_applied_amount
+            ) VALUES
+            <foreach collection="list" item="discount" separator=",">
+                (
+                    #{discount.contractId},
+                    #{discount.discountId},
+                    #{discount.discountStartDate},
+                    #{discount.discountEndDate},
+                    #{discount.productOfferingId},
+                    #{discount.discountAplyUnit},
+                    #{discount.discountAmt},
+                    #{discount.discountRate},
+                    #{discount.discountAppliedAmount}
+                )
+            </foreach>
+        </if>
+    </insert>
+
 </mapper>

@@ -57,7 +57,7 @@ public class DeviceInstallmentCalculator implements OneTimeChargeDataLoader<Devi
 
     public void post(CalculationContext ctx, DeviceInstallmentMaster input) {
         if (ctx.billingCalculationType().isPostable()) {
-            deviceInstallmentCommandPort.updateChargeStatus(input);
+            //deviceInstallmentCommandPort.updateChargeStatus(input);
         }
     }
     

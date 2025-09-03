@@ -54,8 +54,8 @@ public class DiscountCalculator {
                             befDcCalResult.getBillingStartDate(),
                             befDcCalResult.getBillingEndDate(),
                             befDcCalResult.getProductOfferingId(),
-                            befDcCalResult.getChargeItemId(),   // 임시
-                            befDcCalResult.getRevenueItemId(),  // 임시
+                            "DC",   // 임시
+                                "DC",  // 임시
                             befDcCalResult.getEffectiveStartDate(),
                             befDcCalResult.getEffectiveEndDate(),
                             befDcCalResult.getSuspensionType(),
@@ -64,6 +64,7 @@ public class DiscountCalculator {
                             discount,
                             this::post
                         );
+                        results.add(discountResult);
                     } else {
                         results.add(befDcCalResult);
                     }

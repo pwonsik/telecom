@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  * 명령행에서 배치 작업을 실행하기 위한 CommandLineRunner
  * 
  * 사용법:
- * java -jar batch.jar --billingStartDate=2024-03-01 --billingEndDate=2024-03-31 [--contractId=123] [--parallelDegree=4] [--threadCount=4]
+ * java -jar batch.jar --billingStartDate=2024-03-01 --billingEndDate=2024-03-31 [--contractIds=123,456,789] [--threadCount=4]
  */
 @Component
 @RequiredArgsConstructor
@@ -38,13 +38,13 @@ public class BatchCommandLineRunner implements CommandLineRunner {
         String billingCalculationType = getArgumentValue(args, "billingCalculationType");;
         String billingCalculationPeriod = getArgumentValue(args, "billingCalculationPeriod");;
 
-        log.info("파싱된 파라미터 - billingStartDate: {}, billingEndDate: {}, contractId: {}, parallelDegree: {}, threadCount: {}, billingCalculationType: {}, billingCalculationPeriod: {}",
+        log.info("파싱된 파라미터 - billingStartDate: {}, billingEndDate: {}, contractIds: {}, threadCount: {}, billingCalculationType: {}, billingCalculationPeriod: {}",
                 billingStartDate, billingEndDate, contractIds, threadCount, billingCalculationType, billingCalculationPeriod);
 
         // 필수 파라미터 검증
         if (billingStartDate == null || billingEndDate == null) {
             log.error("필수 파라미터가 누락되었습니다.");
-            log.info("사용법: java -jar batch.jar --billingStartDate=2024-03-01 --billingEndDate=2024-03-31 [--contractId=123] [--parallelDegree=4] [--threadCount=4]");
+            log.info("사용법: java -jar batch.jar --billingStartDate=2024-03-01 --billingEndDate=2024-03-31 [--contractIds=123,456,789] [--threadCount=4]");
             System.exit(1);
             return;
         }
@@ -52,7 +52,7 @@ public class BatchCommandLineRunner implements CommandLineRunner {
         log.info("=== 월정액 계산 배치 시작 ===");
         log.info("청구 시작일: {}", billingStartDate);
         log.info("청구 종료일: {}", billingEndDate);
-        log.info("계약 ID: {}", contractIds != null ? contractIds : "전체");
+        log.info("계약 IDs: {}", contractIds != null ? contractIds : "전체");
         log.info("쓰레드 수: {}", threadCount != null ? threadCount : "4 (기본값)");
 
         try {

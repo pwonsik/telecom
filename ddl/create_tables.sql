@@ -138,13 +138,10 @@ CREATE TABLE contract_discount (
                                    product_offering_id VARCHAR(50) NOT NULL COMMENT '상품 오퍼링 ID',
                                    discount_aply_unit VARCHAR(10) NOT NULL COMMENT '할인 적용 단위 (RATE:율, AMOUNT:금액)',
                                    discount_amt BIGINT COMMENT '할인 금액',
-                                   discount_rate DECIMAL(5,4) COMMENT '할인 비율 (예: 0.1000 = 10%)',
+                                   discount_rate DECIMAL(15,2) COMMENT '할인 비율 (예: 10 = 10%)',
                                    discount_applied_amount DECIMAL(15,2) COMMENT '적용된 할인 금액',
-
     -- 복합 기본키: 계약ID + 할인ID + 할인 기간
                                    PRIMARY KEY (contract_id, discount_id, discount_start_date, discount_end_date)
-
-
 ) COMMENT='계약별 할인 가입 이력을 관리하는 테이블';
 
 -- 계약 ID 기준 조회 성능을 위한 인덱스
@@ -179,6 +176,7 @@ CREATE TABLE calculation_result (
                                     effective_end_date DATE NOT NULL COMMENT '유효 종료일',
                                     suspension_type VARCHAR(30) COMMENT '정지 유형 (TEMPORARY_SUSPENSION, PARTIAL_SUSPENSION 등)',
                                     fee DECIMAL(15,2) NOT NULL COMMENT '계산된 요금',
+                                    balance DECIMAL(15,2) NOT NULL COMMENT '잔액',
 
     -- 메타데이터
                                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성 시각',
