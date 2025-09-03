@@ -2,6 +2,7 @@ package me.realimpact.telecom.billing.batch.reader;
 
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
+import me.realimpact.telecom.billing.batch.util.JsonLoggingHelper;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
@@ -35,6 +36,7 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
 
     private final SqlSessionFactory sqlSessionFactory;
     private final CalculationParameters calculationParameters;
+    private final JsonLoggingHelper jsonLoggingHelper;
 
     private static final int chunkSize = CHUNK_SIZE;
 
@@ -50,12 +52,14 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
             DiscountCalculator discountCalculator,
             List<OneTimeChargeDataLoader<? extends OneTimeChargeDomain>> oneTimeChargeDataLoaders,
             SqlSessionFactory sqlSessionFactory,
-            CalculationParameters calculationParameters) {
+            CalculationParameters calculationParameters,
+            JsonLoggingHelper jsonLoggingHelper) {
         
         this.baseFeeCalculator = baseFeeCalculator;
         this.discountCalculator = discountCalculator;
         this.sqlSessionFactory = sqlSessionFactory;
         this.calculationParameters = calculationParameters;
+        this.jsonLoggingHelper = jsonLoggingHelper;
         
         // DataLoader List를 Map으로 변환
         this.oneTimeChargeDataLoaderMap = oneTimeChargeDataLoaders.stream()
@@ -190,6 +194,10 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
         }
 
         log.info("생성된 calculationTargets 개수: {}", calculationTargets.size());
+
+        if (calculationTargets.size() > 0) {
+            jsonLoggingHelper.logJson("첫 번째 CalculationTarget 샘플", calculationTargets.get(0));
+        }
 
         return calculationTargets;
     }

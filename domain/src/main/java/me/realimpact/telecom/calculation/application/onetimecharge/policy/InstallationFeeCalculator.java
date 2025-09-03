@@ -53,7 +53,7 @@ public class InstallationFeeCalculator implements OneTimeChargeDataLoader<Instal
 
     private void post(CalculationContext ctx, InstallationHistory input) {
         if (ctx.billingCalculationType().isPostable()) {
-            installationHistoryCommandPort.updateChargeStatus(input);
+            //installationHistoryCommandPort.updateChargeStatus(input);
         }
     }
     
