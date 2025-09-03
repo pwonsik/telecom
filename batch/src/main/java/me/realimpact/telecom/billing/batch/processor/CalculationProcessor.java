@@ -9,11 +9,13 @@ import me.realimpact.telecom.billing.batch.reader.CalculationTarget;
 import me.realimpact.telecom.calculation.application.discount.CalculationResultProrater;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
+import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
 import me.realimpact.telecom.calculation.application.vat.VatCalculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
+import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
 
@@ -32,8 +34,7 @@ import java.util.function.BiFunction;
 public class CalculationProcessor implements ItemProcessor<CalculationTarget, CalculationResultGroup> {
 
     private final BaseFeeCalculator baseFeeCalculator;
-    private final InstallationFeeCalculator installationFeeCalculator;
-    private final DeviceInstallmentCalculator deviceInstallmentCalculator;
+    private final List<OneTimeChargeCalculator<? extends OneTimeChargeDomain>> oneTimeChargeCalculators;
     private final CalculationResultProrater calculationResultProrater;
     private final DiscountCalculator discountCalculator;
     private final VatCalculator vatCalculator;
@@ -51,29 +52,44 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
             // 월정액 계산
             results.addAll(process(calculationTarget.contractWithProductsAndSuspensions(), baseFeeCalculator::process, ctx));
 
-            // 설치비
-            results.addAll(process(calculationTarget.installationHistories(), installationFeeCalculator::process, ctx));
-
-            // 할부
-            results.addAll(process(calculationTarget.deviceInstallmentMasters(), deviceInstallmentCalculator::process, ctx));
+            // 일회성 과금 계산
+            for (var oneTimeChargeCalculator : oneTimeChargeCalculators) {
+                processOneTimeChargeCalculator(oneTimeChargeCalculator, calculationTarget, ctx, results);
+            }
 
             // 구간분리
-            results = calculationResultProrater.prorate(results, calculationTarget.discounts());
+            results = new ArrayList<>(calculationResultProrater.prorate(ctx, results, calculationTarget.discounts()));
 
             // 할인
             results.addAll(discountCalculator.process(ctx, results, calculationTarget.discounts()));
 
+            // 구간 합치기
+            results = new ArrayList<>(calculationResultProrater.consolidate(results));
+
             // VAT 계산 (기존 결과 기반)
             results.addAll(vatCalculator.calculateVat(ctx, results));
 
-            log.info("Processed {} calculation results for contractId: {}",
-                     results.size(), calculationTarget.contractId());
+            //log.info("Processed {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
 
             return new CalculationResultGroup(results);
         } catch (Exception e) {
             log.error("Failed to process contract calculation for contractId: {}", calculationTarget.contractId(), e);
             throw e;
         }
+    }
+
+    /**
+     * OneTimeChargeCalculator 타입 안전 처리
+     */
+    @SuppressWarnings("unchecked")
+    private <T extends OneTimeChargeDomain> void processOneTimeChargeCalculator(
+            OneTimeChargeCalculator<T> calculator,
+            CalculationTarget target,
+            CalculationContext ctx,
+            List<CalculationResult<?>> results) {
+        Class<T> inputType = calculator.getInputType();
+        List<T> inputData = target.getOneTimeChargeData(inputType);
+        results.addAll(process(inputData, calculator::process, ctx));
     }
 
     private <T> List<CalculationResult<?>> process(
@@ -84,7 +100,7 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
         return items.stream()
                 .flatMap(item -> processor.apply(context, item).stream())
                 .<CalculationResult<?>>map(result -> result)
-                .toList();
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }
 
 }

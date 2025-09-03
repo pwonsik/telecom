@@ -1,19 +1,20 @@
 package me.realimpact.telecom.calculation.application.onetimecharge.policy;
 
 import lombok.RequiredArgsConstructor;
-import me.realimpact.telecom.calculation.application.Calculator;
+import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeDataLoader;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
+import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeCalculator;
+import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation.InstallationHistory;
-import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentMaster;
-import me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.InstallationHistoryMapper;
-import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import me.realimpact.telecom.calculation.port.out.InstallationHistoryCommandPort;
 import me.realimpact.telecom.calculation.port.out.InstallationHistoryQueryPort;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,22 +26,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Service
 @Order(23)
-public class InstallationFeeCalculator implements Calculator<InstallationHistory> {
+public class InstallationFeeCalculator implements OneTimeChargeDataLoader<InstallationHistory>, OneTimeChargeCalculator<InstallationHistory> {
     private final InstallationHistoryQueryPort installationHistoryQueryPort;
     private final InstallationHistoryCommandPort installationHistoryCommandPort;
-
-    @Override
-    public Map<Long, List<InstallationHistory>> read(CalculationContext ctx, List<Long> contractIds) {
-        return installationHistoryQueryPort.findInstallations(
-            contractIds, ctx.billingStartDate(), ctx.billingEndDate()
-        ).stream().collect(Collectors.groupingBy(InstallationHistory::contractId));
-    }
 
     @Override
     public List<CalculationResult<InstallationHistory>> process(CalculationContext ctx, InstallationHistory input) {
         return List.of(
                 new CalculationResult<>(
-                    input.contractId(),
+                    input.getContractId(),
                     ctx.billingStartDate(),
                     ctx.billingEndDate(),
                     "INST",
@@ -49,8 +43,8 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
                     ctx.billingStartDate(),
                     ctx.billingEndDate(),
                     null,
-                    BigDecimal.valueOf(input.fee()),
-                    BigDecimal.valueOf(input.fee()),
+                    BigDecimal.valueOf(input.getFee()),
+                    BigDecimal.valueOf(input.getFee()),
                     input,
                     this::post
                 )
@@ -61,5 +55,28 @@ public class InstallationFeeCalculator implements Calculator<InstallationHistory
         if (ctx.billingCalculationType().isPostable()) {
             installationHistoryCommandPort.updateChargeStatus(input);
         }
+    }
+    
+    // OneTimeChargeCalculator 인터페이스 구현
+    @Override
+    public Class<InstallationHistory> getInputType() {
+        return InstallationHistory.class;
+    }
+
+    @Override
+    public Class<InstallationHistory> getDataType() {
+        return getInputType();
+    }
+
+    @Override
+    public Map<Long, List<OneTimeChargeDomain>> read(List<Long> contractIds, CalculationContext ctx) {
+        Map<Long, List<InstallationHistory>> specificData = installationHistoryQueryPort.findInstallations(
+                contractIds, ctx.billingStartDate(), ctx.billingEndDate()
+        ).stream().collect(Collectors.groupingBy(InstallationHistory::getContractId));
+        
+        Map<Long, List<OneTimeChargeDomain>> result = new HashMap<>();
+        specificData.forEach((contractId, histories) -> 
+            result.put(contractId, new ArrayList<>(histories)));
+        return result;
     }
 }

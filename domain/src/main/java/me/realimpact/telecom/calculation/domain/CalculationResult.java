@@ -1,9 +1,6 @@
 package me.realimpact.telecom.calculation.domain;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.With;
+import lombok.*;
 import me.realimpact.telecom.calculation.domain.monthlyfee.DefaultPeriod;
 import me.realimpact.telecom.calculation.domain.monthlyfee.Suspension;
 
@@ -18,7 +15,8 @@ import java.util.stream.Stream;
 
 @Getter
 @Setter
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
+@AllArgsConstructor
 public class CalculationResult<I> {
     private final Long contractId;
     private final LocalDate billingStartDate;
@@ -30,11 +28,10 @@ public class CalculationResult<I> {
     private final LocalDate effectiveEndDate;
     private final Suspension.SuspensionType suspensionType;
     private final BigDecimal fee;
-    private final BigDecimal balance;
+    private BigDecimal balance;
     private final I domain;
     private final PostProcessor<I> postProcessor;
 
-    
     /**
      * 후처리 작업을 실행한다
      * 
@@ -103,7 +100,7 @@ public class CalculationResult<I> {
         BigDecimal proratedFee = fee != null ? 
             fee.multiply(prorateRatio).setScale(2, RoundingMode.HALF_UP) : 
             BigDecimal.ZERO;
-        
+        BigDecimal proratedBalance = new BigDecimal(proratedFee.toString());
         // 새로운 CalculationResult 생성 (기존 속성 유지, 날짜와 금액만 변경)
         return new CalculationResult<>(
             contractId,
@@ -116,27 +113,13 @@ public class CalculationResult<I> {
             period.getEndDate(),        // 새로운 유효 종료일
             suspensionType,
             proratedFee,      // 일할 계산된 금액
-            proratedFee,      // 일할 계산된 금액
+                proratedBalance,      // 일할 계산된 금액
             domain,           // 기존 도메인 객체 유지
             postProcessor     // 기존 PostProcessor 유지
         );
     }
 
-    public CalculationResult<?> debitBalance(BigDecimal balanceToDebit) {
-        return new CalculationResult<>(
-            contractId,
-            billingStartDate,
-            billingEndDate,
-            productOfferingId,
-            chargeItemId,
-            revenueItemId,
-            effectiveStartDate,
-            effectiveEndDate,
-            suspensionType,
-            fee,
-            fee.subtract(balanceToDebit),
-            domain,           // 기존 도메인 객체 유지
-            postProcessor     // 기존 PostProcessor 유지
-        );
+    public void debitBalance(BigDecimal balanceToDebit) {
+        balance = balance.subtract(balanceToDebit);
     }
 }

@@ -27,8 +27,8 @@
         SELECT 
             cd.contract_id,
             cd.discount_id,
-            cd.discount_start_date,
-            cd.discount_end_date,
+            discount_start_date,
+            discount_end_date,
             cd.product_offering_id,
             cd.discount_aply_unit,
             cd.discount_amt,

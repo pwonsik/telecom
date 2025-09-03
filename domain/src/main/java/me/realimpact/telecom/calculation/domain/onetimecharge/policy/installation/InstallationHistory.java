@@ -1,5 +1,9 @@
 package me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
+
 import java.time.LocalDate;
 
 /**
@@ -11,14 +15,16 @@ import java.time.LocalDate;
  * @param installationFee 설치비
  * @param billedFlag 청구 여부 (Y/N)
  */
-public record InstallationHistory(
-    Long contractId,
-    Long sequenceNumber,
-    LocalDate installationDate,
-    Long installationFee,
-    String billedFlag
-) {
-    public Long fee() {
-        return installationFee();
+@Getter
+@RequiredArgsConstructor
+public class InstallationHistory implements OneTimeChargeDomain {
+    private final Long contractId;
+    private final Long sequenceNumber;
+    private final LocalDate installationDate;
+    private final Long installationFee;
+    private final String billedFlag;
+
+    public Long getFee() {
+        return installationFee;
     }
 }

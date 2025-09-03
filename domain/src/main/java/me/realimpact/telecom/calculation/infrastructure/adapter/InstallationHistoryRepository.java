@@ -30,14 +30,14 @@ public class InstallationHistoryRepository implements InstallationHistoryQueryPo
     @Override
     public void updateChargeStatus(InstallationHistory installationHistory) {
         int updatedRows = installationHistoryMapper.updateBilledFlag(
-            installationHistory.contractId(),
-            installationHistory.sequenceNumber()
+            installationHistory.getContractId(),
+            installationHistory.getSequenceNumber()
         );
         
         if (updatedRows == 0) {
             throw new IllegalStateException(
-                "설치내역을 찾을 수 없습니다. contractId: " + installationHistory.contractId() + 
-                ", sequenceNumber: " + installationHistory.sequenceNumber()
+                "설치내역을 찾을 수 없습니다. contractId: " + installationHistory.getContractId() +
+                ", sequenceNumber: " + installationHistory.getSequenceNumber()
             );
         }
     }

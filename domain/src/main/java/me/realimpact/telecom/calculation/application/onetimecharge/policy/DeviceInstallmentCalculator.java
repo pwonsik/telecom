@@ -2,9 +2,11 @@ package me.realimpact.telecom.calculation.application.onetimecharge.policy;
 
 import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.application.Calculator;
+import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeDataLoader;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
-import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installation.InstallationHistory;
+import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeCalculator;
+import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
 import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentMaster;
 import me.realimpact.telecom.calculation.port.out.DeviceInstallmentCommandPort;
 import me.realimpact.telecom.calculation.port.out.DeviceInstallmentQueryPort;
@@ -12,6 +14,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -23,16 +27,9 @@ import java.util.stream.Collectors;
 @Service
 @Order(21)
 @RequiredArgsConstructor
-public class DeviceInstallmentCalculator implements Calculator<DeviceInstallmentMaster> {
+public class DeviceInstallmentCalculator implements OneTimeChargeDataLoader<DeviceInstallmentMaster>, OneTimeChargeCalculator<DeviceInstallmentMaster> {
     private final DeviceInstallmentQueryPort deviceInstallmentQueryPort;
     private final DeviceInstallmentCommandPort deviceInstallmentCommandPort;
-
-    @Override
-    public Map<Long, List<DeviceInstallmentMaster>> read(CalculationContext ctx, List<Long> contractIds) {
-        return deviceInstallmentQueryPort.findDeviceInstallments(
-                contractIds, ctx.billingStartDate(), ctx.billingEndDate()
-        ).stream().collect(Collectors.groupingBy(DeviceInstallmentMaster::getContractId));
-    }
 
     @Override
     public List<CalculationResult<DeviceInstallmentMaster>> process(CalculationContext ctx, DeviceInstallmentMaster input) {
@@ -60,7 +57,30 @@ public class DeviceInstallmentCalculator implements Calculator<DeviceInstallment
 
     public void post(CalculationContext ctx, DeviceInstallmentMaster input) {
         if (ctx.billingCalculationType().isPostable()) {
-            deviceInstallmentCommandPort.updateChargeStatus(input);
+            //deviceInstallmentCommandPort.updateChargeStatus(input);
         }
+    }
+    
+    // OneTimeChargeCalculator 인터페이스 구현
+    @Override
+    public Class<DeviceInstallmentMaster> getInputType() {
+        return DeviceInstallmentMaster.class;
+    }
+
+    @Override
+    public Class<DeviceInstallmentMaster> getDataType() {
+        return getInputType();
+    }
+
+    @Override
+    public Map<Long, List<OneTimeChargeDomain>> read(List<Long> contractIds, CalculationContext ctx) {
+        Map<Long, List<DeviceInstallmentMaster>> specificData = deviceInstallmentQueryPort.findDeviceInstallments(
+                contractIds, ctx.billingStartDate(), ctx.billingEndDate()
+        ).stream().collect(Collectors.groupingBy(DeviceInstallmentMaster::getContractId));
+        
+        Map<Long, List<OneTimeChargeDomain>> result = new HashMap<>();
+        specificData.forEach((contractId, installments) -> 
+            result.put(contractId, new ArrayList<>(installments)));
+        return result;
     }
 }
