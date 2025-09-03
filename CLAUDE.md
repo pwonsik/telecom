@@ -520,6 +520,68 @@ Added VAT processing capabilities with revenue master data integration:
 - Integrates with Spring Batch processing via unified Calculator pattern
 - Maintains audit trail with balance tracking in CalculationResult
 
+### OneTimeCharge Spring Bean Auto-Injection Architecture (2025)
+Completed major refactoring to eliminate conditional logic and achieve complete extensibility using Spring DI patterns:
+
+**Core Architecture Components:**
+- `OneTimeChargeDomain`: Marker interface for all OneTimeCharge domain objects
+- `OneTimeChargeCalculator<T extends OneTimeChargeDomain>`: Unified calculator interface
+- `OneTimeChargeDataLoader<T extends OneTimeChargeDomain>`: Data loading abstraction
+- Map-based automatic dependency injection eliminating all type-based conditional statements
+
+**Key Infrastructure Changes:**
+```java
+// CalculationTarget evolved to Map structure
+public record CalculationTarget(
+    Long contractId,
+    List<ContractWithProductsAndSuspensions> contractWithProductsAndSuspensions,
+    Map<Class<? extends OneTimeChargeDomain>, List<? extends OneTimeChargeDomain>> oneTimeChargeData,
+    List<Discount> discounts
+) {}
+
+// Automatic Map-based processing in services
+private final Map<Class<? extends OneTimeChargeDomain>, OneTimeChargeCalculator<? extends OneTimeChargeDomain>> 
+        calculatorMap;
+private final Map<Class<? extends OneTimeChargeDomain>, OneTimeChargeDataLoader<? extends OneTimeChargeDomain>> 
+        dataLoaderMap;
+```
+
+**Implemented Components:**
+- `InstallationHistoryDataLoader`: Installation history data loading with `@Component` registration
+- `DeviceInstallmentDataLoader`: Device installment data loading with `@Component` registration
+- Enhanced existing calculators: `InstallationFeeCalculator`, `DeviceInstallmentCalculator` implementing dual interfaces
+- Updated domain objects: `InstallationHistory`, `DeviceInstallmentMaster` implementing `OneTimeChargeDomain`
+
+**Architectural Benefits:**
+1. **Complete Conditional Logic Elimination**: No more type-based if/else statements in ChunkedContractReader or CalculationCommandService
+2. **Zero-Code Extensibility**: Adding new OneTimeCharge types requires only creating 2-3 classes with `@Component` annotation
+3. **Automatic Spring DI Integration**: Maps are auto-populated from registered beans using Stream collectors
+4. **Type Safety**: Marker interfaces and generics ensure compile-time type verification
+5. **Backward Compatibility**: Existing tests and APIs remain functional with compatibility methods
+
+**Extension Pattern Example:**
+```java
+// New OneTimeCharge type - only these classes needed
+@Component
+public class MaintenanceFeeDataLoader implements OneTimeChargeDataLoader<MaintenanceFee> {
+    // Implementation automatically integrated into processing pipeline
+}
+
+@Component
+@Order(300)
+public class MaintenanceFeeCalculator implements OneTimeChargeCalculator<MaintenanceFee> {
+    // Automatically executed in sequence with other calculators
+}
+
+// Result: Zero modifications to existing ChunkedContractReader, CalculationCommandService, or CalculationTarget
+```
+
+**Performance and Maintainability Improvements:**
+- **Map O(1) Lookup**: Eliminates sequential if-else chains for type resolution
+- **Spring @Order Integration**: Uses standard Spring ordering instead of custom getOrder() methods
+- **Reduced Code Duplication**: Single processing logic handles all OneTimeCharge types
+- **Enhanced Testability**: Each calculator can be independently unit tested and conditionally enabled
+
 ### Development Guidelines Updates
 - **Jakarta EE Migration**: Use `jakarta.annotation.PostConstruct` instead of `javax.annotation.PostConstruct` for Spring Boot 3 compatibility
 - **Revenue Integration**: All charge items must include valid revenue item IDs
@@ -531,3 +593,7 @@ Added VAT processing capabilities with revenue master data integration:
 - **Functional Interfaces**: Leverage `PostProcessor` for embedded business logic in calculation results
 - **BigDecimal Precision**: Use appropriate scale and rounding modes for financial calculations
 - **Test Tolerance**: Use `isCloseTo()` with tolerance for BigDecimal assertions in tests
+- **OneTimeCharge Extensibility**: New charge types must implement `OneTimeChargeDomain` marker interface and provide both DataLoader and Calculator components
+- **Spring DI Best Practices**: Use `@Component` and `@Order` annotations instead of custom ordering methods; leverage automatic List injection and Map conversion
+- **Conditional Logic Elimination**: Avoid type-based conditional statements; use Map-based automatic type resolution patterns
+- **Marker Interface Design**: Use marker interfaces for type safety and compile-time verification in generic processing pipelines

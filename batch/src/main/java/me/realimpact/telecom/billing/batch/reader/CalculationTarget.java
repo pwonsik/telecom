@@ -13,7 +13,7 @@ import java.util.Map;
 public record CalculationTarget(
     Long contractId,
     List<ContractWithProductsAndSuspensions> contractWithProductsAndSuspensions,
-    Map<Class<? extends OneTimeChargeDomain>, List<? extends OneTimeChargeDomain>> oneTimeChargeData,
+    Map<Class<? extends OneTimeChargeDomain>, List<OneTimeChargeDomain>> oneTimeChargeData,
     List<Discount> discounts
 ) {
     
@@ -24,7 +24,8 @@ public record CalculationTarget(
      */
     @SuppressWarnings("unchecked")
     public <T extends OneTimeChargeDomain> List<T> getOneTimeChargeData(Class<T> type) {
-        return (List<T>) oneTimeChargeData.getOrDefault(type, Collections.emptyList());
+        List<OneTimeChargeDomain> data = oneTimeChargeData.getOrDefault(type, Collections.emptyList());
+        return (List<T>) data;
     }
     
     /**

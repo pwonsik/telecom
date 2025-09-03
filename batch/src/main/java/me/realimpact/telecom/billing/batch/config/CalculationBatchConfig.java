@@ -14,9 +14,12 @@ import me.realimpact.telecom.calculation.api.BillingCalculationType;
 import me.realimpact.telecom.calculation.application.discount.CalculationResultProrater;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
+import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeCalculator;
+import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeDataLoader;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
 import me.realimpact.telecom.calculation.application.vat.VatCalculator;
+import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
@@ -58,8 +61,10 @@ public class CalculationBatchConfig {
     private final PlatformTransactionManager transactionManager;
 
     private final BaseFeeCalculator baseFeeCalculator;
-    private final DeviceInstallmentCalculator deviceInstallmentCalculator;
-    private final InstallationFeeCalculator installationFeeCalculator;
+
+    private final List<OneTimeChargeDataLoader<? extends OneTimeChargeDomain>> oneTimeChargeLoaders;
+    private final List<OneTimeChargeCalculator<? extends OneTimeChargeDomain>> oneTimeChargeCalculators;
+
     private final CalculationResultProrater calculationResultProrater;
 
     private final VatCalculator vatCalculator;
@@ -136,9 +141,8 @@ public class CalculationBatchConfig {
     public ChunkedContractReader chunkedContractReader(CalculationParameters calculationParameters) {
         return new ChunkedContractReader(
                 baseFeeCalculator,
-                installationFeeCalculator,
-                deviceInstallmentCalculator,
                 discountCalculator,
+                oneTimeChargeLoaders,
                 sqlSessionFactory,
                 calculationParameters
         );
@@ -160,8 +164,7 @@ public class CalculationBatchConfig {
     public ItemProcessor<CalculationTarget, CalculationResultGroup> calculationProcessor(CalculationParameters calculationParameters) {
         return new CalculationProcessor(
                 baseFeeCalculator,
-                installationFeeCalculator,
-                deviceInstallmentCalculator,
+                oneTimeChargeCalculators,
                 calculationResultProrater,
                 discountCalculator,
                 vatCalculator,

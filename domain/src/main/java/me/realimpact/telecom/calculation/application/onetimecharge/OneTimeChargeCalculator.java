@@ -1,7 +1,8 @@
-package me.realimpact.telecom.calculation.domain.onetimecharge;
+package me.realimpact.telecom.calculation.application.onetimecharge;
 
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
+import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
 
 import java.util.List;
 
@@ -25,5 +26,5 @@ public interface OneTimeChargeCalculator<T extends OneTimeChargeDomain> {
      * @param inputs 입력 데이터 목록
      * @return 계산 결과 목록
      */
-    List<CalculationResult<?>> calculate(CalculationContext context, List<T> inputs);
+    List<CalculationResult<T>> process(CalculationContext context, T input);
 }

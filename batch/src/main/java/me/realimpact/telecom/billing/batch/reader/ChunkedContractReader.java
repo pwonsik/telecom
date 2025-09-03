@@ -1,6 +1,5 @@
 package me.realimpact.telecom.billing.batch.reader;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
@@ -8,7 +7,7 @@ import me.realimpact.telecom.calculation.application.discount.DiscountCalculator
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.discount.ContractDiscounts;
 import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
-import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDataLoader;
+import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeDataLoader;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -18,6 +17,7 @@ import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.support.ListItemReader;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
@@ -30,19 +30,25 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
     private final DiscountCalculator discountCalculator;
     
     // DataLoader Map - 조건문 제거
-    private final Map<Class<? extends OneTimeChargeDomain>, OneTimeChargeDataLoader<? extends OneTimeChargeDomain>> 
-            dataLoaderMap;
+    private final Map<Class<? extends OneTimeChargeDomain>, OneTimeChargeDataLoader<? extends OneTimeChargeDomain>>
+            oneTimeChargeDataLoaderMap;
 
     private final SqlSessionFactory sqlSessionFactory;
     private final CalculationParameters calculationParameters;
-    
+
+    private static final int chunkSize = CHUNK_SIZE;
+
+    private MyBatisCursorItemReader<Long> contractIdReader;
+    private ListItemReader<CalculationTarget> currentChunkReader;
+    private boolean initialized = false;
+
     /**
      * 생성자에서 DataLoader List를 Map으로 변환
      */
     public ChunkedContractReader(
             BaseFeeCalculator baseFeeCalculator,
             DiscountCalculator discountCalculator,
-            List<OneTimeChargeDataLoader<? extends OneTimeChargeDomain>> dataLoaders,
+            List<OneTimeChargeDataLoader<? extends OneTimeChargeDomain>> oneTimeChargeDataLoaders,
             SqlSessionFactory sqlSessionFactory,
             CalculationParameters calculationParameters) {
         
@@ -52,24 +58,19 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
         this.calculationParameters = calculationParameters;
         
         // DataLoader List를 Map으로 변환
-        this.dataLoaderMap = dataLoaders.stream()
+        this.oneTimeChargeDataLoaderMap = oneTimeChargeDataLoaders.stream()
             .collect(Collectors.toMap(
                 OneTimeChargeDataLoader::getDataType,
-                loader -> loader
+                Function.identity()
             ));
             
-        log.info("Registered {} OneTimeCharge DataLoaders: {}", 
-            dataLoaders.size(),
-            dataLoaders.stream()
+        log.info("Registered {} OneTimeCharge DataLoaders: {}",
+                oneTimeChargeDataLoaders.size(),
+                oneTimeChargeDataLoaders.stream()
                 .map(loader -> loader.getDataType().getSimpleName())
                 .collect(Collectors.joining(", ")));
     }
-    
-    private static final int chunkSize = CHUNK_SIZE;
-    
-    private MyBatisCursorItemReader<Long> contractIdReader;
-    private ListItemReader<CalculationTarget> currentChunkReader;
-    private boolean initialized = false;
+
     
     @Override
     public void open(ExecutionContext executionContext) throws ItemStreamException {
@@ -162,8 +163,8 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
         var contractWithProductsAndSuspensionsMap = baseFeeCalculator.read(ctx, contractIds);
         
         // OneTimeCharge 데이터를 Map으로 로딩 - 조건문 없음
-        Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>> 
-                oneTimeChargeDataByType = loadOneTimeChargeDataByType(contractIds, ctx);
+        //Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>>
+        var oneTimeChargeDataByType = loadOneTimeChargeDataByType(contractIds, ctx);
         
         // 할인 (기존 방식 유지)
         var contractDiscountsMap = discountCalculator.read(ctx, contractIds);
@@ -173,8 +174,7 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
         // 모든 조회 대상을 calculationTarget으로 모은다.
         for (Long contractId : contractIds) {
             // OneTimeCharge 데이터를 계약별로 그룹화
-            Map<Class<? extends OneTimeChargeDomain>, List<? extends OneTimeChargeDomain>> 
-                    oneTimeChargeDataForContract = groupOneTimeChargeDataByContract(contractId, oneTimeChargeDataByType);
+            var oneTimeChargeDataForContract = groupOneTimeChargeDataByContract(contractId, oneTimeChargeDataByType);
             
             var discounts = Optional.ofNullable(contractDiscountsMap.get(contractId))
                 .map(ContractDiscounts::discounts)
@@ -196,66 +196,53 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
     
     /**
      * 모든 DataLoader를 실행하여 OneTimeCharge 데이터 로딩
+     * key : OneTimeCharge종류
+     * value : key가 계약Id이고, value가 domain의 list인 map
      */
-    private Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>> 
+    private Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<OneTimeChargeDomain>>> 
             loadOneTimeChargeDataByType(List<Long> contractIds, CalculationContext context) {
         
-        Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>> result = new HashMap<>();
+        Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<OneTimeChargeDomain>>> result = new HashMap<>();
         
         // Map을 순회하면서 각 DataLoader 실행 - 조건문 완전 제거
-        for (Map.Entry<Class<? extends OneTimeChargeDomain>, OneTimeChargeDataLoader<? extends OneTimeChargeDomain>> 
-                entry : dataLoaderMap.entrySet()) {
-            
-            Class<? extends OneTimeChargeDomain> dataType = entry.getKey();
-            OneTimeChargeDataLoader<? extends OneTimeChargeDomain> loader = entry.getValue();
-            
-            List<? extends OneTimeChargeDomain> data = executeDataLoader(loader, contractIds, context);
-            
+        //for (Map.Entry<Class<? extends OneTimeChargeDomain>, OneTimeChargeDataLoader<? extends OneTimeChargeDomain>>
+        for (var entry : oneTimeChargeDataLoaderMap.entrySet()) {
+//            Class<? extends OneTimeChargeDomain> dataType = entry.getKey();
+//            OneTimeChargeDataLoader<? extends OneTimeChargeDomain> loader = entry.getValue();
+            var dataType = entry.getKey();
+            var loader = entry.getValue();
+            Map<Long, List<OneTimeChargeDomain>> data = loader.read(contractIds, context);
             if (!data.isEmpty()) {
-                // 계약별로 그룹화
-                Map<Long, List<? extends OneTimeChargeDomain>> dataByContract = data.stream()
-                    .collect(Collectors.groupingBy(OneTimeChargeDomain::getContractId));
-                result.put(dataType, dataByContract);
+                result.put(dataType, data);
             }
         }
         
         return result;
     }
-    
-    /**
-     * DataLoader 실행 (타입 안전)
-     */
-    @SuppressWarnings("unchecked")
-    private <T extends OneTimeChargeDomain> List<T> executeDataLoader(
-            OneTimeChargeDataLoader<T> loader, 
-            List<Long> contractIds,
-            CalculationContext context) {
-        return loader.loadData(contractIds, context);
-    }
-    
     /**
      * 특정 계약의 OneTimeCharge 데이터 그룹화
      */
-    private Map<Class<? extends OneTimeChargeDomain>, List<? extends OneTimeChargeDomain>> 
-            groupOneTimeChargeDataByContract(
-                Long contractId,
-                Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>> dataByType) {
-        
-        Map<Class<? extends OneTimeChargeDomain>, List<? extends OneTimeChargeDomain>> result = new HashMap<>();
-        
-        for (Map.Entry<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>> 
-                entry : dataByType.entrySet()) {
-            
-            Class<? extends OneTimeChargeDomain> dataType = entry.getKey();
-            Map<Long, List<? extends OneTimeChargeDomain>> dataByContract = entry.getValue();
-            
-            List<? extends OneTimeChargeDomain> contractData = dataByContract.get(contractId);
+    private Map<Class<? extends OneTimeChargeDomain>, List<OneTimeChargeDomain>>
+        groupOneTimeChargeDataByContract(
+            Long contractId,
+            Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<OneTimeChargeDomain>>> oneTimeChargeDataByType) {
+
+        Map<Class<? extends OneTimeChargeDomain>, List<OneTimeChargeDomain>> result = new HashMap<>();
+
+        //for (Map.Entry<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>>
+        for (var entry : oneTimeChargeDataByType.entrySet()) {
+
+//            Class<? extends OneTimeChargeDomain> dataType = entry.getKey();
+//            Map<Long, List<? extends OneTimeChargeDomain>> dataByContract = entry.getValue();
+            var dataType = entry.getKey();
+            var dataByContract = entry.getValue();
+
+            List<OneTimeChargeDomain> contractData = dataByContract.get(contractId);
             if (contractData != null && !contractData.isEmpty()) {
                 result.put(dataType, contractData);
             }
         }
-        
+
         return result;
     }
-
 }

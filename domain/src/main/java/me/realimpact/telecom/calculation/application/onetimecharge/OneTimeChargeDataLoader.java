@@ -1,8 +1,11 @@
-package me.realimpact.telecom.calculation.domain.onetimecharge;
+package me.realimpact.telecom.calculation.application.onetimecharge;
 
 import me.realimpact.telecom.calculation.domain.CalculationContext;
+import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
+import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentMaster;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * OneTimeCharge 데이터 로딩 인터페이스
@@ -24,5 +27,5 @@ public interface OneTimeChargeDataLoader<T extends OneTimeChargeDomain> {
      * @param context 계산 컨텍스트
      * @return 로딩된 데이터 목록
      */
-    List<T> loadData(List<Long> contractIds, CalculationContext context);
+    Map<Long, List<OneTimeChargeDomain>> read(List<Long> contractIds, CalculationContext context);
 }
