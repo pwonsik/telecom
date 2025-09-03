@@ -8,8 +8,8 @@ import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsAndSuspensions;
 import me.realimpact.telecom.calculation.domain.monthlyfee.DefaultPeriod;
+import me.realimpact.telecom.calculation.infrastructure.adapter.ProductQueryPortResolver;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
-import me.realimpact.telecom.calculation.port.out.ProductQueryPort;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @Order(10)
 public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSuspensions> {
 
-    private final ProductQueryPort productQueryPort;
+    private final ProductQueryPortResolver productQueryPortResolver;
     private final CalculationResultSavePort calculationResultSavePort;
 
     private DefaultPeriod createBillingPeriod(CalculationContext ctx) {
@@ -40,7 +40,8 @@ public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSusp
     @Override
     public Map<Long, List<ContractWithProductsAndSuspensions>> read(CalculationContext ctx, List<Long> contractIds) {
         DefaultPeriod billingPeriod = createBillingPeriod(ctx);
-        return productQueryPort.findContractsAndProductInventoriesByContractIds(
+        return productQueryPortResolver.getProductQueryPort(ctx.billingCalculationType())
+                .findContractsAndProductInventoriesByContractIds(
                     contractIds, billingPeriod.getStartDate(), billingPeriod.getEndDate()
             ).stream().collect(Collectors.groupingBy(ContractWithProductsAndSuspensions::getContractId));
     }

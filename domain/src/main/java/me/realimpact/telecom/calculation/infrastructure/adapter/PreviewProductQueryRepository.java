@@ -15,15 +15,16 @@ import java.util.List;
 @Repository
 @RequiredArgsConstructor
 @Qualifier("default")
-public class ProductQueryRepository implements ProductQueryPort {
-    private final ProductQueryMapper productQueryMapper;
+public class PreviewProductQueryRepository implements ProductQueryPort {
+    private final ProductQueryMapper previewProductQueryMapper;
     private final ContractDtoToDomainConverter converter;
 
     @Override
     public List<ContractWithProductsAndSuspensions> findContractsAndProductInventoriesByContractIds(
-        List<Long> contractIds, LocalDate billingStartDate, LocalDate billingEndDate
+            List<Long> contractIds, LocalDate billingStartDate, LocalDate billingEndDate
     ) {
-        List<ContractProductsSuspensionsDto> contractProductsSuspensionsDtos = productQueryMapper.findContractsAndProductInventoriesByContractIds(contractIds, billingStartDate, billingEndDate);
+        List<ContractProductsSuspensionsDto> contractProductsSuspensionsDtos =
+                previewProductQueryMapper.findContractsAndProductInventoriesByContractIds(contractIds, billingStartDate, billingEndDate);
         return converter.convertToContracts(contractProductsSuspensionsDtos);
     }
 }
