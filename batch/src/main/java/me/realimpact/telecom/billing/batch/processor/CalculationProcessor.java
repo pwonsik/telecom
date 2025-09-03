@@ -58,9 +58,7 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
             }
 
             // 구간분리
-            List<CalculationResult<?>> proratedResults = calculationResultProrater.prorate(results, calculationTarget.discounts());
-            log.info("prorate : {} -> {}", results.size(), proratedResults.size());
-            results = new ArrayList<>(proratedResults);
+            results = new ArrayList<>(calculationResultProrater.prorate(ctx, results, calculationTarget.discounts()));
 
             // 할인
             results.addAll(discountCalculator.process(ctx, results, calculationTarget.discounts()));

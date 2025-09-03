@@ -43,34 +43,32 @@ public class DiscountCalculator {
         // ContractDiscount의 각 Discount에 대해 CalculationResult 생성
         for (Discount discount : discounts) {
             for (CalculationResult<?> befDcCalResult : proratedCalculationResultsBeforeDiscount) {
-                if (discount.isDiscountTarget(befDcCalResult)) {
-                    BigDecimal discountAmount = discount.calculateDiscount(befDcCalResult);
-                    if (!discountAmount.equals(BigDecimal.ZERO)) {
-                        CalculationResult<?> balanceDebitCalculationResultBeforeDiscount = befDcCalResult.debitBalance(discountAmount);
-                        results.add(balanceDebitCalculationResultBeforeDiscount);
-
-                        CalculationResult<?> discountResult = new CalculationResult<>(
-                            befDcCalResult.getContractId(),
-                            befDcCalResult.getBillingStartDate(),
-                            befDcCalResult.getBillingEndDate(),
-                            befDcCalResult.getProductOfferingId(),
-                            "DC",   // 임시
-                                "DC",  // 임시
-                            befDcCalResult.getEffectiveStartDate(),
-                            befDcCalResult.getEffectiveEndDate(),
-                            befDcCalResult.getSuspensionType(),
-                            discountAmount.negate(),
-                            BigDecimal.ZERO,
-                            discount,
-                            this::post
-                        );
-                        results.add(discountResult);
-                    } else {
-                        results.add(befDcCalResult);
-                    }
-                } else {
-                    results.add(befDcCalResult);
+                if (!discount.isDiscountTarget(befDcCalResult)) {
+                    continue;
                 }
+                BigDecimal discountAmount = discount.calculateDiscount(befDcCalResult);
+                if (discountAmount.equals(BigDecimal.ZERO)) {
+                    continue;
+                }
+                // 잔액 차감
+                befDcCalResult.debitBalance(discountAmount);
+
+                CalculationResult<?> discountResult = new CalculationResult<>(
+                        befDcCalResult.getContractId(),
+                        befDcCalResult.getBillingStartDate(),
+                        befDcCalResult.getBillingEndDate(),
+                        befDcCalResult.getProductOfferingId(),
+                        "DC",   // 임시
+                        "DC",  // 임시
+                        befDcCalResult.getEffectiveStartDate(),
+                        befDcCalResult.getEffectiveEndDate(),
+                        befDcCalResult.getSuspensionType(),
+                        discountAmount.negate(),
+                        BigDecimal.ZERO,
+                        discount,
+                        this::post
+                );
+                results.add(discountResult);
             }
         }
         return results;
