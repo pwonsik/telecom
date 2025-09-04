@@ -3,9 +3,10 @@ package me.realimpact.telecom.billing.batch.config;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
-import me.realimpact.telecom.billing.batch.CalculationResultGroup;
+import me.realimpact.telecom.calculation.api.CalculationResultGroup;
 import me.realimpact.telecom.billing.batch.processor.CalculationProcessor;
-import me.realimpact.telecom.billing.batch.reader.CalculationTarget;
+import me.realimpact.telecom.calculation.application.CalculationCommandService;
+import me.realimpact.telecom.calculation.application.CalculationTarget;
 import me.realimpact.telecom.billing.batch.reader.ChunkedContractReader;
 import me.realimpact.telecom.billing.batch.tasklet.CalculationResultCleanupTasklet;
 import me.realimpact.telecom.billing.batch.util.JsonLoggingHelper;
@@ -17,8 +18,6 @@ import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculato
 import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeCalculator;
 import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeDataLoader;
-import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
-import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
 import me.realimpact.telecom.calculation.application.vat.VatCalculator;
 import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
@@ -61,15 +60,8 @@ public class CalculationBatchConfig {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
 
-    private final BaseFeeCalculator baseFeeCalculator;
+    private final CalculationCommandService calculationCommandService;
 
-    private final List<OneTimeChargeDataLoader<? extends OneTimeChargeDomain>> oneTimeChargeLoaders;
-    private final List<OneTimeChargeCalculator<? extends OneTimeChargeDomain>> oneTimeChargeCalculators;
-
-    private final CalculationResultProrater calculationResultProrater;
-
-    private final VatCalculator vatCalculator;
-    private final DiscountCalculator discountCalculator;
     private final JsonLoggingHelper jsonLoggingHelper;
 
     private final CalculationResultSavePort calculationResultSavePort;
@@ -140,11 +132,9 @@ public class CalculationBatchConfig {
      */
     @Bean
     @StepScope
-    public ChunkedContractReader chunkedContractReader(CalculationParameters calculationParameters) {
+    public ChunkedContractReader chunkedContractReader(CalculationParameters calculationParameters, CalculationCommandService calculationCommandService) {
         return new ChunkedContractReader(
-                baseFeeCalculator,
-                discountCalculator,
-                oneTimeChargeLoaders,
+                calculationCommandService,
                 sqlSessionFactory,
                 calculationParameters,
                 jsonLoggingHelper
@@ -158,7 +148,7 @@ public class CalculationBatchConfig {
     @StepScope  
     public SynchronizedItemStreamReader<CalculationTarget> contractReader(CalculationParameters calculationParameters) {
         SynchronizedItemStreamReader<CalculationTarget> reader = new SynchronizedItemStreamReader<>();
-        reader.setDelegate(chunkedContractReader(calculationParameters));  // ChunkedContractReader 사용
+        reader.setDelegate(chunkedContractReader(calculationParameters, calculationCommandService));  // ChunkedContractReader 사용
         return reader;
     }
 
@@ -166,11 +156,7 @@ public class CalculationBatchConfig {
     @StepScope
     public ItemProcessor<CalculationTarget, CalculationResultGroup> calculationProcessor(CalculationParameters calculationParameters) {
         return new CalculationProcessor(
-                baseFeeCalculator,
-                oneTimeChargeCalculators,
-                calculationResultProrater,
-                discountCalculator,
-                vatCalculator,
+                calculationCommandService,
                 jsonLoggingHelper,
                 calculationParameters
         );
