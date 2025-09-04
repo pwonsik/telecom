@@ -1,20 +1,22 @@
-
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb
-    driverClassName: org.h2.Driver
-    username: sa
-    password: 
-  h2:
-    console:
-      enabled: true
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    properties:
-      hibernate:
-        format_sql: true
+    url: jdbc:mysql://localhost:3306/telecom_billing?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&socketTimeout=0&connectTimeout=60000
+    username: user
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20   # 멀티쓰레드 처리를 위해 증가
+      minimum-idle: 8         # 최소 유지 커넥션 수 증가
+      connection-timeout: 60000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
-logging:
-  level:
-    org.hibernate.SQL: debug
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: me.realimpact.telecom.calculation.infrastructure.dto
+  configuration:
+    map-underscore-to-camel-case: true
+    use-column-label: true
+    cache-enabled: false
+    default-fetch-size: 100
+    default-statement-timeout: 30

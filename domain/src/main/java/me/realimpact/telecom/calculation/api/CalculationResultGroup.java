@@ -1,4 +1,4 @@
-package me.realimpact.telecom.billing.batch;
+package me.realimpact.telecom.calculation.api;
 
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 

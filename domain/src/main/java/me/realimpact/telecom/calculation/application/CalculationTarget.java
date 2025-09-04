@@ -1,4 +1,4 @@
-package me.realimpact.telecom.billing.batch.reader;
+package me.realimpact.telecom.calculation.application;
 
 import me.realimpact.telecom.calculation.domain.discount.Discount;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsAndSuspensions;

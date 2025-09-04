@@ -1,138 +1,221 @@
 package me.realimpact.telecom.calculation.application;
 
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.calculation.api.CalculationCommandUseCase;
-import me.realimpact.telecom.calculation.api.CalculationRequest;
-import me.realimpact.telecom.calculation.api.CalculationResponse;
+import me.realimpact.telecom.calculation.api.CalculationResultGroup;
+import me.realimpact.telecom.calculation.application.discount.CalculationResultProrater;
+import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
-import me.realimpact.telecom.calculation.application.vat.VatCalculator;
-import me.realimpact.telecom.calculation.domain.CalculationResult;
-import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeCalculator;
+import me.realimpact.telecom.calculation.application.vat.VatCalculator;
+import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeDataLoader;
+import me.realimpact.telecom.calculation.domain.CalculationResult;
+import me.realimpact.telecom.calculation.domain.discount.ContractDiscounts;
 import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
 
-import java.util.ArrayList;
-import java.util.Map;
+import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class CalculationCommandService implements CalculationCommandUseCase {
+    private final BaseFeeCalculator baseFeeCalculator;
+    private final DiscountCalculator discountCalculator;
 
-//    private final BaseFeeCalculator baseFeeCalculator;
-//    private final VatCalculator vatCalculator;
-//
-//    // Calculator와 DataLoader Map으로 관리
-//    private final Map<Class<? extends OneTimeChargeDomain>, OneTimeChargeCalculator<? extends OneTimeChargeDomain>>
-//            calculatorMap;
-//    private final Map<Class<? extends OneTimeChargeDomain>, OneTimeChargeDataLoader<? extends OneTimeChargeDomain>>
-//            dataLoaderMap;
-//
-//    /**
-//     * 생성자에서 List를 Map으로 변환
-//     */
-//    public CalculationCommandService(
-//            BaseFeeCalculator baseFeeCalculator,
-//            VatCalculator vatCalculator,
-//            List<OneTimeChargeCalculator<? extends OneTimeChargeDomain>> calculators,
-//            List<OneTimeChargeDataLoader<? extends OneTimeChargeDomain>> dataLoaders) {
-//
-//        this.baseFeeCalculator = baseFeeCalculator;
-//        this.vatCalculator = vatCalculator;
-//
-//        // Calculator List를 Map으로 변환
-//        this.calculatorMap = calculators.stream()
-//            .collect(Collectors.toMap(
-//                OneTimeChargeCalculator::getInputType,
-//                    Function.identity()
-//            ));
-//
-//        // DataLoader List를 Map으로 변환
-//        this.dataLoaderMap = dataLoaders.stream()
-//            .collect(Collectors.toMap(
-//                OneTimeChargeDataLoader::getDataType,
-//                Function.identity()
-//            ));
-//    }
-//
-//    @Override
-//    public List<CalculationResponse> calculate(CalculationRequest calculationRequest) {
-//        CalculationContext ctx = new CalculationContext(
-//            calculationRequest.billingStartDate(),
-//            calculationRequest.billingEndDate(),
-//            calculationRequest.billingCalculationType(),
-//            calculationRequest.billingCalculationPeriod()
-//        );
-//        List<Long> contractIds = calculationRequest.contractIds();
-//
-//        // 각 계산기 실행
-//        List<CalculationResult<?>> results = new ArrayList<>();
-//
-//        // 월정액 계산 (기존 방식)
-//        results.addAll(baseFeeCalculator.execute(ctx, contractIds));
-//
-//        // OneTimeCharge 계산 - Map 기반 자동 실행
-//        results.addAll(calculateOneTimeCharges(ctx, contractIds));
-//
-//        // VAT 계산 (기존 결과 기반)
-//        List<CalculationResult<?>> vatResults = vatCalculator.calculateVat(ctx, results);
-//        results.addAll(vatResults);
-//
-//        return results.stream()
-//            .map(calculationResult ->
-//                new CalculationResponse(calculationResult.getContractId(), calculationResult.getFee().longValue())
-//            )
-//            .toList();
-//    }
-//
-//    /**
-//     * OneTimeCharge 계산 - 조건문 완전 제거
-//     */
-//    private List<CalculationResult<?>> calculateOneTimeCharges(CalculationContext context, List<Long> contractIds) {
-//        List<CalculationResult<?>> results = new ArrayList<>();
-//
-//        // 모든 등록된 Calculator에 대해 실행
-//        for (var entry : calculatorMap.entrySet()) {
-//            var dataLoader = dataLoaderMap.get(entry.getKey());
-//            if (dataLoader != null) {
-//                var data = executeDataLoader(dataLoader, contractIds, context);
-//                if (!data.isEmpty()) {
-//                    // 계산 실행
-//                    var calculator = entry.getValue();
-//                    List<CalculationResult<?>> calculationResults = executeCalculator(calculator, context, data);
-//                    results.addAll(calculationResults);
-//                }
-//            }
-//        }
-//
-//        return results;
-//    }
-//
-//    /**
-//     * DataLoader 실행 (타입 안전)
-//     */
-//    @SuppressWarnings("unchecked")
-//    public <T extends OneTimeChargeDomain> Map<Long, List<T>> executeDataLoader(
-//            OneTimeChargeDataLoader<T> loader,
-//            List<Long> contractIds,
-//            CalculationContext context) {
-//        return loader.read(contractIds, context);
-//    }
-//
-//    /**
-//     * Calculator 실행 (타입 안전)
-//     */
-//    @SuppressWarnings("unchecked")
-//    private <T extends OneTimeChargeDomain> List<CalculationResult<?>> executeCalculator(
-//            OneTimeChargeCalculator<T> calculator,
-//            CalculationContext context,
-//            Map<Long, List<? extends OneTimeChargeDomain>> data) {
-//
-//        return calculator.process(context, (List<T>) data);
-//    }
+    private final Map<Class<? extends OneTimeChargeDomain>, OneTimeChargeDataLoader<? extends OneTimeChargeDomain>>
+            oneTimeChargeDataLoaderMap;
+    private final List<OneTimeChargeCalculator<? extends OneTimeChargeDomain>> oneTimeChargeCalculators;
+    private final CalculationResultProrater calculationResultProrater;
+    private final VatCalculator vatCalculator;
 
+    public CalculationCommandService(
+            BaseFeeCalculator baseFeeCalculator,
+            DiscountCalculator discountCalculator,
+            List<OneTimeChargeDataLoader<? extends OneTimeChargeDomain>> oneTimeChargeDataLoaders,
+            List<OneTimeChargeCalculator<? extends OneTimeChargeDomain>> oneTimeChargeCalculators,
+            CalculationResultProrater calculationResultProrater,
+            VatCalculator vatCalculator
+    ) {
+        this.baseFeeCalculator = baseFeeCalculator;
+        this.discountCalculator = discountCalculator;
+
+        // DataLoader List를 Map으로 변환
+        this.oneTimeChargeDataLoaderMap = oneTimeChargeDataLoaders.stream()
+                .collect(Collectors.toMap(
+                        OneTimeChargeDataLoader::getDataType,
+                        Function.identity()
+                ));
+
+        this.oneTimeChargeCalculators = oneTimeChargeCalculators;
+        this.calculationResultProrater = calculationResultProrater;
+        this.vatCalculator = vatCalculator;
+
+        log.info("Registered {} OneTimeCharge DataLoaders: {}",
+                oneTimeChargeDataLoaders.size(),
+                oneTimeChargeDataLoaders.stream()
+                        .map(loader -> loader.getDataType().getSimpleName())
+                        .collect(Collectors.joining(", ")));
+    }
+
+    public List<CalculationTarget> loadCalculationTargets(List<Long> contractIds, CalculationContext ctx) {
+// 월정액 (기존 방식 유지)
+        var contractWithProductsAndSuspensionsMap = baseFeeCalculator.read(ctx, contractIds);
+
+        // OneTimeCharge 데이터를 Map으로 로딩 - 조건문 없음
+        //Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>>
+        var oneTimeChargeDataByType = loadOneTimeChargeDataByType(contractIds, ctx);
+
+        // 할인 (기존 방식 유지)
+        var contractDiscountsMap = discountCalculator.read(ctx, contractIds);
+
+        List<CalculationTarget> calculationTargets = new ArrayList<>();
+
+        // 모든 조회 대상을 calculationTarget으로 모은다.
+        for (Long contractId : contractIds) {
+            // OneTimeCharge 데이터를 계약별로 그룹화
+            var oneTimeChargeDataForContract = groupOneTimeChargeDataByContract(contractId, oneTimeChargeDataByType);
+
+            var discounts = Optional.ofNullable(contractDiscountsMap.get(contractId))
+                    .map(ContractDiscounts::discounts)
+                    .orElse(Collections.emptyList());
+
+            CalculationTarget calculationTarget = new CalculationTarget(
+                    contractId,
+                    contractWithProductsAndSuspensionsMap.getOrDefault(contractId, Collections.emptyList()),
+                    oneTimeChargeDataForContract,
+                    discounts
+            );
+            calculationTargets.add(calculationTarget);
+        }
+
+        log.info("생성된 calculationTargets 개수: {}", calculationTargets.size());
+
+        return calculationTargets;
+    }
+
+
+    /**
+     * 모든 DataLoader를 실행하여 OneTimeCharge 데이터 로딩
+     * key : OneTimeCharge종류
+     * value : key가 계약Id이고, value가 domain의 list인 map
+     */
+    private Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<OneTimeChargeDomain>>>
+        loadOneTimeChargeDataByType(List<Long> contractIds, CalculationContext context) {
+
+        Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<OneTimeChargeDomain>>> result = new HashMap<>();
+
+        // Map을 순회하면서 각 DataLoader 실행 - 조건문 완전 제거
+        //for (Map.Entry<Class<? extends OneTimeChargeDomain>, OneTimeChargeDataLoader<? extends OneTimeChargeDomain>>
+        for (var entry : oneTimeChargeDataLoaderMap.entrySet()) {
+//            Class<? extends OneTimeChargeDomain> dataType = entry.getKey();
+//            OneTimeChargeDataLoader<? extends OneTimeChargeDomain> loader = entry.getValue();
+            var dataType = entry.getKey();
+            var loader = entry.getValue();
+            Map<Long, List<OneTimeChargeDomain>> data = loader.read(contractIds, context);
+            if (!data.isEmpty()) {
+                result.put(dataType, data);
+            }
+        }
+
+        return result;
+    }
+    /**
+     * 특정 계약의 OneTimeCharge 데이터 그룹화
+     */
+    private Map<Class<? extends OneTimeChargeDomain>, List<OneTimeChargeDomain>>
+        groupOneTimeChargeDataByContract(
+            Long contractId,
+            Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<OneTimeChargeDomain>>> oneTimeChargeDataByType) {
+
+        Map<Class<? extends OneTimeChargeDomain>, List<OneTimeChargeDomain>> result = new HashMap<>();
+
+        //for (Map.Entry<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>>
+        for (var entry : oneTimeChargeDataByType.entrySet()) {
+
+//            Class<? extends OneTimeChargeDomain> dataType = entry.getKey();
+//            Map<Long, List<? extends OneTimeChargeDomain>> dataByContract = entry.getValue();
+            var dataType = entry.getKey();
+            var dataByContract = entry.getValue();
+
+            List<OneTimeChargeDomain> contractData = dataByContract.get(contractId);
+            if (contractData != null && !contractData.isEmpty()) {
+                result.put(dataType, contractData);
+            }
+        }
+
+        return result;
+    }
+
+    public CalculationResultGroup processCalculation(CalculationTarget calculationTarget, CalculationContext ctx) {
+        try {
+            log.debug("Processing contract calculation for contractId: {}", calculationTarget.contractId());
+            List<CalculationResult<?>> results = new ArrayList<>();
+
+            // 월정액 계산
+            results.addAll(process(calculationTarget.contractWithProductsAndSuspensions(), baseFeeCalculator::process, ctx));
+
+            // 일회성 과금 계산
+            for (var oneTimeChargeCalculator : oneTimeChargeCalculators) {
+                processOneTimeChargeCalculator(oneTimeChargeCalculator, calculationTarget, ctx, results);
+            }
+
+            // 구간분리
+            results = new ArrayList<>(calculationResultProrater.prorate(ctx, results, calculationTarget.discounts()));
+
+            // 할인
+            results.addAll(discountCalculator.process(ctx, results, calculationTarget.discounts()));
+
+            // 구간 합치기
+            results = new ArrayList<>(calculationResultProrater.consolidate(results));
+
+            // VAT 계산 (기존 결과 기반)
+            results.addAll(vatCalculator.calculateVat(ctx, results));
+
+            log.info("Processed {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
+
+            return new CalculationResultGroup(results);
+        } catch (Exception e) {
+            log.error("Failed to process contract calculation for contractId: {}", calculationTarget.contractId(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * OneTimeChargeCalculator 타입 안전 처리
+     */
+    @SuppressWarnings("unchecked")
+    private <T extends OneTimeChargeDomain> void processOneTimeChargeCalculator(
+            OneTimeChargeCalculator<T> calculator,
+            CalculationTarget target,
+            CalculationContext ctx,
+            List<CalculationResult<?>> results) {
+        Class<T> inputType = calculator.getInputType();
+        List<T> inputData = target.getOneTimeChargeData(inputType);
+        results.addAll(process(inputData, calculator::process, ctx));
+    }
+
+    private <T> List<CalculationResult<?>> process(
+            Collection<T> items,
+            BiFunction<CalculationContext, T, List<? extends CalculationResult<?>>> processor,
+            CalculationContext context
+    ) {
+        return items.stream()
+                .flatMap(item -> processor.apply(context, item).stream())
+                .<CalculationResult<?>>map(result -> result)
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+    }
+
+    @Override
+    public List<CalculationResultGroup> calculate(List<Long> contractIds, CalculationContext ctx) {
+        return loadCalculationTargets(contractIds, ctx).stream()
+                .map(calculationTarget -> processCalculation(calculationTarget, ctx))
+                .toList();
+    }
 }

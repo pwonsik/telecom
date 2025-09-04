@@ -3,6 +3,8 @@ package me.realimpact.telecom.billing.batch.reader;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
 import me.realimpact.telecom.billing.batch.util.JsonLoggingHelper;
+import me.realimpact.telecom.calculation.application.CalculationCommandService;
+import me.realimpact.telecom.calculation.application.CalculationTarget;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
@@ -27,12 +29,8 @@ import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SI
 @Slf4j
 public class ChunkedContractReader implements ItemStreamReader<CalculationTarget> {
 
-    private final BaseFeeCalculator baseFeeCalculator;
-    private final DiscountCalculator discountCalculator;
-    
-    // DataLoader Map - 조건문 제거
-    private final Map<Class<? extends OneTimeChargeDomain>, OneTimeChargeDataLoader<? extends OneTimeChargeDomain>>
-            oneTimeChargeDataLoaderMap;
+    //-- 인터페이스 주입이 아닌 구현체 주입.. 배치는 read, process, write를 나눠서 호출해야 해서 어쩔 수 없이.
+    private final CalculationCommandService calculationCommandService;
 
     private final SqlSessionFactory sqlSessionFactory;
     private final CalculationParameters calculationParameters;
@@ -48,31 +46,15 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
      * 생성자에서 DataLoader List를 Map으로 변환
      */
     public ChunkedContractReader(
-            BaseFeeCalculator baseFeeCalculator,
-            DiscountCalculator discountCalculator,
-            List<OneTimeChargeDataLoader<? extends OneTimeChargeDomain>> oneTimeChargeDataLoaders,
+            CalculationCommandService calculationCommandService,
             SqlSessionFactory sqlSessionFactory,
             CalculationParameters calculationParameters,
             JsonLoggingHelper jsonLoggingHelper) {
         
-        this.baseFeeCalculator = baseFeeCalculator;
-        this.discountCalculator = discountCalculator;
+        this.calculationCommandService = calculationCommandService;
         this.sqlSessionFactory = sqlSessionFactory;
         this.calculationParameters = calculationParameters;
         this.jsonLoggingHelper = jsonLoggingHelper;
-        
-        // DataLoader List를 Map으로 변환
-        this.oneTimeChargeDataLoaderMap = oneTimeChargeDataLoaders.stream()
-            .collect(Collectors.toMap(
-                OneTimeChargeDataLoader::getDataType,
-                Function.identity()
-            ));
-            
-        log.info("Registered {} OneTimeCharge DataLoaders: {}",
-                oneTimeChargeDataLoaders.size(),
-                oneTimeChargeDataLoaders.stream()
-                .map(loader -> loader.getDataType().getSimpleName())
-                .collect(Collectors.joining(", ")));
     }
 
     
@@ -162,95 +144,6 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
 
     private List<CalculationTarget> getCalculationTargets(List<Long> contractIds) {
         CalculationContext ctx = calculationParameters.toCalculationContext();
-        
-        // 월정액 (기존 방식 유지)
-        var contractWithProductsAndSuspensionsMap = baseFeeCalculator.read(ctx, contractIds);
-        
-        // OneTimeCharge 데이터를 Map으로 로딩 - 조건문 없음
-        //Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>>
-        var oneTimeChargeDataByType = loadOneTimeChargeDataByType(contractIds, ctx);
-        
-        // 할인 (기존 방식 유지)
-        var contractDiscountsMap = discountCalculator.read(ctx, contractIds);
-
-        List<CalculationTarget> calculationTargets = new ArrayList<>();
-        
-        // 모든 조회 대상을 calculationTarget으로 모은다.
-        for (Long contractId : contractIds) {
-            // OneTimeCharge 데이터를 계약별로 그룹화
-            var oneTimeChargeDataForContract = groupOneTimeChargeDataByContract(contractId, oneTimeChargeDataByType);
-            
-            var discounts = Optional.ofNullable(contractDiscountsMap.get(contractId))
-                .map(ContractDiscounts::discounts)
-                .orElse(Collections.emptyList());
-
-            CalculationTarget calculationTarget = new CalculationTarget(
-                contractId,
-                contractWithProductsAndSuspensionsMap.getOrDefault(contractId, Collections.emptyList()),
-                oneTimeChargeDataForContract,
-                discounts
-            );
-            calculationTargets.add(calculationTarget);
-        }
-
-        log.info("생성된 calculationTargets 개수: {}", calculationTargets.size());
-
-        if (calculationTargets.size() > 0) {
-            jsonLoggingHelper.logJson("첫 번째 CalculationTarget 샘플", calculationTargets.get(0));
-        }
-
-        return calculationTargets;
-    }
-    
-    /**
-     * 모든 DataLoader를 실행하여 OneTimeCharge 데이터 로딩
-     * key : OneTimeCharge종류
-     * value : key가 계약Id이고, value가 domain의 list인 map
-     */
-    private Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<OneTimeChargeDomain>>> 
-            loadOneTimeChargeDataByType(List<Long> contractIds, CalculationContext context) {
-        
-        Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<OneTimeChargeDomain>>> result = new HashMap<>();
-        
-        // Map을 순회하면서 각 DataLoader 실행 - 조건문 완전 제거
-        //for (Map.Entry<Class<? extends OneTimeChargeDomain>, OneTimeChargeDataLoader<? extends OneTimeChargeDomain>>
-        for (var entry : oneTimeChargeDataLoaderMap.entrySet()) {
-//            Class<? extends OneTimeChargeDomain> dataType = entry.getKey();
-//            OneTimeChargeDataLoader<? extends OneTimeChargeDomain> loader = entry.getValue();
-            var dataType = entry.getKey();
-            var loader = entry.getValue();
-            Map<Long, List<OneTimeChargeDomain>> data = loader.read(contractIds, context);
-            if (!data.isEmpty()) {
-                result.put(dataType, data);
-            }
-        }
-        
-        return result;
-    }
-    /**
-     * 특정 계약의 OneTimeCharge 데이터 그룹화
-     */
-    private Map<Class<? extends OneTimeChargeDomain>, List<OneTimeChargeDomain>>
-        groupOneTimeChargeDataByContract(
-            Long contractId,
-            Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<OneTimeChargeDomain>>> oneTimeChargeDataByType) {
-
-        Map<Class<? extends OneTimeChargeDomain>, List<OneTimeChargeDomain>> result = new HashMap<>();
-
-        //for (Map.Entry<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>>
-        for (var entry : oneTimeChargeDataByType.entrySet()) {
-
-//            Class<? extends OneTimeChargeDomain> dataType = entry.getKey();
-//            Map<Long, List<? extends OneTimeChargeDomain>> dataByContract = entry.getValue();
-            var dataType = entry.getKey();
-            var dataByContract = entry.getValue();
-
-            List<OneTimeChargeDomain> contractData = dataByContract.get(contractId);
-            if (contractData != null && !contractData.isEmpty()) {
-                result.put(dataType, contractData);
-            }
-        }
-
-        return result;
+        return calculationCommandService.loadCalculationTargets(contractIds, ctx);
     }
 }

@@ -3,7 +3,7 @@ package me.realimpact.telecom.billing.batch.writer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
-import me.realimpact.telecom.billing.batch.CalculationResultGroup;
+import me.realimpact.telecom.calculation.api.CalculationResultGroup;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import org.springframework.batch.item.Chunk;
