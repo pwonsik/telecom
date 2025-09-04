@@ -8,6 +8,7 @@ import me.realimpact.telecom.billing.batch.processor.CalculationProcessor;
 import me.realimpact.telecom.billing.batch.reader.CalculationTarget;
 import me.realimpact.telecom.billing.batch.reader.ChunkedContractReader;
 import me.realimpact.telecom.billing.batch.tasklet.CalculationResultCleanupTasklet;
+import me.realimpact.telecom.billing.batch.util.JsonLoggingHelper;
 import me.realimpact.telecom.billing.batch.writer.CalculationWriter;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.BillingCalculationType;
@@ -69,6 +70,7 @@ public class CalculationBatchConfig {
 
     private final VatCalculator vatCalculator;
     private final DiscountCalculator discountCalculator;
+    private final JsonLoggingHelper jsonLoggingHelper;
 
     private final CalculationResultSavePort calculationResultSavePort;
 
@@ -144,7 +146,8 @@ public class CalculationBatchConfig {
                 discountCalculator,
                 oneTimeChargeLoaders,
                 sqlSessionFactory,
-                calculationParameters
+                calculationParameters,
+                jsonLoggingHelper
         );
     }
     
@@ -168,6 +171,7 @@ public class CalculationBatchConfig {
                 calculationResultProrater,
                 discountCalculator,
                 vatCalculator,
+                jsonLoggingHelper,
                 calculationParameters
         );
     }

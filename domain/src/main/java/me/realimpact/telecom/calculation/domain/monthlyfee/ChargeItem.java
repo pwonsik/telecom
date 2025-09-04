@@ -19,4 +19,15 @@ public class ChargeItem {
     public BigDecimal getPrice(List<AdditionalBillingFactor> additionalBillingFactors) {
         return pricing.getPrice(additionalBillingFactors);
     }
+
+    @Override
+    public String toString() {
+        return "ChargeItem{" +
+                "chargeItemId='" + chargeItemId + '\'' +
+                ", chargeItemName='" + chargeItemName + '\'' +
+                ", revenueItemId='" + revenueItemId + '\'' +
+                ", suspensionChargeRatio=" + suspensionChargeRatio +
+                ", calculationMethod=" + calculationMethod +
+                '}';
+    }
 }

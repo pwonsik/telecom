@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
 import me.realimpact.telecom.billing.batch.CalculationResultGroup;
 import me.realimpact.telecom.billing.batch.reader.CalculationTarget;
+import me.realimpact.telecom.billing.batch.util.JsonLoggingHelper;
 import me.realimpact.telecom.calculation.application.discount.CalculationResultProrater;
 import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
 import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
@@ -38,6 +39,7 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
     private final CalculationResultProrater calculationResultProrater;
     private final DiscountCalculator discountCalculator;
     private final VatCalculator vatCalculator;
+    private final JsonLoggingHelper jsonLoggingHelper;
 
     private final CalculationParameters calculationParameters;
 
@@ -69,7 +71,14 @@ public class CalculationProcessor implements ItemProcessor<CalculationTarget, Ca
             // VAT 계산 (기존 결과 기반)
             results.addAll(vatCalculator.calculateVat(ctx, results));
 
-            //log.info("Processed {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
+            log.info("Processed {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
+            
+            // 계산 결과 샘플 로그 (첫 3개)
+//            if (results.size() > 0) {
+//                List<CalculationResult<?>> sampleResults = results.size() > 3 ?
+//                    results.subList(0, 3) : results;
+//                jsonLoggingHelper.logJson("계산 결과 샘플", sampleResults);
+//            }
 
             return new CalculationResultGroup(results);
         } catch (Exception e) {

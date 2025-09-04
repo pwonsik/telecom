@@ -7,6 +7,7 @@ import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculato
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.*;
+import me.realimpact.telecom.calculation.infrastructure.adapter.ProductQueryPortResolver;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import me.realimpact.telecom.calculation.port.out.ProductQueryPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,9 @@ class MonthlyFeeCalculationIntegrationTest {
 
     @Mock
     private ProductQueryPort productQueryPort;
+    
+    @Mock
+    private ProductQueryPortResolver productQueryPortResolver;
 
     @Mock
     private CalculationResultSavePort calculationResultSavePort;
@@ -158,7 +162,11 @@ class MonthlyFeeCalculationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        calculator = new BaseFeeCalculator(productQueryPort, calculationResultSavePort);
+        // ProductQueryPortResolver가 항상 productQueryPort를 반환하도록 설정
+        when(productQueryPortResolver.getProductQueryPort(any(BillingCalculationType.class)))
+                .thenReturn(productQueryPort);
+        
+        calculator = new BaseFeeCalculator(productQueryPortResolver, calculationResultSavePort);
     }
 
     @Test

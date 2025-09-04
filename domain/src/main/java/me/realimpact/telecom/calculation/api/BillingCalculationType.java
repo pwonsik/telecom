@@ -13,7 +13,9 @@ public enum BillingCalculationType {
     REVENUE_ESTIMATION("BB", "매출추정"),
     EXPECTATION_PENALTY_CREATION("BH", "예상해지비용적재"),
     EXPECTATION_PENALTY_INQUIRY("OZ", "예상할인반환금조회"),
-    TERMINATION_INQUIRY("O1", "해지핫빌");
+    TERMINATION_INQUIRY("O1", "해지핫빌"),
+    PREVIEW_INQUIRY("OP", "미리보기"),
+    BF_SALE_INQUIRY("OB", "스마트플래너_요금조회");
 
     private final String code;
     private final String description;

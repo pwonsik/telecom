@@ -2,6 +2,7 @@ package me.realimpact.telecom.calculation.domain.monthlyfee;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.stream.Stream;
 
 @RequiredArgsConstructor
 @Getter
+@ToString
 public class ContractWithProductsAndSuspensions extends Temporal {
     private final Long contractId;
     

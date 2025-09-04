@@ -2,6 +2,7 @@ package me.realimpact.telecom.calculation.domain.discount;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 
@@ -27,6 +28,7 @@ import java.util.Objects;
  */
 @Getter
 @RequiredArgsConstructor
+@ToString
 public class Discount {
     
     public static final String APPLY_UNIT_RATE = "RATE";

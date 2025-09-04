@@ -2,6 +2,7 @@ package me.realimpact.telecom.calculation.domain.onetimecharge.policy.installmen
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.BillingCalculationType;
 import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
@@ -21,6 +22,7 @@ import java.util.List;
  */
 @Getter
 @RequiredArgsConstructor
+@ToString
 public class DeviceInstallmentMaster implements OneTimeChargeDomain {
     private final Long contractId;
     private final Long installmentSequence;

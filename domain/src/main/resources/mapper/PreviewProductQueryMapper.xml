@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.PreviewProductQueryMapper">
+
+    <resultMap id="contractWithProductsAndSuspensions" type="ContractProductsSuspensionsDto">
+        <!-- Contract의 key: contractId -->
+        <id property="contractId" column="contract_id"/>
+        <result property="subscribedAt" column="subscribed_at"/>
+        <result property="initiallySubscribedAt" column="initially_subscribed_at"/>
+        <result property="terminatedAt" column="terminated_at"/>
+        <result property="prefferedTerminationDate" column="preffered_termination_date"/>
+        <result property="billingStartDate" column="billing_start_date"/>
+        <result property="billingEndDate" column="billing_end_date"/>
+        
+        <collection property="products" ofType="ProductDto">
+            <!-- Product의 key: contractId, productOfferingId, effectiveStartDateTime, effectiveEndDateTime -->
+            <id property="contractId" column="contract_id"/>
+            <id property="productOfferingId" column="product_offering_id"/>
+            <id property="effectiveStartDateTime" column="product_effective_start_date_time"/>
+            <id property="effectiveEndDateTime" column="product_effective_end_date_time"/>
+            <result property="subscribedAt" column="product_subscribed_at"/>
+            <result property="activatedAt" column="product_activated_at"/>
+            <result property="terminatedAt" column="product_terminated_at"/>
+            <result property="productOfferingName" column="product_offering_name"/>
+            
+            <collection property="chargeItems" ofType="ChargeItemDto">
+                <!-- ChargeItem의 key: productOfferingId, chargeItemId -->
+                <id property="productOfferingId" column="product_offering_id"/>
+                <id property="chargeItemId" column="charge_item_id"/>
+                <result property="chargeItemName" column="charge_item_name"/>
+                <result property="revenueItemId" column="revenue_item_id"/>
+                <result property="suspensionChargeRatio" column="suspension_charge_ratio"/>
+                <result property="calculationMethodCode" column="calculation_method_code"/>
+                <result property="calculationMethodName" column="calculation_method_name"/>
+                <result property="flatRateAmount" column="flat_rate_amount"/>
+                <result property="pricingType" column="pricing_type"/>
+            </collection>
+        </collection>
+        
+        <collection property="suspensions" ofType="SuspensionDto">
+            <!-- Suspension의 key: contractId, suspensionTypeCode, effectiveStartDateTime, effectiveEndDateTime -->
+            <id property="contractId" column="contract_id"/>
+            <id property="suspensionTypeCode" column="suspension_type_code"/>
+            <id property="effectiveStartDateTime" column="suspension_effective_start_date_time"/>
+            <id property="effectiveEndDateTime" column="suspension_effective_end_date_time"/>
+            <result property="suspensionTypeDescription" column="suspension_type_description"/>
+        </collection>
+    </resultMap>
+
+    <!-- 공통 SELECT와 FROM을 SQL fragment로 분리 -->
+    <sql id="contractSelectClause">
+        SELECT 
+            c.contract_id,
+            c.subscribed_at,
+            c.initially_subscribed_at,
+            c.terminated_at,
+            c.preffered_termination_date,
+            #{baseDate} AS billing_start_date,
+            #{baseDate} AS billing_end_date,
+            
+            p.effective_start_date_time as product_effective_start_date_time,
+            p.effective_end_date_time as product_effective_end_date_time,
+            p.subscribed_at as product_subscribed_at,
+            p.activated_at as product_activated_at,
+            p.terminated_at as product_terminated_at,
+            
+            po.product_offering_id,
+            po.product_offering_name,
+            
+            ci.charge_item_id,
+            ci.charge_item_name,
+            ci.revenue_item_id,
+            ci.suspension_charge_ratio,
+            ci.calculation_method_code,
+            ci.calculation_method_name,
+            ci.flat_rate_amount,
+            ci.pricing_type,
+            
+            NULL AS suspension_effective_start_date_time,
+            NULL AS suspension_effective_end_date_time,
+            NULL AS suspension_type_code,
+            NULL AS suspension_type_description
+            
+        FROM contract c
+        INNER JOIN product p ON c.contract_id = p.contract_id
+        INNER JOIN product_offering po ON p.product_offering_id = po.product_offering_id
+        INNER JOIN charge_item ci ON po.product_offering_id = ci.product_offering_id
+    </sql>
+
+    <!-- 공통 WHERE 조건을 SQL fragment로 분리 -->
+    <sql id="contractFilterClause">
+        <!-- 계약 ID 조건 (조건부) -->
+        WHERE 1=1
+        AND c.contract_id IN
+        <foreach item="contractId" collection="contractIds" open="(" separator="," close=")">
+            #{contractId}
+        </foreach>
+
+        <!-- 계약 유효 기간 필터링 -->
+        AND c.terminated_at IS NOT NULL
+
+        <!-- 상품 유효 기간 필터링 -->
+        AND DATE(COALESCE(p.effective_start_date_time, '1900-01-01 00:00:00')) &lt; DATE(COALESCE(p.effective_end_date_time, '9999-12-31 23:59:59'))
+        AND COALESCE(p.effective_end_date_time, '9999-12-31 23:59:59') = '9999-12-31 23:59:59'
+        AND p.terminated_at IS NOT NULL
+        ))
+    </sql>
+
+    <!-- 공통 정렬 조건 (MyBatisCursorItemReader용) -->
+    <sql id="contractOrderByClause">
+        ORDER BY 
+            c.contract_id,
+            po.product_offering_id, 
+            p.effective_start_date_time, 
+            p.effective_end_date_time,
+            ci.charge_item_id,
+            s.suspension_type_code,
+            s.effective_start_date_time,
+            s.effective_end_date_time
+    </sql>
+    <!-- 계약 ID 목록으로 상세 정보 조회 (IN 절 사용) -->
+    <select id="findContractsAndProductInventoriesByContractIds" resultMap="contractWithProductsAndSuspensions">
+        <include refid="contractSelectClause"/>
+        <include refid="contractFilterClause"/>
+        <include refid="contractOrderByClause"/>
+    </select>
+
+</mapper>
