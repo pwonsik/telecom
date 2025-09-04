@@ -14,7 +14,7 @@ import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
-@Qualifier("default")
+@Qualifier("default_product_query_repository")
 public class ProductQueryRepository implements ProductQueryPort {
     private final ProductQueryMapper productQueryMapper;
     private final ContractDtoToDomainConverter converter;
