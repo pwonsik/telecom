@@ -8,6 +8,7 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -15,15 +16,23 @@ import org.springframework.stereotype.Component;
  * 명령행에서 배치 작업을 실행하기 위한 CommandLineRunner
  * 
  * 사용법:
- * java -jar batch.jar --billingStartDate=2024-03-01 --billingEndDate=2024-03-31 [--contractId=123] [--parallelDegree=4] [--threadCount=4]
+ * - Thread Pool 방식 (기본): java -jar batch.jar --billingStartDate=2024-03-01 --billingEndDate=2024-03-31
+ * - Partitioner 방식: java -jar batch.jar --spring.batch.job.names=partitionedMonthlyFeeCalculationJob --billingStartDate=2024-03-01 --billingEndDate=2024-03-31
+ * 
+ * 주의: --spring.batch.job.names이 지정된 경우, 이 CommandLineRunner는 실행되지 않습니다.
  */
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class BatchCommandLineRunner implements CommandLineRunner {
 
     private final JobLauncher jobLauncher;
     private final Job calculationJob;
+    
+    public BatchCommandLineRunner(JobLauncher jobLauncher, 
+                                 @Qualifier("monthlyFeeCalculationJob") Job calculationJob) {
+        this.jobLauncher = jobLauncher;
+        this.calculationJob = calculationJob;
+    }
 
     @Override
     public void run(String... args) throws Exception {
