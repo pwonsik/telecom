@@ -64,8 +64,9 @@ The system includes comprehensive batch processing capabilities:
   - Dependencies: Spring Data JPA, MyBatis, QueryDSL, MySQL Connector
   - Contains: Business entities, use cases, application services, infrastructure adapters
 - **web-service**: REST API layer depending on domain
-  - Dependencies: Spring Web, domain module
-  - Database: H2 in-memory for testing/development
+  - Dependencies: Spring Web, SpringDoc OpenAPI, MyBatis, domain module
+  - Database: MySQL for production, H2 in-memory for testing/development
+  - Features: REST API endpoints, Swagger documentation, global exception handling
 - **batch**: Spring Batch processing layer depending on domain for large-scale calculations
   - Dependencies: Spring Batch, MyBatis, domain module, MySQL Connector
   - Features: Multi-threaded processing, chunk-based processing, MySQL connection pooling
@@ -154,6 +155,8 @@ The system uses strategy pattern for pricing policies via `DefaultMonthlyChargin
 - **JPA with QueryDSL 5.0.0** for domain entity queries
 - **MyBatis 3.0.3** for complex SQL queries and batch processing with cursor-based reading
 - **Spring Batch** for large-scale multi-threaded data processing
+- **SpringDoc OpenAPI 3** (`springdoc-openapi-starter-webmvc-ui:2.3.0`) for API documentation
+- **Jakarta Validation** for request validation and data binding
 - **MySQL** as primary database with HikariCP connection pooling
 - **H2** for web-service development/testing
 - **JUnit 5** for testing (avoid mocking in domain tests)
@@ -597,3 +600,180 @@ public class MaintenanceFeeCalculator implements OneTimeChargeCalculator<Mainten
 - **Spring DI Best Practices**: Use `@Component` and `@Order` annotations instead of custom ordering methods; leverage automatic List injection and Map conversion
 - **Conditional Logic Elimination**: Avoid type-based conditional statements; use Map-based automatic type resolution patterns
 - **Marker Interface Design**: Use marker interfaces for type safety and compile-time verification in generic processing pipelines
+
+## Web Service Module Architecture
+
+### Module Dependencies and Configuration
+The web-service module implements REST API layer with the following key characteristics:
+
+**Dependencies:**
+- Depends on domain module for business logic
+- Uses MySQL for production, H2 in-memory for development/testing
+- Integrates SpringDoc OpenAPI 3 for API documentation
+- Jakarta Validation for request validation
+
+**Application Configuration:**
+```java
+@SpringBootApplication(scanBasePackages = {
+    "me.realimpact.telecom.calculation", 
+    "me.realimpact.telecom.billing.web"
+})
+@MapperScan("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis")
+```
+
+### REST API Endpoints
+
+**Calculation API (`/api/calculations`)**:
+- `POST /api/calculations` - Comprehensive billing calculation for contracts
+- Request: `CalculationRequest` with Jakarta Validation
+- Response: `List<CalculationResultGroup>` with calculation results
+- Supports multiple contracts in single request
+- Includes monthly fees, one-time charges, discounts, and VAT
+
+### Swagger/OpenAPI Documentation
+
+**Configuration:**
+- SpringDoc OpenAPI 3.x integration (`springdoc-openapi-starter-webmvc-ui:2.3.0`)
+- Automatic API documentation generation
+- Available at: `http://localhost:8080/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+- Custom OpenAPI configuration in `SwaggerConfig`
+
+**API Documentation Features:**
+- Comprehensive endpoint documentation with `@Operation`, `@ApiResponse`
+- Request/response schema definitions
+- Validation constraint documentation
+- Error response specifications
+
+### Exception Handling Architecture
+
+**GlobalExceptionHandler:**
+- `@ControllerAdvice` for centralized exception handling
+- Structured `ErrorResponse` record for consistent error format
+- Specific handlers for validation, binding, and business logic errors
+- Detailed field-level validation error reporting
+
+## MyBatis Configuration Patterns
+
+### Multi-Module MyBatis Setup
+
+**Domain Module Configuration:**
+- Contains all MyBatis Mapper XML files in `src/main/resources/mapper/`
+- Provides MyBatis configuration in `application.yml`
+- Type aliases package: `me.realimpact.telecom.calculation.infrastructure.dto`
+
+**Web Service Module Configuration:**
+- Uses `@MapperScan("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis")`
+- Inherits domain module MyBatis configuration via dependency
+- MySQL connection with HikariCP optimization for production
+- H2 in-memory database for development/testing
+
+### Mapper Organization Strategy
+
+**Mapper Interface Location:**
+```
+domain/src/main/java/me/realimpact/telecom/calculation/infrastructure/adapter/mybatis/
+├── ProductQueryMapper.java
+├── PreviewProductQueryMapper.java  # Preview-specific queries
+├── ContractDiscountMapper.java
+├── InstallationHistoryMapper.java
+├── DeviceInstallmentMapper.java
+├── RevenueMasterDataMapper.java
+└── CalculationResultMapper.java
+```
+
+**XML Mapper Location:**
+```
+domain/src/main/resources/mapper/
+├── ProductQueryMapper.xml
+├── PreviewProductQueryMapper.xml
+├── ContractDiscountMapper.xml
+└── [other mapper files]
+```
+
+### Dynamic Repository Resolution
+
+**Preview Product Query Pattern:**
+```java
+@Component
+public class ProductQueryPortResolver {
+    // Dynamic selection between production and preview repositories
+    // Based on runtime conditions or configuration
+}
+```
+
+## Web Service Development Guidelines
+
+### Controller Development Patterns
+
+**Standard Controller Template:**
+```java
+@Tag(name = "API Name", description = "API Description")
+@RestController
+@RequestMapping("/api/endpoint")
+@RequiredArgsConstructor
+@Validated
+@Slf4j
+public class ExampleController {
+    
+    @Operation(summary = "Operation summary", description = "Detailed description")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Success"),
+        @ApiResponse(responseCode = "400", description = "Bad Request"),
+        @ApiResponse(responseCode = "500", description = "Internal Server Error")
+    })
+    @PostMapping
+    public ResponseEntity<ResponseType> methodName(
+        @Parameter(description = "Parameter description", required = true)
+        @Valid @RequestBody RequestType request) {
+        // Implementation
+    }
+}
+```
+
+**Validation Best Practices:**
+- Use Jakarta Validation annotations (`@NotNull`, `@NotEmpty`, `@Valid`)
+- Implement comprehensive field validation in request records
+- Provide meaningful validation messages in Korean
+- Handle validation exceptions in GlobalExceptionHandler
+
+### Request/Response Design Patterns
+
+**Request Record Pattern:**
+```java
+public record CalculationRequest(
+    @NotEmpty(message = "계약 ID 목록은 비어있을 수 없습니다")
+    List<Long> contractIds,
+    
+    @NotNull(message = "청구 시작일은 필수입니다")
+    LocalDate billingStartDate,
+    
+    // other validated fields
+) {}
+```
+
+**Response Wrapper Pattern:**
+```java
+public record CalculationResultGroup(
+    List<CalculationResult<?>> calculationResults
+) {}
+```
+
+### Error Handling Best Practices
+
+**Structured Error Response:**
+```java
+public record ErrorResponse(
+    String errorCode,
+    String message,
+    Map<String, String> fieldErrors,
+    String path,
+    LocalDateTime timestamp
+) {}
+```
+
+**Exception Handling Strategy:**
+- Use `@ControllerAdvice` for global exception handling
+- Provide specific handlers for different exception types
+- Include field-level validation errors in responses
+- Log errors with appropriate levels (WARN for client errors, ERROR for server errors)
