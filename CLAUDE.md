@@ -228,12 +228,27 @@ The core complexity lies in:
 
 ## Spring Batch Architecture
 
-### Multi-threaded Processing Design
-- **Reader**: `ChunkedContractReader` reads contract IDs and builds `CalculationTarget` objects, wrapped in `SynchronizedItemStreamReader` for thread safety
+### Dual Batch Processing Architecture (2025)
+The system supports two parallel batch processing approaches for performance comparison and optimization:
+
+#### 1. Thread Pool Architecture (Original)
+- **Job Name**: `monthlyFeeCalculationJob`
+- **Execution**: `./run-batch-jar.sh`
+- **Reader**: `ChunkedContractReader` wrapped in `SynchronizedItemStreamReader` for thread safety
+- **Characteristics**: Dynamic work distribution, memory sharing across threads
+- **Thread Pool**: `ThreadPoolTaskExecutor` with configurable core/max pool sizes and queue capacity
+
+#### 2. Partitioner Architecture (New)
+- **Job Name**: `partitionedMonthlyFeeCalculationJob`
+- **Execution**: `./run-partitioned-batch-jar.sh`
+- **Reader**: `PartitionedContractReader` with partition-specific data loading
+- **Characteristics**: Static work distribution using `contractId % threadCount = partitionKey`
+- **Master-Worker Pattern**: `partitionedMasterStep` orchestrates `partitionedWorkerStep` execution
+
+### Common Components
 - **Processor**: `CalculationProcessor` processes `CalculationTarget` using multiple calculators with unified interface
 - **Writer**: `CalculationWriter` with thread-safe batch writing using `@Transactional`
 - **Chunk Size**: Configured via `BatchConstants.CHUNK_SIZE`, typically 100 items per chunk
-- **Thread Pool**: `ThreadPoolTaskExecutor` with configurable core/max pool sizes and queue capacity
 - **Calculator Orchestration**: Multiple calculators executed in sequence based on `@Order` annotation
 
 ### Batch Job Parameters
@@ -281,13 +296,40 @@ ORDER BY c.contract_id, po.product_offering_id, p.effective_start_date_time,
 
 Note: Updated from `mci.charge_item_id` to `ci.charge_item_id` following the MonthlyChargeItem → ChargeItem refactoring.
 
+### Partitioner Architecture Details
+
+#### ContractPartitioner Implementation
+- **Partition Logic**: `contractId % threadCount = partitionKey` for even data distribution
+- **Dynamic Sizing**: Thread count configurable via job parameters
+- **ExecutionContext**: Each partition receives `partitionKey` and `partitionCount` parameters
+- **Load Balancing**: Modulo arithmetic ensures even distribution for sequential contract IDs
+
+#### PartitionedContractReader Features
+- **Partition-Aware Reading**: Uses `@Value("#{stepExecutionContext['partitionKey']}")` for partition context
+- **Independent Data Loading**: Each partition processes only its assigned contract IDs
+- **Chunk Management**: Maintains same chunk-based processing as original (CHUNK_SIZE = 100)
+- **Fallback Handling**: Empty result queries for partitions with no matching contracts
+
+#### MyBatis Partition Extensions
+Added to `ContractQueryMapper.xml`:
+```sql
+<!-- Partition-based contract ID retrieval -->
+<select id="findContractIdsWithPartition" resultType="Long">
+    SELECT DISTINCT c.contract_id
+    FROM contract c
+    WHERE c.contract_id % #{partitionCount} = #{partitionKey}
+    AND <!-- standard date filtering conditions -->
+</select>
+```
+
 ### Batch Processing Considerations
-- **Reader Design**: Uses custom `ChunkedContractReader` with `CalculationTarget` construction instead of MyBatisPagingItemReader to avoid ExecutorType conflicts
-- **Transaction Management**: Uses Spring's declarative `@Transactional` in Writers, avoiding manual SqlSession management
+- **Reader Design**: 
+  - Thread Pool: Uses `ChunkedContractReader` with `SynchronizedItemStreamReader` for thread safety
+  - Partitioner: Uses `PartitionedContractReader` with partition-specific data loading
+- **Transaction Management**: Uses Spring's declarative `@Transactional` in Writers for both approaches
 - **Memory Management**: Chunk-based processing with controlled batch sizes prevents memory issues
-- **Thread Safety**: `SynchronizedItemStreamReader` wrapper ensures thread-safe reading in multi-threaded environment
 - **Connection Pooling**: HikariCP configuration optimized for multi-threaded batch processing (max pool size: 20)
-- **Data Loading Strategy**: Bulk loading of related data (products, suspensions, installations, installments) in single query operations
+- **Data Loading Strategy**: Bulk loading of related data (products, suspensions, installations, installments)
 - **Calculator Integration**: Seamless integration of multiple calculators through unified interface pattern
 
 ### Infrastructure Layer Updates
@@ -305,13 +347,28 @@ For detailed MyBatis paging usage, see `MYBATIS_PAGING_USAGE.md`
 - **ExecutorType Conflicts**: `TransientDataAccessResourceException: Cannot change the ExecutorType when there is an existing transaction`
   - Cause: MyBatisPagingItemReader attempts to change ExecutorType to BATCH within existing transaction
   - Solution: Use MyBatisCursorItemReader instead, or implement custom pagination logic
-- **Thread Safety**: Ensure all ItemReaders are wrapped with SynchronizedItemStreamReader for multi-threaded processing
+- **Thread Safety**: 
+  - Thread Pool: Ensure all ItemReaders are wrapped with SynchronizedItemStreamReader
+  - Partitioner: Each partition operates independently, no synchronization needed
 - **Transaction Boundaries**: Multi-threaded processing means each thread manages its own transaction scope
 
+### Partitioner-Specific Troubleshooting
+- **Bean Conflicts**: Use `@Qualifier` to specify correct Job when multiple batch configurations exist
+  ```java
+  @Qualifier("monthlyFeeCalculationJob") Job calculationJob
+  ```
+- **SpEL Expression Issues**: Use `@StepScope` for partition-aware parameter injection
+  ```java
+  @Value("#{stepExecutionContext['partitionKey']}")
+  ```
+- **Empty Partitions**: Handle cases where `contractId % threadCount` results in no matches
+- **Uneven Distribution**: Monitor partition load balance for non-sequential contract IDs
+
 ### Dependency Injection Best Practices
-- Use `@RequiredArgsConstructor` with Lombok instead of `@Autowired` field injection
+- Use explicit constructors with `@Qualifier` instead of `@RequiredArgsConstructor` for bean disambiguation
 - Ensure all batch components are `@StepScope` or `@JobScope` for proper parameter injection
-- Job parameters are injected at runtime via SpEL expressions: `@Value("#{jobParameters['paramName']}")`
+- Job parameters are injected at runtime via SpEL expressions: `@Value("#{jobParameters['paramName']}"`
+- Partitioner components require `@StepScope` for ExecutionContext access
 
 ## Error Handling and Monitoring
 
@@ -322,6 +379,17 @@ Spring Batch stores execution metadata in these tables:
 - `BATCH_STEP_EXECUTION`: Step-level execution metrics
 
 ### Performance Optimization
+
+#### Thread Pool vs Partitioner Comparison
+| Aspect | Thread Pool | Partitioner |
+|--------|-------------|-------------|
+| **Work Distribution** | Dynamic (SynchronizedItemStreamReader) | Static (Modulo-based) |
+| **Memory Usage** | Shared memory across threads | Independent partition memory |
+| **Load Balancing** | Runtime work stealing | Predetermined data distribution |
+| **Scalability** | Limited by synchronization overhead | Linear scaling per partition |
+| **Data Locality** | Mixed contract processing | Partition-specific processing |
+
+#### Common Settings
 - **Chunk Size**: Configured via `BatchConstants.CHUNK_SIZE`, typically 100 for optimal performance
 - **Thread Count**: Configurable via `threadCount` job parameter (default: 8 threads)
 - **Connection Pool**: HikariCP optimized for batch processing
@@ -333,6 +401,20 @@ Spring Batch stores execution metadata in these tables:
   - Statement timeout: 0 (unlimited for batch)
   - Cache disabled for batch processing
 - **JVM Memory**: Recommended `-Xmx2g` for large dataset processing
+
+#### Execution Commands
+```bash
+# Thread Pool execution
+./run-batch-jar.sh
+
+# Partitioner execution  
+./run-partitioned-batch-jar.sh
+
+# Manual JAR execution with job selection
+java -jar batch/build/libs/batch-0.0.1-SNAPSHOT.jar \
+  --spring.batch.job.names=partitionedMonthlyFeeCalculationJob \
+  --billingStartDate=2025-03-01 --billingEndDate=2025-03-31 --threadCount=8
+```
 
 ## New Development Patterns and Best Practices
 
