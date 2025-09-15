@@ -136,9 +136,9 @@ public class CalculationBatchConfig {
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
             @Value("${contractIds:}") String contractIdsStr,
-            @Value("${batch.thread-count:8}") Integer threadCount,
-            @Value("${billingCalculationType:B0}") String billingCalculationTypeStr,
-            @Value("${billingCalculationPeriod:0}") String billingCalculationPeriodStr,
+            @Value("${batch.thread-count}") Integer threadCount,
+            @Value("${billingCalculationType}") String billingCalculationTypeStr,
+            @Value("${billingCalculationPeriod}") String billingCalculationPeriodStr,
             CalculationCommandService calculationCommandService
     ) {
         log.info("=== ChunkedContractReader Bean 생성 시작 === billingStartDate: {}, billingEndDate: {}, threadCount: {}",
@@ -168,9 +168,9 @@ public class CalculationBatchConfig {
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
             @Value("${contractIds:}") String contractIdsStr,
-            @Value("${batch.thread-count:8}") Integer threadCount,
-            @Value("${billingCalculationType:B0}") String billingCalculationTypeStr,
-            @Value("${billingCalculationPeriod:0}") String billingCalculationPeriodStr,
+            @Value("${batch.thread-count}") Integer threadCount,
+            @Value("${billingCalculationType}") String billingCalculationTypeStr,
+            @Value("${billingCalculationPeriod}") String billingCalculationPeriodStr,
             CalculationCommandService calculationCommandService
     ) {
         log.info("=== SynchronizedItemStreamReader Bean 생성 시작 === billingStartDate: {}, threadCount: {}",
@@ -193,9 +193,9 @@ public class CalculationBatchConfig {
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
             @Value("${contractIds:}") String contractIdsStr,
-            @Value("${batch.thread-count:8}") Integer threadCount,
-            @Value("${billingCalculationType:B0}") String billingCalculationTypeStr,
-            @Value("${billingCalculationPeriod:0}") String billingCalculationPeriodStr,
+            @Value("${batch.thread-count}") Integer threadCount,
+            @Value("${billingCalculationType}") String billingCalculationTypeStr,
+            @Value("${billingCalculationPeriod}") String billingCalculationPeriodStr,
             CalculationCommandService calculationCommandService
     ) {
         log.info("=== CalculationProcessor Bean 생성 시작 === billingStartDate: {}, threadCount: {}",
@@ -221,9 +221,9 @@ public class CalculationBatchConfig {
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
             @Value("${contractIds:}") String contractIdsStr,
-            @Value("${batch.thread-count:8}") Integer threadCount,
-            @Value("${billingCalculationType:B0}") String billingCalculationTypeStr,
-            @Value("${billingCalculationPeriod:0}") String billingCalculationPeriodStr
+            @Value("${batch.thread-count}") Integer threadCount,
+            @Value("${billingCalculationType}") String billingCalculationTypeStr,
+            @Value("${billingCalculationPeriod}") String billingCalculationPeriodStr
     ) {
         log.info("=== CalculationWriter Bean 생성 시작 === billingStartDate: {}, threadCount: {}",
                 billingStartDateStr, threadCount);

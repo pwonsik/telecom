@@ -19,12 +19,11 @@ import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SI
 
 /**
  * 파티션 기반 계약 Reader
- * contractId % partitionCount = partitionKey 조건으로 데이터를 분할 처리
+ * 파티션별로 독립적인 MyBatisCursorItemReader 인스턴스 생성
  */
 @Slf4j
 public class PartitionedContractReader implements ItemStreamReader<CalculationTarget> {
 
-    //-- 인터페이스 주입이 아닌 구현체 주입.. 배치는 read, process, write를 나눠서 호출해야 해서 어쩔 수 없이.
     private final CalculationCommandService calculationCommandService;
     private final SqlSessionFactory sqlSessionFactory;
     private final CalculationParameters calculationParameters;
@@ -53,10 +52,9 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
     @Override
     public void open(ExecutionContext executionContext) throws ItemStreamException {
         if (!initialized) {
-            log.info("=== 파티션별 Reader 초기화 ===");
-            log.info("Partition Key: {}", partitionKey);
-            log.info("Partition Count: {}", partitionCount);
-            
+            log.info("=== 파티션별 Reader 초기화 (파티션 {}) ===", partitionKey);
+            log.info("Partition Key: {}, Partition Count: {}", partitionKey, partitionCount);
+
             initializePartitionedContractIdReader();
             contractIdReader.open(executionContext);
             initialized = true;
@@ -97,32 +95,33 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
         }
     }
 
+
     /**
      * 파티션 조건이 적용된 Contract ID Reader 초기화
      */
     private void initializePartitionedContractIdReader() {
         contractIdReader = new MyBatisCursorItemReader<>();
         contractIdReader.setSqlSessionFactory(sqlSessionFactory);
-        
+
         // 파티션 조건이 포함된 쿼리 사용
         if (calculationParameters.getContractIds().isEmpty()) {
             // 전체 계약 대상 (파티션 조건 적용)
             contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findContractIdsWithPartition");
-            
+
             Map<String, Object> parameterValues = new HashMap<>();
             parameterValues.put("partitionKey", partitionKey);
             parameterValues.put("partitionCount", partitionCount);
             parameterValues.put("billingStartDate", calculationParameters.getBillingStartDate());
             parameterValues.put("billingEndDate", calculationParameters.getBillingEndDate());
             contractIdReader.setParameterValues(parameterValues);
-            
+
             log.info("전체 계약 조회 (파티션 조건 적용): contractId % {} = {}", partitionCount, partitionKey);
         } else {
             // 특정 계약 대상 (파티션 조건 적용)
             List<Long> filteredContractIds = calculationParameters.getContractIds().stream()
                     .filter(contractId -> contractId % partitionCount == partitionKey)
                     .toList();
-            
+
             if (filteredContractIds.isEmpty()) {
                 log.info("파티션 {}에 해당하는 계약이 없습니다.", partitionKey);
                 // 빈 결과를 반환하도록 설정
@@ -130,11 +129,11 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
                 contractIdReader.setParameterValues(new HashMap<>());
             } else {
                 contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findSpecificContractIds");
-                
+
                 Map<String, Object> parameterValues = new HashMap<>();
                 parameterValues.put("contractIds", filteredContractIds);
                 contractIdReader.setParameterValues(parameterValues);
-                
+
                 log.info("특정 계약 조회 (파티션 필터링 적용): {} 건", filteredContractIds.size());
             }
         }
@@ -144,7 +143,6 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
      * 다음 청크 로드 (ChunkedContractReader 로직과 동일)
      */
     private void loadNextChunk() throws Exception {
-        //log.debug("=== PartitionedContractReader loadNextChunk (파티션: {}) ===", partitionKey);
         
         List<Long> contractIds = new ArrayList<>();
         

@@ -100,7 +100,7 @@ public class PartitionedCalculationBatchConfig {
      */
     @Bean("partitionedTaskExecutor")
     public TaskExecutor partitionedTaskExecutor(
-            @Value("${batch.thread-count:8}") Integer threadCount
+            @Value("${batch.thread-count}") Integer threadCount
     ) {
         log.info("=== PartitionedTaskExecutor Bean 생성 시작 === threadCount: {}", threadCount);
 
@@ -126,7 +126,7 @@ public class PartitionedCalculationBatchConfig {
      * Contract Partitioner Bean - Step 실행 시 동적으로 thread count 결정
      */
     @Bean("contractPartitioner")
-    public Partitioner contractPartitioner(@Value("${batch.thread-count:8}") Integer threadCount) {
+    public Partitioner contractPartitioner(@Value("${batch.thread-count}") Integer threadCount) {
         log.info("=== ContractPartitioner Bean 생성 시작 === threadCount: {}", threadCount);
 
         ContractPartitioner partitioner = new ContractPartitioner(threadCount);
@@ -134,6 +134,7 @@ public class PartitionedCalculationBatchConfig {
         log.info("=== ContractPartitioner Bean 생성 완료 === 파티션 수: {}", threadCount);
         return partitioner;
     }
+
 
     /**
      * 파티션별 Contract Reader
@@ -144,9 +145,9 @@ public class PartitionedCalculationBatchConfig {
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
             @Value("${contractIds:}") String contractIdsStr,
-            @Value("${batch.thread-count:8}") Integer threadCount,
-            @Value("${billingCalculationType:B0}") String billingCalculationTypeStr,
-            @Value("${billingCalculationPeriod:0}") String billingCalculationPeriodStr,
+            @Value("${batch.thread-count}") Integer threadCount,
+            @Value("${billingCalculationType}") String billingCalculationTypeStr,
+            @Value("${billingCalculationPeriod}") String billingCalculationPeriodStr,
             @Value("#{stepExecutionContext['partitionKey']}") Integer partitionKey,
             @Value("#{stepExecutionContext['partitionCount']}") Integer partitionCount
     ) {
@@ -171,14 +172,14 @@ public class PartitionedCalculationBatchConfig {
     }
 
     @Bean("partitionedCalculationProcessor")
-    @JobScope
+    @StepScope
     public ItemProcessor<CalculationTarget, CalculationResultGroup> partitionedCalculationProcessor(
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
             @Value("${contractIds:}") String contractIdsStr,
-            @Value("${batch.thread-count:8}") Integer threadCount,
-            @Value("${billingCalculationType:B0}") String billingCalculationTypeStr,
-            @Value("${billingCalculationPeriod:0}") String billingCalculationPeriodStr
+            @Value("${batch.thread-count}") Integer threadCount,
+            @Value("${billingCalculationType}") String billingCalculationTypeStr,
+            @Value("${billingCalculationPeriod}") String billingCalculationPeriodStr
     ) {
         log.info("=== PartitionedCalculationProcessor Bean 생성 시작 === billingStartDate: {}, threadCount: {}",
                 billingStartDateStr, threadCount);
@@ -198,14 +199,14 @@ public class PartitionedCalculationBatchConfig {
      * 파티션별 Writer Bean
      */
     @Bean("partitionedCalculationWriter")
-    @JobScope
+    @StepScope
     public ItemWriter<CalculationResultGroup> partitionedCalculationWriter(
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
             @Value("${contractIds:}") String contractIdsStr,
-            @Value("${batch.thread-count:8}") Integer threadCount,
-            @Value("${billingCalculationType:B0}") String billingCalculationTypeStr,
-            @Value("${billingCalculationPeriod:0}") String billingCalculationPeriodStr
+            @Value("${batch.thread-count}") Integer threadCount,
+            @Value("${billingCalculationType}") String billingCalculationTypeStr,
+            @Value("${billingCalculationPeriod}") String billingCalculationPeriodStr
     ) {
         log.info("=== PartitionedCalculationWriter Bean 생성 시작 === billingStartDate: {}, threadCount: {}",
                 billingStartDateStr, threadCount);
@@ -276,8 +277,7 @@ public class PartitionedCalculationBatchConfig {
      * Partitioned Job - Cleanup → Master Step 순서로 실행
      */
     @Bean("partitionedMonthlyFeeCalculationJob")
-    public Job partitionedMonthlyFeeCalculationJob(
-            CalculationResultCleanupTasklet calculationResultCleanupTasklet) {
+    public Job partitionedMonthlyFeeCalculationJob(CalculationResultCleanupTasklet calculationResultCleanupTasklet) {
         return new JobBuilder("partitionedMonthlyFeeCalculationJob", jobRepository)
                 .start(partitionedCleanupCalculationResultStep(calculationResultCleanupTasklet))  // 1. 기존 결과 삭제
                 .next(partitionedMasterStep())                                                     // 2. 파티션 기반 계산 수행
