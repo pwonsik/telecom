@@ -2,15 +2,9 @@ package me.realimpact.telecom.billing.batch.reader;
 
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
-import me.realimpact.telecom.billing.batch.util.JsonLoggingHelper;
 import me.realimpact.telecom.calculation.application.CalculationCommandService;
 import me.realimpact.telecom.calculation.application.CalculationTarget;
-import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
-import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
-import me.realimpact.telecom.calculation.domain.discount.ContractDiscounts;
-import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
-import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeDataLoader;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -20,12 +14,9 @@ import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.support.ListItemReader;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
 
-@StepScope
 @Slf4j
 public class ChunkedContractReader implements ItemStreamReader<CalculationTarget> {
 
@@ -34,7 +25,6 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
 
     private final SqlSessionFactory sqlSessionFactory;
     private final CalculationParameters calculationParameters;
-    private final JsonLoggingHelper jsonLoggingHelper;
 
     private static final int chunkSize = CHUNK_SIZE;
 
@@ -48,13 +38,11 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
     public ChunkedContractReader(
             CalculationCommandService calculationCommandService,
             SqlSessionFactory sqlSessionFactory,
-            CalculationParameters calculationParameters,
-            JsonLoggingHelper jsonLoggingHelper) {
+            CalculationParameters calculationParameters) {
         
         this.calculationCommandService = calculationCommandService;
         this.sqlSessionFactory = sqlSessionFactory;
         this.calculationParameters = calculationParameters;
-        this.jsonLoggingHelper = jsonLoggingHelper;
     }
 
     

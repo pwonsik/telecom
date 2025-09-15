@@ -3,21 +3,16 @@ package me.realimpact.telecom.billing.batch.config;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
-import me.realimpact.telecom.billing.batch.CalculationResultGroup;
 import me.realimpact.telecom.billing.batch.partitioner.ContractPartitioner;
 import me.realimpact.telecom.billing.batch.processor.CalculationProcessor;
-import me.realimpact.telecom.billing.batch.reader.CalculationTarget;
 import me.realimpact.telecom.billing.batch.reader.PartitionedContractReader;
 import me.realimpact.telecom.billing.batch.tasklet.CalculationResultCleanupTasklet;
 import me.realimpact.telecom.billing.batch.writer.CalculationWriter;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.BillingCalculationType;
-import me.realimpact.telecom.calculation.application.discount.CalculationResultProrater;
-import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
-import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
-import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
-import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
-import me.realimpact.telecom.calculation.application.vat.VatCalculator;
+import me.realimpact.telecom.calculation.api.CalculationResultGroup;
+import me.realimpact.telecom.calculation.application.CalculationCommandService;
+import me.realimpact.telecom.calculation.application.CalculationTarget;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
@@ -35,6 +30,7 @@ import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
@@ -53,7 +49,8 @@ import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SI
  */
 @Configuration
 @RequiredArgsConstructor
-@MapperScan("me.realimpact.telecom.calculation.infrastructure.adapter")
+//@MapperScan("me.realimpact.telecom.calculation.infrastructure.adapter")
+@ConditionalOnProperty(name = "spring.batch.job.names", havingValue = "partitionedMonthlyFeeCalculationJob")
 @Slf4j
 public class PartitionedCalculationBatchConfig {
 
@@ -61,25 +58,19 @@ public class PartitionedCalculationBatchConfig {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
 
-    private final BaseFeeCalculator baseFeeCalculator;
-    private final DeviceInstallmentCalculator deviceInstallmentCalculator;
-    private final InstallationFeeCalculator installationFeeCalculator;
-    private final CalculationResultProrater calculationResultProrater;
-
-    private final VatCalculator vatCalculator;
-    private final DiscountCalculator discountCalculator;
-
+    private final CalculationCommandService calculationCommandService;
     private final CalculationResultSavePort calculationResultSavePort;
 
-    @Bean("partitionedCalculationParameters")
-    @StepScope
-    public CalculationParameters partitionedCalculationParameters(
-        @Value("#{jobParameters['billingStartDate']}") String billingStartDateStr,
-        @Value("#{jobParameters['billingEndDate']}") String billingEndDateStr,
-        @Value("#{jobParameters['contractId']}") String contractIdsStr,
-        @Value("#{jobParameters['threadCount']}") String threadCountStr,
-        @Value("#{jobParameters['billingCalculationType']}") String billingCalculationTypeStr,
-        @Value("#{jobParameters['billingCalculationPeriod']}") String billingCalculationPeriodStr
+    /**
+     * Helper method to create CalculationParameters from individual parameters
+     */
+    private CalculationParameters createCalculationParameters(
+            String billingStartDateStr,
+            String billingEndDateStr,
+            String contractIdsStr,
+            Integer threadCount,
+            String billingCalculationTypeStr,
+            String billingCalculationPeriodStr
     ) {
         LocalDate billingStartDate = LocalDate.parse(billingStartDateStr);
         LocalDate billingEndDate = LocalDate.parse(billingEndDateStr);
@@ -94,39 +85,40 @@ public class PartitionedCalculationBatchConfig {
         BillingCalculationType billingCalculationType = BillingCalculationType.fromCode(billingCalculationTypeStr);
         BillingCalculationPeriod billingCalculationPeriod = BillingCalculationPeriod.fromCode(billingCalculationPeriodStr);
 
-        int threadCount = Integer.parseInt(threadCountStr);
-
         return new CalculationParameters(
             billingStartDate,
             billingEndDate,
             billingCalculationType,
             billingCalculationPeriod,
             threadCount,
-            contractIds);
+            contractIds
+        );
     }
 
     /**
      * 파티션 기반 처리를 위한 TaskExecutor 설정
-     * 기본 8개 스레드로 설정, Job Parameter로 동적 변경 불가
      */
     @Bean("partitionedTaskExecutor")
-    public TaskExecutor partitionedTaskExecutor() {
-        int threadCount = 8; // 기본값으로 고정
+    public TaskExecutor partitionedTaskExecutor(
+            @Value("${batch.thread-count:8}") Integer threadCount
+    ) {
+        log.info("=== PartitionedTaskExecutor Bean 생성 시작 === threadCount: {}", threadCount);
+
         int maxThreadCount = threadCount * 2;
 
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(threadCount);        
-        executor.setMaxPoolSize(maxThreadCount);      
-        executor.setQueueCapacity(1000);              
+        executor.setCorePoolSize(threadCount);
+        executor.setMaxPoolSize(maxThreadCount);
+        executor.setQueueCapacity(1000);
         executor.setThreadNamePrefix("partitioned-batch-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(60);
+        executor.setAwaitTerminationSeconds(10);
         executor.initialize();
-        
-        log.info("=== 파티션 TaskExecutor 설정 ===");
+
+        log.info("=== PartitionedTaskExecutor Bean 생성 완료 ===");
         log.info("쓰레드 수: {}", threadCount);
         log.info("최대 쓰레드 수: {}", maxThreadCount);
-        
+
         return executor;
     }
 
@@ -134,11 +126,13 @@ public class PartitionedCalculationBatchConfig {
      * Contract Partitioner Bean - Step 실행 시 동적으로 thread count 결정
      */
     @Bean("contractPartitioner")
-    @StepScope
-    public Partitioner contractPartitioner(@Value("#{jobParameters['threadCount']}") String threadCountStr) {
-        int threadCount = threadCountStr != null ? Integer.parseInt(threadCountStr) : 8;
-        log.info("파티션 수 설정: {}", threadCount);
-        return new ContractPartitioner(threadCount);
+    public Partitioner contractPartitioner(@Value("${batch.thread-count:8}") Integer threadCount) {
+        log.info("=== ContractPartitioner Bean 생성 시작 === threadCount: {}", threadCount);
+
+        ContractPartitioner partitioner = new ContractPartitioner(threadCount);
+
+        log.info("=== ContractPartitioner Bean 생성 완료 === 파티션 수: {}", threadCount);
+        return partitioner;
     }
 
     /**
@@ -146,41 +140,85 @@ public class PartitionedCalculationBatchConfig {
      */
     @Bean("partitionedContractReader")
     @StepScope
-    public ItemReader<CalculationTarget> partitionedContractReader() {
-        return new PartitionedContractReader(
-                baseFeeCalculator,
-                installationFeeCalculator,
-                deviceInstallmentCalculator,
-                discountCalculator,
-                sqlSessionFactory,
-                partitionedCalculationParameters(null, null, null, null, null, null)
+    public ItemReader<CalculationTarget> partitionedContractReader(
+            @Value("${billingStartDate}") String billingStartDateStr,
+            @Value("${billingEndDate}") String billingEndDateStr,
+            @Value("${contractIds:}") String contractIdsStr,
+            @Value("${batch.thread-count:8}") Integer threadCount,
+            @Value("${billingCalculationType:B0}") String billingCalculationTypeStr,
+            @Value("${billingCalculationPeriod:0}") String billingCalculationPeriodStr,
+            @Value("#{stepExecutionContext['partitionKey']}") Integer partitionKey,
+            @Value("#{stepExecutionContext['partitionCount']}") Integer partitionCount
+    ) {
+        log.info("=== PartitionedContractReader Bean 생성 시작 === billingStartDate: {}, threadCount: {}, partitionKey: {}, partitionCount: {}",
+                billingStartDateStr, threadCount, partitionKey, partitionCount);
+
+        CalculationParameters params = createCalculationParameters(
+                billingStartDateStr, billingEndDateStr, contractIdsStr,
+                threadCount, billingCalculationTypeStr, billingCalculationPeriodStr
         );
+
+        PartitionedContractReader reader = new PartitionedContractReader(
+                calculationCommandService,
+                sqlSessionFactory,
+                params,
+                partitionKey,
+                partitionCount
+        );
+
+        log.info("=== PartitionedContractReader Bean 생성 완료 ===");
+        return reader;
     }
 
     @Bean("partitionedCalculationProcessor")
-    @StepScope
-    public ItemProcessor<CalculationTarget, CalculationResultGroup> partitionedCalculationProcessor() {
-        return new CalculationProcessor(
-                baseFeeCalculator,
-                installationFeeCalculator,
-                deviceInstallmentCalculator,
-                calculationResultProrater,
-                discountCalculator,
-                vatCalculator,
-                partitionedCalculationParameters(null, null, null, null, null, null)
+    @JobScope
+    public ItemProcessor<CalculationTarget, CalculationResultGroup> partitionedCalculationProcessor(
+            @Value("${billingStartDate}") String billingStartDateStr,
+            @Value("${billingEndDate}") String billingEndDateStr,
+            @Value("${contractIds:}") String contractIdsStr,
+            @Value("${batch.thread-count:8}") Integer threadCount,
+            @Value("${billingCalculationType:B0}") String billingCalculationTypeStr,
+            @Value("${billingCalculationPeriod:0}") String billingCalculationPeriodStr
+    ) {
+        log.info("=== PartitionedCalculationProcessor Bean 생성 시작 === billingStartDate: {}, threadCount: {}",
+                billingStartDateStr, threadCount);
+
+        CalculationParameters params = createCalculationParameters(
+                billingStartDateStr, billingEndDateStr, contractIdsStr,
+                threadCount, billingCalculationTypeStr, billingCalculationPeriodStr
         );
+
+        CalculationProcessor processor = new CalculationProcessor(calculationCommandService, params);
+        log.info("=== PartitionedCalculationProcessor Bean 생성 완료 ===");
+
+        return processor;
     }
 
     /**
      * 파티션별 Writer Bean
      */
     @Bean("partitionedCalculationWriter")
-    @StepScope
-    public ItemWriter<CalculationResultGroup> partitionedCalculationWriter() {
-        return new CalculationWriter(
-                calculationResultSavePort, 
-                partitionedCalculationParameters(null, null, null, null, null, null)
+    @JobScope
+    public ItemWriter<CalculationResultGroup> partitionedCalculationWriter(
+            @Value("${billingStartDate}") String billingStartDateStr,
+            @Value("${billingEndDate}") String billingEndDateStr,
+            @Value("${contractIds:}") String contractIdsStr,
+            @Value("${batch.thread-count:8}") Integer threadCount,
+            @Value("${billingCalculationType:B0}") String billingCalculationTypeStr,
+            @Value("${billingCalculationPeriod:0}") String billingCalculationPeriodStr
+    ) {
+        log.info("=== PartitionedCalculationWriter Bean 생성 시작 === billingStartDate: {}, threadCount: {}",
+                billingStartDateStr, threadCount);
+
+        CalculationParameters params = createCalculationParameters(
+                billingStartDateStr, billingEndDateStr, contractIdsStr,
+                threadCount, billingCalculationTypeStr, billingCalculationPeriodStr
         );
+
+        CalculationWriter writer = new CalculationWriter(calculationResultSavePort, params);
+        log.info("=== PartitionedCalculationWriter Bean 생성 완료 ===");
+
+        return writer;
     }
 
     /**
@@ -190,9 +228,9 @@ public class PartitionedCalculationBatchConfig {
     public Step partitionedWorkerStep() {
         return new StepBuilder("partitionedWorkerStep", jobRepository)
                 .<CalculationTarget, CalculationResultGroup>chunk(CHUNK_SIZE, transactionManager)
-                .reader(partitionedContractReader())
-                .processor(partitionedCalculationProcessor())
-                .writer(partitionedCalculationWriter())
+                .reader(partitionedContractReader(null, null, null, null, null, null, null, null))
+                .processor(partitionedCalculationProcessor(null, null, null, null, null, null))
+                .writer(partitionedCalculationWriter(null, null, null, null, null, null))
                 .build();
     }
 
@@ -200,18 +238,16 @@ public class PartitionedCalculationBatchConfig {
      * Partition Handler - 파티션들을 관리하고 병렬 실행
      */
     @Bean("partitionHandler")
-    @StepScope
-    public PartitionHandler partitionHandler(@Value("#{jobParameters['threadCount']}") String threadCountStr) {
-        int threadCount = threadCountStr != null ? Integer.parseInt(threadCountStr) : 8;
-        
+    public PartitionHandler partitionHandler(@Value("${batch.thread-count:8}") Integer threadCount) {
+        log.info("=== PartitionHandler Bean 생성 시작 === threadCount: {}", threadCount);
+
         TaskExecutorPartitionHandler partitionHandler = new TaskExecutorPartitionHandler();
         partitionHandler.setStep(partitionedWorkerStep());
-        partitionHandler.setTaskExecutor(partitionedTaskExecutor());
+        partitionHandler.setTaskExecutor(partitionedTaskExecutor(threadCount));
         partitionHandler.setGridSize(threadCount);  // 파티션 수 설정
-        
-        log.info("=== PartitionHandler 설정 ===");
-        log.info("Grid Size (파티션 수): {}", threadCount);
-        
+
+        log.info("=== PartitionHandler Bean 생성 완료 === Grid Size (파티션 수): {}", threadCount);
+
         return partitionHandler;
     }
 
@@ -219,7 +255,6 @@ public class PartitionedCalculationBatchConfig {
      * Master Step - Partitioner를 이용해 파티션을 생성하고 Worker Step들을 병렬 실행
      */
     @Bean("partitionedMasterStep")
-    @StepScope
     public Step partitionedMasterStep() {
         return new StepBuilder("partitionedMasterStep", jobRepository)
                 .partitioner("partitionedWorkerStep", contractPartitioner(null))

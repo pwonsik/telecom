@@ -8,15 +8,21 @@ spring:
       maximum-pool-size: 20   # 멀티쓰레드 처리를 위해 증가
       minimum-idle: 8         # 최소 유지 커넥션 수 증가
       connection-timeout: 60000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+      idle-timeout: 30000     # 30초로 단축 (프로그램 종료 개선)
+      max-lifetime: 60000     # 1분으로 단축 (프로그램 종료 개선)
   batch:
     job:
-      enabled: false   # CommandLineRunner에서 수동으로 실행
+      enabled: true   # Spring Batch 자동 실행 활성화 (--spring.batch.job.names 파라미터 지원)
     jdbc:
       initialize-schema: always  # Spring Batch 테이블 자동 생성
   main:
     web-application-type: none  # 웹 서버 비활성화
+    keep-alive: false           # JVM 종료 허용
+
+# Batch 처리 설정
+batch:
+  thread-count: 8     # 기본 스레드 수
+  chunk-size: 100     # 청크 크기
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml

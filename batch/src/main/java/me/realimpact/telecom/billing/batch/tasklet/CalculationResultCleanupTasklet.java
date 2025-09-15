@@ -15,10 +15,10 @@ import org.springframework.stereotype.Component;
  * 계산 결과 정리 Tasklet
  * 배치 실행 전에 해당 청구 기간의 기존 계산 결과를 삭제한다.
  */
-@Component
-@StepScope
+
 @RequiredArgsConstructor
 @Slf4j
+@Component
 public class CalculationResultCleanupTasklet implements Tasklet {
     
     private final CalculationResultMapper calculationResultMapper;

@@ -1,14 +1,10 @@
 package me.realimpact.telecom.billing.batch.reader;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
-import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
-import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
-import me.realimpact.telecom.calculation.application.onetimecharge.policy.DeviceInstallmentCalculator;
-import me.realimpact.telecom.calculation.application.onetimecharge.policy.InstallationFeeCalculator;
+import me.realimpact.telecom.calculation.application.CalculationCommandService;
+import me.realimpact.telecom.calculation.application.CalculationTarget;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
-import me.realimpact.telecom.calculation.domain.discount.ContractDiscounts;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -16,11 +12,8 @@ import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.support.ListItemReader;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.*;
-import java.util.Optional;
-import java.util.Collections;
 
 import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
 
@@ -28,31 +21,35 @@ import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SI
  * 파티션 기반 계약 Reader
  * contractId % partitionCount = partitionKey 조건으로 데이터를 분할 처리
  */
-@StepScope
-@RequiredArgsConstructor
 @Slf4j
 public class PartitionedContractReader implements ItemStreamReader<CalculationTarget> {
 
-    private final BaseFeeCalculator baseFeeCalculator;
-    private final InstallationFeeCalculator installationFeeCalculator;
-    private final DeviceInstallmentCalculator deviceInstallmentCalculator;
-    private final DiscountCalculator discountCalculator;
-
+    //-- 인터페이스 주입이 아닌 구현체 주입.. 배치는 read, process, write를 나눠서 호출해야 해서 어쩔 수 없이.
+    private final CalculationCommandService calculationCommandService;
     private final SqlSessionFactory sqlSessionFactory;
     private final CalculationParameters calculationParameters;
-    
-    @Value("#{stepExecutionContext['partitionKey']}")
-    private Integer partitionKey;
-    
-    @Value("#{stepExecutionContext['partitionCount']}")
-    private Integer partitionCount;
-    
+    private final Integer partitionKey;
+    private final Integer partitionCount;
+
     private static final int chunkSize = CHUNK_SIZE;
-    
+
     private MyBatisCursorItemReader<Long> contractIdReader;
     private ListItemReader<CalculationTarget> currentChunkReader;
     private boolean initialized = false;
-    
+
+    public PartitionedContractReader(
+            CalculationCommandService calculationCommandService,
+            SqlSessionFactory sqlSessionFactory,
+            CalculationParameters calculationParameters,
+            Integer partitionKey,
+            Integer partitionCount) {
+        this.calculationCommandService = calculationCommandService;
+        this.sqlSessionFactory = sqlSessionFactory;
+        this.calculationParameters = calculationParameters;
+        this.partitionKey = partitionKey;
+        this.partitionCount = partitionCount;
+    }
+
     @Override
     public void open(ExecutionContext executionContext) throws ItemStreamException {
         if (!initialized) {
@@ -171,34 +168,6 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
 
     private List<CalculationTarget> getCalculationTargets(List<Long> contractIds) {
         CalculationContext ctx = calculationParameters.toCalculationContext();
-        // 월정액
-        var contractWithProductsAndSuspensionsMap = baseFeeCalculator.read(ctx, contractIds);
-        // 설치비
-        var installationHistoriesMap = installationFeeCalculator.read(ctx, contractIds);
-        // 할부
-        var deviceInstallmentMastersMap = deviceInstallmentCalculator.read(ctx, contractIds);
-        // 할인
-        var contractDiscountsMap = discountCalculator.read(ctx, contractIds);
-
-        List<CalculationTarget> calculationTargets = new ArrayList<>();
-        // 모든 조회 대상을 calculationTarget으로 모은다.
-        for (Long contractId : contractIds) {
-            var discounts = Optional.ofNullable(contractDiscountsMap.get(contractId))
-                .map(ContractDiscounts::discounts)
-                .orElse(Collections.emptyList());
-
-            CalculationTarget calculationTarget = new CalculationTarget(
-                contractId,
-                contractWithProductsAndSuspensionsMap.getOrDefault(contractId, Collections.emptyList()),
-                installationHistoriesMap.getOrDefault(contractId, Collections.emptyList()),
-                deviceInstallmentMastersMap.getOrDefault(contractId, Collections.emptyList()),
-                discounts
-            );
-            calculationTargets.add(calculationTarget);
-        }
-
-        log.info("파티션 {} - 생성된 calculationTargets 개수: {}", partitionKey, calculationTargets.size());
-
-        return calculationTargets;
+        return calculationCommandService.loadCalculationTargets(contractIds, ctx);
     }
 }

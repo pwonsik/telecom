@@ -483,63 +483,6 @@ ALTER TABLE charge_item ADD COLUMN revenue_item_id VARCHAR(50) NOT NULL COMMENT 
 - All repository implementations updated
 - Test data and sample data updated
 
-### RevenueMasterData Implementation
-Added comprehensive revenue master data management:
-
-**New Components:**
-- `RevenueMasterData` domain record
-- `RevenueMasterDataDto` infrastructure DTO
-- `RevenueMasterDataConverter` conversion logic
-- `RevenueMasterDataCacheService` with `@PostConstruct` caching
-- `RevenueMasterDataRepository` with port implementation
-- Database table: `revenue_master_data`
-
-**Caching Strategy:**
-```java
-@PostConstruct
-public void initCache() {
-    List<RevenueMasterData> allData = revenueMasterDataQueryPort.findAll();
-    cache.clear();
-    allData.forEach(data -> cache.put(data.revenueItemId(), data));
-    log.info("Revenue master data cache initialized with {} items", cache.size());
-}
-```
-
-### Discount Calculation Architecture (2024-2025)
-Added comprehensive discount functionality following hexagonal architecture pattern:
-
-**New Components:**
-- `Discount` domain object with contractId integration and rate/amount-based calculations
-- `ContractDiscounts` domain object managing discount collections per contract
-- `DiscountCalculator` implementing `Calculator<Discount>` interface
-- `ContractDiscountCommandPort` and `ContractDiscountQueryPort` for port abstraction
-- `ContractDiscountRepository` implementing both query and command ports
-- `ContractDiscountMapper` MyBatis interface with complex discount queries
-- `ContractDiscountDto` and `DiscountDto` infrastructure DTOs
-- `ContractDiscountDtoConverter` for domain-DTO conversions
-
-**Database Schema:**
-```sql
-CREATE TABLE contract_discount (
-    contract_id BIGINT NOT NULL COMMENT '계약 ID',
-    discount_id VARCHAR(50) NOT NULL COMMENT '할인 ID', 
-    discount_start_date DATE NOT NULL COMMENT '할인 시작일',
-    discount_end_date DATE NOT NULL COMMENT '할인 종료일',
-    product_offering_id VARCHAR(50) COMMENT '상품 제공 ID',
-    discount_aply_unit VARCHAR(20) NOT NULL COMMENT '할인 적용 단위',
-    discount_amt DECIMAL(12,2) COMMENT '할인 금액',
-    discount_rate DECIMAL(5,2) COMMENT '할인율',
-    discount_applied_amount DECIMAL(12,2) COMMENT '할인 적용 금액',
-    PRIMARY KEY (contract_id, discount_id, discount_start_date, discount_end_date)
-);
-```
-
-**Key Features:**
-- Composite primary key with `contractId`, `discountId`, `discountStartDate`, `discountEndDate`
-- Support for both rate-based (RATE) and amount-based (AMOUNT) discounts
-- Period-based discount application with billing period intersection logic
-- Integration with existing `CalculationTarget` and batch processing flow
-- MyBatis ResultMap with nested discount collections for complex queries
 
 ### CalculationResult Prorate Functionality (2024-2025)
 Implemented sophisticated period splitting and balance tracking in CalculationResult:
@@ -584,26 +527,6 @@ public List<CalculationResult<?>> prorate(List<DefaultPeriod> periods) {
 - Integrates with VAT calculation for proportional tax application
 - Supports complex billing scenarios with multiple overlapping periods
 
-### VAT Calculation Integration (2024-2025)
-Added VAT processing capabilities with revenue master data integration:
-
-**New Components:**
-- `VatCalculator` implementing `Calculator<CalculationResult<?>>` interface
-- Revenue-based VAT determination using `RevenueMasterDataCacheService`
-- Integration with existing `CalculationResult` prorate functionality
-- Automated VAT rate application based on revenue item classification
-
-**VAT Processing Flow:**
-1. **Revenue Lookup**: Query cached revenue master data for VAT eligibility
-2. **Rate Application**: Apply appropriate VAT rates based on revenue type
-3. **Period Prorating**: Use `CalculationResult.prorate()` for period-specific VAT calculation
-4. **Result Integration**: Add VAT results to overall calculation result collection
-
-**Integration Points:**
-- Leverages existing `RevenueMasterDataCacheService` for performance
-- Uses `PostProcessor` functional interface for embedded VAT logic
-- Integrates with Spring Batch processing via unified Calculator pattern
-- Maintains audit trail with balance tracking in CalculationResult
 
 ### OneTimeCharge Spring Bean Auto-Injection Architecture (2025)
 Completed major refactoring to eliminate conditional logic and achieve complete extensibility using Spring DI patterns:
@@ -685,48 +608,6 @@ public class MaintenanceFeeCalculator implements OneTimeChargeCalculator<Mainten
 
 ## Web Service Module Architecture
 
-### Module Dependencies and Configuration
-The web-service module implements REST API layer with the following key characteristics:
-
-**Dependencies:**
-- Depends on domain module for business logic
-- Uses MySQL for production, H2 in-memory for development/testing
-- Integrates SpringDoc OpenAPI 3 for API documentation
-- Jakarta Validation for request validation
-
-**Application Configuration:**
-```java
-@SpringBootApplication(scanBasePackages = {
-    "me.realimpact.telecom.calculation", 
-    "me.realimpact.telecom.billing.web"
-})
-@MapperScan("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis")
-```
-
-### REST API Endpoints
-
-**Calculation API (`/api/calculations`)**:
-- `POST /api/calculations` - Comprehensive billing calculation for contracts
-- Request: `CalculationRequest` with Jakarta Validation
-- Response: `List<CalculationResultGroup>` with calculation results
-- Supports multiple contracts in single request
-- Includes monthly fees, one-time charges, discounts, and VAT
-
-### Swagger/OpenAPI Documentation
-
-**Configuration:**
-- SpringDoc OpenAPI 3.x integration (`springdoc-openapi-starter-webmvc-ui:2.3.0`)
-- Automatic API documentation generation
-- Available at: `http://localhost:8080/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
-- Custom OpenAPI configuration in `SwaggerConfig`
-
-**API Documentation Features:**
-- Comprehensive endpoint documentation with `@Operation`, `@ApiResponse`
-- Request/response schema definitions
-- Validation constraint documentation
-- Error response specifications
-
 ### Exception Handling Architecture
 
 **GlobalExceptionHandler:**
@@ -749,40 +630,6 @@ The web-service module implements REST API layer with the following key characte
 - Inherits domain module MyBatis configuration via dependency
 - MySQL connection with HikariCP optimization for production
 - H2 in-memory database for development/testing
-
-### Mapper Organization Strategy
-
-**Mapper Interface Location:**
-```
-domain/src/main/java/me/realimpact/telecom/calculation/infrastructure/adapter/mybatis/
-├── ProductQueryMapper.java
-├── PreviewProductQueryMapper.java  # Preview-specific queries
-├── ContractDiscountMapper.java
-├── InstallationHistoryMapper.java
-├── DeviceInstallmentMapper.java
-├── RevenueMasterDataMapper.java
-└── CalculationResultMapper.java
-```
-
-**XML Mapper Location:**
-```
-domain/src/main/resources/mapper/
-├── ProductQueryMapper.xml
-├── PreviewProductQueryMapper.xml
-├── ContractDiscountMapper.xml
-└── [other mapper files]
-```
-
-### Dynamic Repository Resolution
-
-**Preview Product Query Pattern:**
-```java
-@Component
-public class ProductQueryPortResolver {
-    // Dynamic selection between production and preview repositories
-    // Based on runtime conditions or configuration
-}
-```
 
 ## Web Service Development Guidelines
 

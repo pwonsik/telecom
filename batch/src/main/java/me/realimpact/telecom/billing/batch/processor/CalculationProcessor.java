@@ -28,13 +28,12 @@ import java.util.function.BiFunction;
  * Spring Batch ItemProcessor 구현체
  * ContractDto를 받아서 월정액 계산을 수행하고 결과를 반환
  */
-@StepScope
+
 @RequiredArgsConstructor
 @Slf4j
 public class CalculationProcessor implements ItemProcessor<CalculationTarget, CalculationResultGroup> {
 
     private final CalculationCommandService calculationCommandService;
-    private final JsonLoggingHelper jsonLoggingHelper;
 
     private final CalculationParameters calculationParameters;
 
