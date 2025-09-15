@@ -7,7 +7,6 @@ import me.realimpact.telecom.calculation.application.CalculationTarget;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
-import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.ItemStreamReader;
@@ -18,8 +17,9 @@ import java.util.*;
 import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
 
 /**
- * 파티션 기반 계약 Reader
+ * 파티션 기반 계약 Reader (ItemStreamReader 구현)
  * 파티션별로 독립적인 MyBatisCursorItemReader 인스턴스 생성
+ * Spring Batch의 정상적인 라이프사이클을 따라 안정적인 파티션 처리
  */
 @Slf4j
 public class PartitionedContractReader implements ItemStreamReader<CalculationTarget> {
@@ -47,38 +47,19 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
         this.calculationParameters = calculationParameters;
         this.partitionKey = partitionKey;
         this.partitionCount = partitionCount;
+
+        log.info("=== PartitionedContractReader 생성 (파티션 {}) ===", partitionKey);
+        log.info("Partition Key: {}, Partition Count: {}", partitionKey, partitionCount);
     }
 
     @Override
     public void open(ExecutionContext executionContext) throws ItemStreamException {
         if (!initialized) {
-            log.info("=== 파티션별 Reader 초기화 (파티션 {}) ===", partitionKey);
-            log.info("Partition Key: {}, Partition Count: {}", partitionKey, partitionCount);
-
-            initializePartitionedContractIdReader();
-            contractIdReader.open(executionContext);
+            log.info("=== PartitionedContractReader open() 시작 (파티션 {}) ===", partitionKey);
+            initializePartitionedContractIdReader(executionContext);
             initialized = true;
+            log.info("=== PartitionedContractReader open() 완료 (파티션 {}) ===", partitionKey);
         }
-    }
-
-    @Override
-    public CalculationTarget read() throws Exception {
-        // 현재 청크에서 아이템을 읽기 시도
-        if (currentChunkReader != null) {
-            CalculationTarget item = currentChunkReader.read();
-            if (item != null) {
-                return item;
-            }
-        }
-        
-        // 현재 청크가 끝났으면 다음 청크 로드
-        loadNextChunk();
-        if (currentChunkReader == null) {
-            return null; // 더 이상 읽을 데이터가 없음
-        }
-        
-        // 새로운 청크에서 첫 번째 아이템 반환
-        return currentChunkReader.read();
     }
 
     @Override
@@ -92,50 +73,94 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
     public void close() throws ItemStreamException {
         if (contractIdReader != null) {
             contractIdReader.close();
+            log.info("=== MyBatisCursorItemReader close() 완료 (파티션 {}) ===", partitionKey);
         }
     }
 
+    @Override
+    public CalculationTarget read() throws Exception {
+        log.debug("=== PartitionedContractReader.read() 호출 (파티션 {}) ===", partitionKey);
+
+        // contractIdReader null 체크 (방어적 프로그래밍)
+        if (contractIdReader == null) {
+            log.error("contractIdReader가 null입니다. 초기화에 실패했습니다 (파티션 {})", partitionKey);
+            return null;
+        }
+
+        // 현재 청크에서 아이템을 읽기 시도
+        if (currentChunkReader != null) {
+            CalculationTarget item = currentChunkReader.read();
+            if (item != null) {
+                log.debug("청크에서 아이템 반환 (파티션 {})", partitionKey);
+                return item;
+            }
+        }
+
+        // 현재 청크가 끝났으면 다음 청크 로드
+        loadNextChunk();
+        if (currentChunkReader == null) {
+            log.debug("더 이상 읽을 데이터 없음 (파티션 {})", partitionKey);
+            return null; // 더 이상 읽을 데이터가 없음
+        }
+
+        // 새로운 청크에서 첫 번째 아이템 반환
+        CalculationTarget item = currentChunkReader.read();
+        log.debug("새 청크에서 아이템 반환 (파티션 {})", partitionKey);
+        return item;
+    }
 
     /**
      * 파티션 조건이 적용된 Contract ID Reader 초기화
      */
-    private void initializePartitionedContractIdReader() {
-        contractIdReader = new MyBatisCursorItemReader<>();
-        contractIdReader.setSqlSessionFactory(sqlSessionFactory);
+    private void initializePartitionedContractIdReader(ExecutionContext executionContext) {
+        log.info("=== MyBatisCursorItemReader 생성 시작 (파티션 {}) ===", partitionKey);
 
-        // 파티션 조건이 포함된 쿼리 사용
-        if (calculationParameters.getContractIds().isEmpty()) {
-            // 전체 계약 대상 (파티션 조건 적용)
-            contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findContractIdsWithPartition");
+        try {
+            contractIdReader = new MyBatisCursorItemReader<>();
+            contractIdReader.setSqlSessionFactory(sqlSessionFactory);
 
-            Map<String, Object> parameterValues = new HashMap<>();
-            parameterValues.put("partitionKey", partitionKey);
-            parameterValues.put("partitionCount", partitionCount);
-            parameterValues.put("billingStartDate", calculationParameters.getBillingStartDate());
-            parameterValues.put("billingEndDate", calculationParameters.getBillingEndDate());
-            contractIdReader.setParameterValues(parameterValues);
-
-            log.info("전체 계약 조회 (파티션 조건 적용): contractId % {} = {}", partitionCount, partitionKey);
-        } else {
-            // 특정 계약 대상 (파티션 조건 적용)
-            List<Long> filteredContractIds = calculationParameters.getContractIds().stream()
-                    .filter(contractId -> contractId % partitionCount == partitionKey)
-                    .toList();
-
-            if (filteredContractIds.isEmpty()) {
-                log.info("파티션 {}에 해당하는 계약이 없습니다.", partitionKey);
-                // 빈 결과를 반환하도록 설정
-                contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findEmptyContractIds");
-                contractIdReader.setParameterValues(new HashMap<>());
-            } else {
-                contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findSpecificContractIds");
+            // 파티션 조건이 포함된 쿼리 사용
+            if (calculationParameters.getContractIds().isEmpty()) {
+                // 전체 계약 대상 (파티션 조건 적용)
+                contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findContractIdsWithPartition");
 
                 Map<String, Object> parameterValues = new HashMap<>();
-                parameterValues.put("contractIds", filteredContractIds);
+                parameterValues.put("partitionKey", partitionKey);
+                parameterValues.put("partitionCount", partitionCount);
+                parameterValues.put("billingStartDate", calculationParameters.getBillingStartDate());
+                parameterValues.put("billingEndDate", calculationParameters.getBillingEndDate());
                 contractIdReader.setParameterValues(parameterValues);
+                contractIdReader.open(executionContext);    // ItemStreamReader 기반이므로 반드시 호출해야함
 
-                log.info("특정 계약 조회 (파티션 필터링 적용): {} 건", filteredContractIds.size());
+                log.info("전체 계약 조회 (파티션 조건 적용): contractId % {} = {}", partitionCount, partitionKey);
+            } else {
+                // 특정 계약 대상 (파티션 조건 적용)
+                List<Long> filteredContractIds = calculationParameters.getContractIds().stream()
+                        .filter(contractId -> contractId % partitionCount == partitionKey)
+                        .toList();
+
+                if (filteredContractIds.isEmpty()) {
+                    log.info("파티션 {}에 해당하는 계약이 없습니다.", partitionKey);
+                    // 빈 결과를 반환하도록 설정
+                    contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findEmptyContractIds");
+                    contractIdReader.setParameterValues(new HashMap<>());
+                } else {
+                    contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findSpecificContractIds");
+
+                    Map<String, Object> parameterValues = new HashMap<>();
+                    parameterValues.put("contractIds", filteredContractIds);
+                    contractIdReader.setParameterValues(parameterValues);
+                    contractIdReader.open(executionContext);    // ItemStreamReader 기반이므로 반드시 호출해야함
+
+                    log.info("특정 계약 조회 (파티션 필터링 적용): {} 건", filteredContractIds.size());
+                }
             }
+
+            log.info("=== MyBatisCursorItemReader 생성 완료 (파티션 {}) ===", partitionKey);
+
+        } catch (Exception e) {
+            log.error("MyBatisCursorItemReader 초기화 실패 (파티션 {})", partitionKey, e);
+            contractIdReader = null;
         }
     }
 

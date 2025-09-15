@@ -28,6 +28,7 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -99,9 +100,7 @@ public class PartitionedCalculationBatchConfig {
      * 파티션 기반 처리를 위한 TaskExecutor 설정
      */
     @Bean("partitionedTaskExecutor")
-    public TaskExecutor partitionedTaskExecutor(
-            @Value("${batch.thread-count}") Integer threadCount
-    ) {
+    public TaskExecutor partitionedTaskExecutor(@Value("${batch.thread-count}") Integer threadCount) {
         log.info("=== PartitionedTaskExecutor Bean 생성 시작 === threadCount: {}", threadCount);
 
         int maxThreadCount = threadCount * 2;
@@ -141,7 +140,8 @@ public class PartitionedCalculationBatchConfig {
      */
     @Bean("partitionedContractReader")
     @StepScope
-    public ItemReader<CalculationTarget> partitionedContractReader(
+    // ItemStreamReader로 반환해야 하는데 ItemReader로 반환하여 chunk가 한번만 처리되고 끝나버리는 문제가 있었다.
+    public ItemStreamReader<CalculationTarget> partitionedContractReader(
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
             @Value("${contractIds:}") String contractIdsStr,

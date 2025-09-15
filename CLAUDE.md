@@ -6,11 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Spring Boot 3-based telecom billing calculation system implementing hexagonal architecture for Korean telecommunication services. The system calculates monthly fees with complex pro-rated billing logic following TMForum specifications.
 
-**Project Name**: `telecom-billing`  
-**Group ID**: `me.realimpact.telecom.billing`  
-**Version**: `0.0.1-SNAPSHOT`  
-**Java Version**: 21  
+**Project Name**: `telecom-billing`
+**Group ID**: `me.realimpact.telecom.billing`
+**Version**: `0.0.1-SNAPSHOT`
+**Java Version**: 21
 **Spring Boot Version**: 3.2.4
+
+## Documentation Structure
+
+For detailed information, please refer to:
+- **[Architecture Guide](./docs/ARCHITECTURE.md)**: Technical architecture, module structure, Spring Batch, MyBatis configuration
+- **[Business Domain Guide](./docs/BUSINESS_DOMAIN.md)**: Business logic, domain model, calculator patterns, Korean telecom billing rules
 
 ## Development Commands
 

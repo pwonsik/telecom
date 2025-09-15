@@ -32,6 +32,7 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.support.SynchronizedItemReader;
 import org.springframework.batch.item.support.SynchronizedItemStreamReader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -131,7 +132,6 @@ public class CalculationBatchConfig {
      * contractId가 있으면 단건, 없으면 전체 조회
      */
     @Bean
-    @StepScope
     public ChunkedContractReader chunkedContractReader(
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
@@ -163,7 +163,6 @@ public class CalculationBatchConfig {
      * 멀티쓰레드 환경용 Thread-Safe Reader
      */
     @Bean
-    @StepScope
     public SynchronizedItemStreamReader<CalculationTarget> contractReader(
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
@@ -177,18 +176,20 @@ public class CalculationBatchConfig {
                 billingStartDateStr, threadCount);
 
         SynchronizedItemStreamReader<CalculationTarget> reader = new SynchronizedItemStreamReader<>();
-        reader.setDelegate(chunkedContractReader(
-                billingStartDateStr, billingEndDateStr, contractIdsStr,
-                threadCount, billingCalculationTypeStr, billingCalculationPeriodStr,
-                calculationCommandService
-        ));
+
+        reader.setDelegate(
+                chunkedContractReader(
+                        billingStartDateStr, billingEndDateStr, contractIdsStr,
+                        threadCount, billingCalculationTypeStr, billingCalculationPeriodStr,
+                        calculationCommandService
+                )
+        );
 
         log.info("=== SynchronizedItemStreamReader Bean 생성 완료 ===");
         return reader;
     }
 
     @Bean
-    @StepScope
     public ItemProcessor<CalculationTarget, CalculationResultGroup> calculationProcessor(
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
@@ -216,7 +217,6 @@ public class CalculationBatchConfig {
      * Writer Bean 설정 (@StepScope) - 커스텀 Writer 사용
      */
     @Bean
-    @StepScope
     public ItemWriter<CalculationResultGroup> calculationWriter(
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
