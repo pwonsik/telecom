@@ -95,30 +95,55 @@
         SET FOREIGN_KEY_CHECKS = 1
     </update>
     
-    <!-- 테이블별 DELETE -->
-    <delete id="truncateSuspensions">
-        DELETE FROM suspension
-    </delete>
-    
-    <delete id="truncateProducts">  
-        DELETE FROM product
-    </delete>
-    
-    <delete id="truncateContracts">
-        DELETE FROM contract
-    </delete>
-    
-    <delete id="truncateDeviceInstallmentDetails">
-        DELETE FROM device_installment_detail
-    </delete>
-    
-    <delete id="truncateDeviceInstallmentMasters">
-        DELETE FROM device_installment_master
-    </delete>
-    
-    <delete id="truncateInstallationHistories">
-        DELETE FROM installation_history
-    </delete>
+    <!-- 테이블별 TRUNCATE (성능 최적화) -->
+    <update id="truncateSuspensions">
+        TRUNCATE TABLE suspension
+    </update>
+
+    <update id="truncateProducts">
+        TRUNCATE TABLE product
+    </update>
+
+    <update id="truncateContracts">
+        TRUNCATE TABLE contract
+    </update>
+
+    <update id="truncateDeviceInstallmentDetails">
+        TRUNCATE TABLE device_installment_detail
+    </update>
+
+    <update id="truncateDeviceInstallmentMasters">
+        TRUNCATE TABLE device_installment_master
+    </update>
+
+    <update id="truncateInstallationHistories">
+        TRUNCATE TABLE installation_history
+    </update>
+
+    <!-- 테이블 레코드 수 확인 (TRUNCATE 검증용) -->
+    <select id="countSuspensions" resultType="int">
+        SELECT COUNT(*) FROM suspension
+    </select>
+
+    <select id="countProducts" resultType="int">
+        SELECT COUNT(*) FROM product
+    </select>
+
+    <select id="countContracts" resultType="int">
+        SELECT COUNT(*) FROM contract
+    </select>
+
+    <select id="countDeviceInstallmentDetails" resultType="int">
+        SELECT COUNT(*) FROM device_installment_detail
+    </select>
+
+    <select id="countDeviceInstallmentMasters" resultType="int">
+        SELECT COUNT(*) FROM device_installment_master
+    </select>
+
+    <select id="countInstallationHistories" resultType="int">
+        SELECT COUNT(*) FROM installation_history
+    </select>
 
     <!-- DeviceInstallmentMaster Batch Insert -->
     <insert id="insertDeviceInstallmentMasters" parameterType="java.util.List">

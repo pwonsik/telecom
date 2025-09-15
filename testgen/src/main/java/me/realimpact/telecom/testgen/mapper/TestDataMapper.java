@@ -29,4 +29,12 @@ public interface TestDataMapper {
     // 조회
     List<String> selectProductOfferingIds();
     List<Long> selectContractIds();
+
+    // 테이블 레코드 수 확인 (TRUNCATE 검증용)
+    int countSuspensions();
+    int countProducts();
+    int countContracts();
+    int countDeviceInstallmentDetails();
+    int countDeviceInstallmentMasters();
+    int countInstallationHistories();
 }

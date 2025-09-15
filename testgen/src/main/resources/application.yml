@@ -3,16 +3,17 @@ spring:
     name: testgen
     
   datasource:
-    url: jdbc:mysql://localhost:3306/telecom_billing?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    url: jdbc:mysql://localhost:3306/telecom_billing?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&rewriteBatchedStatements=true&useServerPrepStmts=false&cachePrepStmts=false
     username: user
     password: 1234
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+      idle-timeout: 300000
+      max-lifetime: 900000
+      leak-detection-threshold: 300000  # 5분으로 증가 (대용량 처리 대응)
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
@@ -22,12 +23,17 @@ mybatis:
     use-column-label: true
     cache-enabled: false
     default-fetch-size: 1000
-    default-statement-timeout: 60
+    default-statement-timeout: 0  # 무제한 (대용량 처리용)
+  executor-type: BATCH
 
 logging:
   level:
     me.realimpact.telecom.testgen: INFO
     org.springframework.jdbc: WARN
     com.zaxxer.hikari: WARN
+    org.mybatis: WARN
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# JVM 메모리 최적화 설정 (예시)
+# 실행 시: java -Xms1g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -jar testgen.jar
