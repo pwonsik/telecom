@@ -13,7 +13,7 @@ public final class BatchConstants {
      * Spring Batch chunk size
      * Reader에서 한 번에 읽어올 데이터 개수 및 트랜잭션 단위
      */
-    public static final int CHUNK_SIZE = 100;
+    public static final int CHUNK_SIZE = 1000;
     
     /**
      * Job Names
