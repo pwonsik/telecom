@@ -1,28 +1,33 @@
-package me.realimpact.telecom.calculation.application.monthlyfee;
+package me.realimpact.telecom.calculation.application.monthlyfee.policy;
 
 import lombok.RequiredArgsConstructor;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
-import me.realimpact.telecom.calculation.api.BillingCalculationType;
-import me.realimpact.telecom.calculation.application.Calculator;
+import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeCalculator;
+import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeDataLoader;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsAndSuspensions;
 import me.realimpact.telecom.calculation.domain.monthlyfee.DefaultPeriod;
+import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargeDomain;
 import me.realimpact.telecom.calculation.infrastructure.adapter.ProductQueryPortResolver;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
-@Service
+/**
+ * 기본 정책 기반 월정액 계산기
+ * MonthlyFeeDataLoader와 MonthlyFeeCalculator 인터페이스를 모두 구현
+ */
+@Component
 @RequiredArgsConstructor
 @Order(10)
-public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSuspensions> {
+public class BasicPolicyMonthlyFeeCalculator implements
+        MonthlyFeeDataLoader<ContractWithProductsAndSuspensions>,
+        MonthlyFeeCalculator<ContractWithProductsAndSuspensions> {
 
     private final ProductQueryPortResolver productQueryPortResolver;
     private final CalculationResultSavePort calculationResultSavePort;
@@ -37,13 +42,19 @@ public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSusp
         return DefaultPeriod.of(ctx.billingStartDate(), billingEndDate);
     }
 
+    // Calculator 인터페이스 구현 (기존 방식 유지)
     @Override
-    public Map<Long, List<ContractWithProductsAndSuspensions>> read(CalculationContext ctx, List<Long> contractIds) {
+    public Map<Long, List<MonthlyChargeDomain>> read(List<Long> contractIds, CalculationContext ctx) {
         DefaultPeriod billingPeriod = createBillingPeriod(ctx);
-        return productQueryPortResolver.getProductQueryPort(ctx.billingCalculationType())
+        Map<Long, List<ContractWithProductsAndSuspensions>> specificData = productQueryPortResolver.getProductQueryPort(ctx.billingCalculationType())
                 .findContractsAndProductInventoriesByContractIds(
                     contractIds, billingPeriod.getStartDate(), billingPeriod.getEndDate()
             ).stream().collect(Collectors.groupingBy(ContractWithProductsAndSuspensions::getContractId));
+
+        Map<Long, List<MonthlyChargeDomain>> result = new HashMap<>();
+        specificData.forEach((contractId, monthlyChargeDomains) ->
+                result.put(contractId, new ArrayList<>(monthlyChargeDomains)));
+        return result;
     }
 
     @Override
@@ -67,18 +78,31 @@ public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSusp
                     data.proratedFee(),
                     data.balance(),
                     null,
-                    null // BaseFeeCalculator는 후처리가 필요 없음
+                    null // BasicPolicyMonthlyFeeCalculator는 후처리가 필요 없음
                 );
             })
             .filter(Objects::nonNull)
             .toList();
     }
 
+    // MonthlyFeeDataLoader 인터페이스 구현
+    @Override
+    public Class<ContractWithProductsAndSuspensions> getDataType() {
+        return ContractWithProductsAndSuspensions.class;
+    }
+
+
+    // MonthlyFeeCalculator 인터페이스 구현
+    @Override
+    public Class<ContractWithProductsAndSuspensions> getInputType() {
+        return ContractWithProductsAndSuspensions.class;
+    }
+
     /**
      * 테스트를 위한 계산 메서드 (결과 반환)
      */
     public List<CalculationResult<ContractWithProductsAndSuspensions>> calculateAndReturn(CalculationContext calculationContext, List<Long> contractIds) {
-        return read(calculationContext, contractIds).values().stream()
-                .flatMap(obj -> process(calculationContext, obj.get(0)).stream()).toList();
+        return read(contractIds, calculationContext).values().stream()
+                .flatMap(obj -> process(calculationContext, (ContractWithProductsAndSuspensions) obj.get(0)).stream()).toList();
     }
 }

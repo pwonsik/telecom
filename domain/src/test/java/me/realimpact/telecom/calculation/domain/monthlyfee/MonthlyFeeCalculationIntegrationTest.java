@@ -3,7 +3,7 @@ package me.realimpact.telecom.calculation.domain.monthlyfee;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.BillingCalculationType;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
-import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
+import me.realimpact.telecom.calculation.application.monthlyfee.policy.BasicPolicyMonthlyFeeCalculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.*;
@@ -43,7 +43,7 @@ class MonthlyFeeCalculationIntegrationTest {
     @Mock
     private CalculationResultSavePort calculationResultSavePort;
 
-    private BaseFeeCalculator calculator;
+    private BasicPolicyMonthlyFeeCalculator calculator;
 
     private static final LocalDate BILLING_START_DATE = LocalDate.of(2024, 3, 1);
     private static final LocalDate BILLING_END_DATE = LocalDate.of(2024, 3, 31);
@@ -166,7 +166,7 @@ class MonthlyFeeCalculationIntegrationTest {
         when(productQueryPortResolver.getProductQueryPort(any(BillingCalculationType.class)))
                 .thenReturn(productQueryPort);
         
-        calculator = new BaseFeeCalculator(productQueryPortResolver, calculationResultSavePort);
+        calculator = new BasicPolicyMonthlyFeeCalculator(productQueryPortResolver, calculationResultSavePort);
     }
 
     @Test
@@ -204,7 +204,7 @@ class MonthlyFeeCalculationIntegrationTest {
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
         // when
-        List<CalculationResult<ContractWithProductsAndSuspensions>> results = calculator.execute(createCalculationContext(), List.of(CONTRACT_ID));
+        List<CalculationResult<ContractWithProductsAndSuspensions>> results = calculator.calculateAndReturn(createCalculationContext(), List.of(CONTRACT_ID));
 
         // then
         assertThat(results).hasSize(1);
@@ -266,7 +266,7 @@ class MonthlyFeeCalculationIntegrationTest {
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
         // when
-        List<CalculationResult<ContractWithProductsAndSuspensions>> results = calculator.execute(createCalculationContext(), List.of(CONTRACT_ID));
+        List<CalculationResult<ContractWithProductsAndSuspensions>> results = calculator.calculateAndReturn(createCalculationContext(), List.of(CONTRACT_ID));
 
         // then
         assertThat(results).hasSize(3);

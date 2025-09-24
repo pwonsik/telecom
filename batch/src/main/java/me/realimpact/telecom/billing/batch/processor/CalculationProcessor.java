@@ -7,22 +7,8 @@ import me.realimpact.telecom.billing.batch.CalculationParameters;
 import me.realimpact.telecom.calculation.api.CalculationResultGroup;
 import me.realimpact.telecom.calculation.application.CalculationCommandService;
 import me.realimpact.telecom.calculation.application.CalculationTarget;
-import me.realimpact.telecom.billing.batch.util.JsonLoggingHelper;
-import me.realimpact.telecom.calculation.application.discount.CalculationResultProrater;
-import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
-import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
-import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeCalculator;
-import me.realimpact.telecom.calculation.application.vat.VatCalculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
-import me.realimpact.telecom.calculation.domain.CalculationResult;
-import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
-import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.function.BiFunction;
 
 /**
  * Spring Batch ItemProcessor 구현체
