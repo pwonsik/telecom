@@ -3,7 +3,9 @@ package me.realimpact.telecom.calculation.domain.monthlyfee;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.api.BillingCalculationType;
 import me.realimpact.telecom.calculation.api.CalculationRequest;
-import me.realimpact.telecom.calculation.application.monthlyfee.policy.BasicPolicyMonthlyFeeCalculator;
+import me.realimpact.telecom.calculation.application.monthlyfee.calculator.BasicPolicyMonthlyFeeCalculator;
+import me.realimpact.telecom.calculation.application.monthlyfee.loader.ContractWithProductsAndSuspensionsDataLoader;
+import me.realimpact.telecom.calculation.application.service.BillingPeriodService;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.CalculationResult;
 import me.realimpact.telecom.calculation.domain.monthlyfee.policy.*;
@@ -44,6 +46,8 @@ class MonthlyFeeCalculationIntegrationTest {
     private CalculationResultSavePort calculationResultSavePort;
 
     private BasicPolicyMonthlyFeeCalculator calculator;
+    private ContractWithProductsAndSuspensionsDataLoader dataLoader;
+    private BillingPeriodService billingPeriodService;
 
     private static final LocalDate BILLING_START_DATE = LocalDate.of(2024, 3, 1);
     private static final LocalDate BILLING_END_DATE = LocalDate.of(2024, 3, 31);
@@ -165,8 +169,24 @@ class MonthlyFeeCalculationIntegrationTest {
         // ProductQueryPortResolver가 항상 productQueryPort를 반환하도록 설정
         when(productQueryPortResolver.getProductQueryPort(any(BillingCalculationType.class)))
                 .thenReturn(productQueryPort);
-        
-        calculator = new BasicPolicyMonthlyFeeCalculator(productQueryPortResolver, calculationResultSavePort);
+
+        // 서비스들을 생성
+        billingPeriodService = new BillingPeriodService();
+        dataLoader = new ContractWithProductsAndSuspensionsDataLoader(productQueryPortResolver, billingPeriodService);
+        calculator = new BasicPolicyMonthlyFeeCalculator();
+    }
+
+    /**
+     * 테스트를 위한 계산 메서드 (DataLoader와 Calculator 조합)
+     */
+    private List<CalculationResult<ContractWithProductsAndSuspensions>> calculateAndReturn(CalculationContext calculationContext, List<Long> contractIds) {
+        var monthlyFeeData = dataLoader.read(contractIds, calculationContext);
+
+        return monthlyFeeData.values().stream()
+                .flatMap(List::stream)
+                .map(data -> (ContractWithProductsAndSuspensions) data)
+                .flatMap(contract -> calculator.process(calculationContext, contract).stream())
+                .toList();
     }
 
     @Test
@@ -204,7 +224,7 @@ class MonthlyFeeCalculationIntegrationTest {
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
         // when
-        List<CalculationResult<ContractWithProductsAndSuspensions>> results = calculator.calculateAndReturn(createCalculationContext(), List.of(CONTRACT_ID));
+        List<CalculationResult<ContractWithProductsAndSuspensions>> results = calculateAndReturn(createCalculationContext(), List.of(CONTRACT_ID));
 
         // then
         assertThat(results).hasSize(1);
@@ -266,7 +286,7 @@ class MonthlyFeeCalculationIntegrationTest {
         CalculationRequest request = createCalculationRequest(BillingCalculationType.REVENUE_CONFIRMATION, BillingCalculationPeriod.POST_BILLING_CURRENT_MONTH);
 
         // when
-        List<CalculationResult<ContractWithProductsAndSuspensions>> results = calculator.calculateAndReturn(createCalculationContext(), List.of(CONTRACT_ID));
+        List<CalculationResult<ContractWithProductsAndSuspensions>> results = calculateAndReturn(createCalculationContext(), List.of(CONTRACT_ID));
 
         // then
         assertThat(results).hasSize(3);

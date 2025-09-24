@@ -268,7 +268,6 @@ public class CalculationCommandService implements CalculationCommandUseCase {
             CalculationContext ctx,
             List<CalculationResult<?>> results) {
         Class<T> inputType = calculator.getInputType();
-
         List<T> inputData = target.getMonthlyChargeData(inputType);
         results.addAll(process(inputData, calculator::process, ctx));
     }

@@ -1,0 +1,50 @@
+package me.realimpact.telecom.calculation.application.onetimecharge.loader;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeDataLoader;
+import me.realimpact.telecom.calculation.domain.CalculationContext;
+import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
+import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentMaster;
+import me.realimpact.telecom.calculation.port.out.DeviceInstallmentQueryPort;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * DeviceInstallmentMaster 데이터 로딩 전담 클래스
+ * 단일 책임: 단말할부금 데이터 로딩
+ */
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class DeviceInstallmentMasterDataLoader implements OneTimeChargeDataLoader<DeviceInstallmentMaster> {
+
+    private final DeviceInstallmentQueryPort deviceInstallmentQueryPort;
+
+    @Override
+    public Class<DeviceInstallmentMaster> getDataType() {
+        return DeviceInstallmentMaster.class;
+    }
+
+    @Override
+    public Map<Long, List<OneTimeChargeDomain>> read(List<Long> contractIds, CalculationContext ctx) {
+        log.debug("Loading DeviceInstallmentMaster data for {} contracts", contractIds.size());
+
+        Map<Long, List<DeviceInstallmentMaster>> specificData = deviceInstallmentQueryPort
+                .findDeviceInstallments(contractIds, ctx.billingStartDate(), ctx.billingEndDate())
+                .stream()
+                .collect(Collectors.groupingBy(DeviceInstallmentMaster::getContractId));
+
+        // DeviceInstallmentMaster를 OneTimeChargeDomain으로 변환
+        Map<Long, List<OneTimeChargeDomain>> result = new HashMap<>();
+        specificData.forEach((contractId, deviceInstallmentMasters) ->
+                result.put(contractId, List.copyOf(deviceInstallmentMasters)));
+
+        log.debug("Loaded DeviceInstallmentMaster data for {} contracts", result.size());
+        return result;
+    }
+}
