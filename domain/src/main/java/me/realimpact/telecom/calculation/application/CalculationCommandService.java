@@ -7,7 +7,9 @@ import me.realimpact.telecom.calculation.api.CalculationCommandUseCase;
 import me.realimpact.telecom.calculation.api.CalculationResultGroup;
 import me.realimpact.telecom.calculation.application.discount.CalculationResultProrater;
 import me.realimpact.telecom.calculation.application.discount.DiscountCalculator;
-import me.realimpact.telecom.calculation.application.monthlyfee.BaseFeeCalculator;
+import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeDataLoader;
+import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeCalculator;
+import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargeDomain;
 import me.realimpact.telecom.calculation.application.onetimecharge.OneTimeChargeCalculator;
 import me.realimpact.telecom.calculation.application.vat.VatCalculator;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
@@ -26,36 +28,55 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class CalculationCommandService implements CalculationCommandUseCase {
-    private final BaseFeeCalculator baseFeeCalculator;
     private final DiscountCalculator discountCalculator;
 
+    // Monthly Fee 관련
+    private final Map<Class<? extends MonthlyChargeDomain>, MonthlyFeeDataLoader<? extends MonthlyChargeDomain>> monthlyFeeDataLoaderMap;
+    private final List<MonthlyFeeCalculator<? extends MonthlyChargeDomain>> monthlyFeeCalculators;
+
+    // OneTime Charge 관련
     private final Map<Class<? extends OneTimeChargeDomain>, OneTimeChargeDataLoader<? extends OneTimeChargeDomain>>
             oneTimeChargeDataLoaderMap;
     private final List<OneTimeChargeCalculator<? extends OneTimeChargeDomain>> oneTimeChargeCalculators;
+
     private final CalculationResultProrater calculationResultProrater;
     private final VatCalculator vatCalculator;
 
     public CalculationCommandService(
-            BaseFeeCalculator baseFeeCalculator,
             DiscountCalculator discountCalculator,
+            List<MonthlyFeeDataLoader<? extends MonthlyChargeDomain>> monthlyFeeDataLoaders,
+            List<MonthlyFeeCalculator<? extends MonthlyChargeDomain>> monthlyFeeCalculators,
             List<OneTimeChargeDataLoader<? extends OneTimeChargeDomain>> oneTimeChargeDataLoaders,
             List<OneTimeChargeCalculator<? extends OneTimeChargeDomain>> oneTimeChargeCalculators,
             CalculationResultProrater calculationResultProrater,
             VatCalculator vatCalculator
     ) {
-        this.baseFeeCalculator = baseFeeCalculator;
         this.discountCalculator = discountCalculator;
 
-        // DataLoader List를 Map으로 변환
+        // Monthly Fee DataLoader List를 Map으로 변환
+        this.monthlyFeeDataLoaderMap = monthlyFeeDataLoaders.stream()
+                .collect(Collectors.toMap(
+                        MonthlyFeeDataLoader::getDataType,
+                        Function.identity()
+                ));
+        this.monthlyFeeCalculators = monthlyFeeCalculators;
+
+        // OneTime Charge DataLoader List를 Map으로 변환
         this.oneTimeChargeDataLoaderMap = oneTimeChargeDataLoaders.stream()
                 .collect(Collectors.toMap(
                         OneTimeChargeDataLoader::getDataType,
                         Function.identity()
                 ));
-
         this.oneTimeChargeCalculators = oneTimeChargeCalculators;
+
         this.calculationResultProrater = calculationResultProrater;
         this.vatCalculator = vatCalculator;
+
+        log.info("Registered {} MonthlyFee DataLoaders: {}",
+                monthlyFeeDataLoaders.size(),
+                monthlyFeeDataLoaders.stream()
+                        .map(loader -> loader.getDataType().getSimpleName())
+                        .collect(Collectors.joining(", ")));
 
         log.info("Registered {} OneTimeCharge DataLoaders: {}",
                 oneTimeChargeDataLoaders.size(),
@@ -65,11 +86,10 @@ public class CalculationCommandService implements CalculationCommandUseCase {
     }
 
     public List<CalculationTarget> loadCalculationTargets(List<Long> contractIds, CalculationContext ctx) {
-// 월정액 (기존 방식 유지)
-        var contractWithProductsAndSuspensionsMap = baseFeeCalculator.read(ctx, contractIds);
+        // Monthly Fee 데이터를 Map으로 로딩
+        var monthlyFeeDataByType = loadMonthlyFeeDataByType(contractIds, ctx);
 
         // OneTimeCharge 데이터를 Map으로 로딩 - 조건문 없음
-        //Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>>
         var oneTimeChargeDataByType = loadOneTimeChargeDataByType(contractIds, ctx);
 
         // 할인 (기존 방식 유지)
@@ -79,6 +99,9 @@ public class CalculationCommandService implements CalculationCommandUseCase {
 
         // 모든 조회 대상을 calculationTarget으로 모은다.
         for (Long contractId : contractIds) {
+            // Monthly Fee 데이터를 계약별로 그룹화
+            var monthlyFeeDataForContract = groupMonthlyFeeDataByContract(contractId, monthlyFeeDataByType);
+
             // OneTimeCharge 데이터를 계약별로 그룹화
             var oneTimeChargeDataForContract = groupOneTimeChargeDataByContract(contractId, oneTimeChargeDataByType);
 
@@ -88,7 +111,7 @@ public class CalculationCommandService implements CalculationCommandUseCase {
 
             CalculationTarget calculationTarget = new CalculationTarget(
                     contractId,
-                    contractWithProductsAndSuspensionsMap.getOrDefault(contractId, Collections.emptyList()),
+                    monthlyFeeDataForContract,
                     oneTimeChargeDataForContract,
                     discounts
             );
@@ -100,6 +123,48 @@ public class CalculationCommandService implements CalculationCommandUseCase {
         return calculationTargets;
     }
 
+
+    /**
+     * 모든 MonthlyFeeDataLoader를 실행하여 데이터 로딩
+     */
+    private Map<Class<? extends MonthlyChargeDomain>, Map<Long, List<MonthlyChargeDomain>>>
+        loadMonthlyFeeDataByType(List<Long> contractIds, CalculationContext context) {
+
+        Map<Class<? extends MonthlyChargeDomain>, Map<Long, List<MonthlyChargeDomain>>> result = new HashMap<>();
+
+        for (var entry : monthlyFeeDataLoaderMap.entrySet()) {
+            var dataType = entry.getKey();
+            var loader = entry.getValue();
+            Map<Long, List<MonthlyChargeDomain>> data = loader.read(contractIds, context);
+            if (!data.isEmpty()) {
+                result.put(dataType, data);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 특정 계약의 MonthlyFee 데이터 그룹화
+     */
+    private Map<Class<? extends MonthlyChargeDomain>, List<MonthlyChargeDomain>> groupMonthlyFeeDataByContract(
+            Long contractId,
+            Map<Class<? extends MonthlyChargeDomain>, Map<Long, List<MonthlyChargeDomain>>> monthlyFeeDataByType) {
+
+        Map<Class<? extends MonthlyChargeDomain>, List<MonthlyChargeDomain>> result = new HashMap<>();
+
+        for (var entry : monthlyFeeDataByType.entrySet()) {
+            var dataType = entry.getKey();
+            var dataByContract = entry.getValue();
+
+            List<MonthlyChargeDomain> contractData = dataByContract.get(contractId);
+            if (contractData != null && !contractData.isEmpty()) {
+                result.put(dataType, contractData);
+            }
+        }
+
+        return result;
+    }
 
     /**
      * 모든 DataLoader를 실행하여 OneTimeCharge 데이터 로딩
@@ -159,7 +224,9 @@ public class CalculationCommandService implements CalculationCommandUseCase {
             List<CalculationResult<?>> results = new ArrayList<>();
 
             // 월정액 계산
-            results.addAll(process(calculationTarget.contractWithProductsAndSuspensions(), baseFeeCalculator::process, ctx));
+            for (var monthlyFeeCalculator : monthlyFeeCalculators) {
+                processMonthlyFeeCalculator(monthlyFeeCalculator, calculationTarget, ctx, results);
+            }
 
             // 일회성 과금 계산
             for (var oneTimeChargeCalculator : oneTimeChargeCalculators) {
@@ -185,6 +252,21 @@ public class CalculationCommandService implements CalculationCommandUseCase {
             log.error("Failed to process contract calculation for contractId: {}", calculationTarget.contractId(), e);
             throw e;
         }
+    }
+
+    /**
+     * MonthlyFeeCalculator 타입 안전 처리
+     */
+    @SuppressWarnings("unchecked")
+    private <T extends MonthlyChargeDomain> void processMonthlyFeeCalculator(
+            MonthlyFeeCalculator<T> calculator,
+            CalculationTarget target,
+            CalculationContext ctx,
+            List<CalculationResult<?>> results) {
+        Class<T> inputType = calculator.getInputType();
+
+        List<T> inputData = target.getMonthlyChargeData(inputType);
+        results.addAll(process(inputData, calculator::process, ctx));
     }
 
     /**

@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Getter
 @ToString
-public class ContractWithProductsAndSuspensions extends Temporal {
+public class ContractWithProductsAndSuspensions extends Temporal implements MonthlyChargeDomain {
     private final Long contractId;
     
     private final LocalDate subscribedAt;
