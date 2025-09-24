@@ -118,7 +118,7 @@ public class CalculationCommandService implements CalculationCommandUseCase {
             calculationTargets.add(calculationTarget);
         }
 
-        log.info("생성된 calculationTargets 개수: {}", calculationTargets.size());
+        log.info("*********생성된 calculationTargets 개수: {}", calculationTargets.size());
 
         return calculationTargets;
     }
@@ -227,25 +227,31 @@ public class CalculationCommandService implements CalculationCommandUseCase {
             for (var monthlyFeeCalculator : monthlyFeeCalculators) {
                 processMonthlyFeeCalculator(monthlyFeeCalculator, calculationTarget, ctx, results);
             }
+            log.debug("Processed 월정액 {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
 
             // 일회성 과금 계산
             for (var oneTimeChargeCalculator : oneTimeChargeCalculators) {
                 processOneTimeChargeCalculator(oneTimeChargeCalculator, calculationTarget, ctx, results);
             }
+            log.debug("Processed 일회성 {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
 
             // 구간분리
             results = new ArrayList<>(calculationResultProrater.prorate(ctx, results, calculationTarget.discounts()));
+            log.debug("Processed 구간분리 {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
 
             // 할인
             results.addAll(discountCalculator.process(ctx, results, calculationTarget.discounts()));
+            log.debug("Processed 할인 {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
 
             // 구간 합치기
             results = new ArrayList<>(calculationResultProrater.consolidate(results));
+            log.debug("Processed 합치기 {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
 
             // VAT 계산 (기존 결과 기반)
             results.addAll(vatCalculator.calculateVat(ctx, results));
+            log.debug("Processed 부가세 {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
 
-            log.info("Processed {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
+            log.debug("Processed {} calculation results for contractId: {}", results.size(), calculationTarget.contractId());
 
             return new CalculationResultGroup(results);
         } catch (Exception e) {

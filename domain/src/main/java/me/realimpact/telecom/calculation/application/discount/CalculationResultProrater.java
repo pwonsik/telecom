@@ -11,9 +11,11 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 public class CalculationResultProrater {
+    // calculationResultsBeforeDiscount와 discounts의 구간을 부딪쳐서 나눈다.
     public List<? extends CalculationResult<?>> prorate(CalculationContext ctx,
                                               List<CalculationResult<?>> calculationResultsBeforeDiscount,
                                               List<Discount> discounts) {
@@ -27,6 +29,12 @@ public class CalculationResultProrater {
                                 )
                         )
                         .toList();
+
+                // 적합한 discount가 없으면 원본 CalculationResult를 그대로 반환
+                if (discountDates.isEmpty()) {
+                    return Stream.of(calculationResult);
+                }
+
                 return calculationResult.prorate(discountDates).stream();
             })
             .toList();

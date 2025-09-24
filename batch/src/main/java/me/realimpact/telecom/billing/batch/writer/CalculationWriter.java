@@ -26,6 +26,7 @@ public class CalculationWriter implements ItemWriter<CalculationResultGroup> {
         if (chunk.isEmpty()) {
             return;
         }
+
         List<CalculationResult<?>> calculationResults = chunk.getItems().stream()
             .flatMap(calculationResultGroup -> calculationResultGroup.calculationResults().stream())
             .toList();

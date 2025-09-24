@@ -1,6 +1,7 @@
 package me.realimpact.telecom.calculation.application.monthlyfee.policy;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
 import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeCalculator;
 import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeDataLoader;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 @Order(10)
 public class BasicPolicyMonthlyFeeCalculator implements
         MonthlyFeeDataLoader<ContractWithProductsAndSuspensions>,
@@ -62,7 +64,7 @@ public class BasicPolicyMonthlyFeeCalculator implements
         CalculationContext ctx,
         ContractWithProductsAndSuspensions contractWithProductInventoriesAndSuspensions
     ) {
-        return contractWithProductInventoriesAndSuspensions.buildProratedPeriods().stream()
+        var result = contractWithProductInventoriesAndSuspensions.buildProratedPeriods().stream()
             .map(proratedPeriod -> {
                 var data = proratedPeriod.calculateProratedData();
                 return new CalculationResult<ContractWithProductsAndSuspensions>(
@@ -83,6 +85,7 @@ public class BasicPolicyMonthlyFeeCalculator implements
             })
             .filter(Objects::nonNull)
             .toList();
+        return result;
     }
 
     // MonthlyFeeDataLoader 인터페이스 구현
