@@ -48,39 +48,32 @@ public class CalculationResult<I> {
      *
      * @return 일할 계산된 CalculationResult 목록
      */
-    public List<CalculationResult<?>> prorate(List<DefaultPeriod> periods) {
-        List<LocalDate> datePoints = getDatePoints(periods);
+    public List<? extends CalculationResult<?>> prorate(List<DefaultPeriod> periods) {
+        if (periods == null || periods.isEmpty()) {
+            return List.of();
+        }
 
-        // 각 구간별로 ProratedPeriod 리스트를 생성
-        // 명시적 타입 힌트. 신기하군
-        return IntStream.range(0, datePoints.size() - 1)
-            .mapToObj(i -> DefaultPeriod.of(
-                datePoints.get(i),
-                datePoints.get(i + 1)
-            ))
-            .<CalculationResult<?>>map(this::createProratedResult)
+        // 각 period와 현재 CalculationResult가 겹치는 부분만 계산
+        return periods.stream()
+            .filter(this::overlapsWith)
+            .map(period -> {
+                // 겹치는 구간 계산
+                LocalDate intersectionStart = effectiveStartDate.isAfter(period.getStartDate())
+                    ? effectiveStartDate : period.getStartDate();
+                LocalDate intersectionEnd = effectiveEndDate.isBefore(period.getEndDate())
+                    ? effectiveEndDate : period.getEndDate();
+
+                return DefaultPeriod.of(intersectionStart, intersectionEnd);
+            })
+            .filter(period -> period.getStartDate().isBefore(period.getEndDate())) // 유효한 구간만
+            .map(this::createProratedResult)
             .toList();
     }
 
-    private List<LocalDate> getDatePoints(List<DefaultPeriod> periods) {
-        // periods 중 구간을 분리할 후보군을 선정한다.
-        Stream<LocalDate> startDatesStream = periods.stream()
-            .filter(this::overlapsWith)
-            .map(DefaultPeriod::getStartDate);
-
-        Stream<LocalDate> endDatesStream = periods.stream()
-            .filter(this::overlapsWith)
-            .map(DefaultPeriod::getEndDate);
-
-        return Stream.of(Stream.of(effectiveStartDate), Stream.of(effectiveEndDate), startDatesStream, endDatesStream)
-            .flatMap(Function.identity())
-            .sorted()
-            .toList();
-    }
 
     private boolean overlapsWith(DefaultPeriod period) {
-        return (period.getStartDate().isBefore(effectiveEndDate) || period.getStartDate().isEqual(effectiveEndDate)) &&
-            (effectiveStartDate.isBefore(period.getEndDate()) || effectiveStartDate.isEqual(period.getEndDate()));
+        return effectiveStartDate.isBefore(period.getEndDate()) &&
+               period.getStartDate().isBefore(effectiveEndDate);
     }
     
     /**

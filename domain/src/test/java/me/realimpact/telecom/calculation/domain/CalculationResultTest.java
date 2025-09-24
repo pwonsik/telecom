@@ -33,7 +33,7 @@ class CalculationResultTest {
             BigDecimal.valueOf(10000),
             BigDecimal.valueOf(10000),
             null,
-                null
+            postProcessor
         );
         
         CalculationContext ctx = new CalculationContext(
