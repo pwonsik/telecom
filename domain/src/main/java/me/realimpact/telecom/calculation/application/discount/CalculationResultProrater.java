@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class CalculationResultProrater {
-    public List<CalculationResult<?>> prorate(CalculationContext ctx,
+    public List<? extends CalculationResult<?>> prorate(CalculationContext ctx,
                                               List<CalculationResult<?>> calculationResultsBeforeDiscount,
                                               List<Discount> discounts) {
         return calculationResultsBeforeDiscount.stream()

@@ -52,7 +52,24 @@ public class BaseFeeCalculator implements Calculator<ContractWithProductsAndSusp
         ContractWithProductsAndSuspensions contractWithProductInventoriesAndSuspensions
     ) {
         return contractWithProductInventoriesAndSuspensions.buildProratedPeriods().stream()
-            .map(proratedPeriod -> proratedPeriod.calculate(ctx))
+            .map(proratedPeriod -> {
+                var data = proratedPeriod.calculateProratedData();
+                return new CalculationResult<ContractWithProductsAndSuspensions>(
+                    data.contractId(),
+                    ctx.billingStartDate(),
+                    ctx.billingEndDate(),
+                    data.productOfferingId(),
+                    data.chargeItemId(),
+                    data.revenueItemId(),
+                    data.periodStartDate(),
+                    data.periodEndDate(),
+                    data.suspensionType().orElse(null),
+                    data.proratedFee(),
+                    data.balance(),
+                    null,
+                    null // BaseFeeCalculator는 후처리가 필요 없음
+                );
+            })
             .filter(Objects::nonNull)
             .toList();
     }
