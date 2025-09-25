@@ -20,12 +20,12 @@ import org.springframework.batch.item.ItemProcessor;
 public class CalculationProcessor implements ItemProcessor<CalculationTarget, CalculationResultGroup> {
 
     private final CalculationCommandService calculationCommandService;
-
     private final CalculationParameters calculationParameters;
 
     @Override
     public CalculationResultGroup process(@NonNull CalculationTarget calculationTarget) throws Exception {
         CalculationContext ctx = calculationParameters.toCalculationContext();
+
         return calculationCommandService.processCalculation(calculationTarget, ctx);
     }
 }

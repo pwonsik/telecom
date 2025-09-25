@@ -10,6 +10,7 @@ spring:
       connection-timeout: 60000
       idle-timeout: 30000     # 30초로 단축 (프로그램 종료 개선)
       max-lifetime: 60000     # 1분으로 단축 (프로그램 종료 개선)
+
   batch:
     job:
       enabled: false  # Spring Batch 자동 실행 비활성화 (CommandLineRunner로 수동 실행)

@@ -15,10 +15,8 @@ import me.realimpact.telecom.calculation.application.CalculationCommandService;
 import me.realimpact.telecom.calculation.application.CalculationTarget;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 import org.apache.ibatis.session.SqlSessionFactory;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.partition.PartitionHandler;
@@ -27,7 +25,6 @@ import org.springframework.batch.core.partition.support.TaskExecutorPartitionHan
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Value;
@@ -283,4 +280,5 @@ public class PartitionedCalculationBatchConfig {
                 .next(partitionedMasterStep())                                                     // 2. 파티션 기반 계산 수행
                 .build();
     }
+
 }

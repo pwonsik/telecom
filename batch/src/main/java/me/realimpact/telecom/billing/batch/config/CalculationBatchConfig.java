@@ -184,8 +184,7 @@ public class CalculationBatchConfig {
             @Value("${contractIds:}") String contractIdsStr,
             @Value("${batch.thread-count}") Integer threadCount,
             @Value("${billingCalculationType}") String billingCalculationTypeStr,
-            @Value("${billingCalculationPeriod}") String billingCalculationPeriodStr,
-            CalculationCommandService calculationCommandService
+            @Value("${billingCalculationPeriod}") String billingCalculationPeriodStr
     ) {
         log.info("=== CalculationProcessor Bean 생성 시작 === billingStartDate: {}, threadCount: {}",
                 billingStartDateStr, threadCount);
@@ -246,7 +245,7 @@ public class CalculationBatchConfig {
         return new StepBuilder("monthlyFeeCalculationStep", jobRepository)
                 .<CalculationTarget, CalculationResultGroup>chunk(CHUNK_SIZE, transactionManager)  // 상수화된 chunk size 사용
                 .reader(contractReader(null, null, null, null, null, null, null))  // Thread-Safe Reader 사용
-                .processor(calculationProcessor(null, null, null, null, null, null, null))  // @JobScope Processor 사용
+                .processor(calculationProcessor(null, null, null, null, null, null))  // @JobScope Processor 사용
                 .writer(calculationWriter(null, null, null, null, null, null))        // @JobScope Writer 사용
                 .taskExecutor(taskExecutor(null))             // 멀티쓰레드 실행 (@JobScope가 런타임에 실제 값 주입)
                 .build();
@@ -262,4 +261,5 @@ public class CalculationBatchConfig {
                 .next(monthlyFeeCalculationStep())         // 2. 새로운 계산 수행
                 .build();
     }
+
 }

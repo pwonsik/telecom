@@ -4,8 +4,4 @@ dependencies {
     
     // H2 database for testing (optional)
     runtimeOnly 'com.h2database:h2'
-    
-    // Jackson for JSON logging
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 }

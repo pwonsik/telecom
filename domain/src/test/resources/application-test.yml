@@ -1,0 +1,18 @@
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: me.realimpact.telecom.calculation.infrastructure.dto
+  configuration:
+    map-underscore-to-camel-case: true
+    use-column-label: true
+    cache-enabled: false
+    default-fetch-size: 100
+    default-statement-timeout: 30
+
+billing:
+  vat:
+    vat-rate: 0.10
+    enabled: true
+
+logging:
+  level:
+    me.realimpact.telecom.calculation: DEBUG
