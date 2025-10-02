@@ -18,7 +18,7 @@ public interface MonthlyFeeDataLoader<T extends MonthlyChargeDomain> {
      * 로딩할 수 있는 데이터 타입 반환
      * @return 데이터 타입
      */
-    Class<T> getDataType();
+    Class<T> getDomainType();
 
     /**
      * 계약 ID 목록에 대한 데이터 로딩
@@ -26,5 +26,5 @@ public interface MonthlyFeeDataLoader<T extends MonthlyChargeDomain> {
      * @param context 계산 컨텍스트
      * @return 로딩된 데이터 목록 (계약 ID별로 그룹화)
      */
-    Map<Long, List<MonthlyChargeDomain>> read(List<Long> contractIds, CalculationContext context);
+    Map<Long, List<? extends MonthlyChargeDomain>> read(List<Long> contractIds, CalculationContext context);
 }

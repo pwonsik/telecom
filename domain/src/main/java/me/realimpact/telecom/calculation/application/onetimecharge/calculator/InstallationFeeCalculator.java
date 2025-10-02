@@ -51,7 +51,7 @@ public class InstallationFeeCalculator implements OneTimeChargeCalculator<Instal
     
     // OneTimeChargeCalculator 인터페이스 구현
     @Override
-    public Class<InstallationHistory> getInputType() {
+    public Class<InstallationHistory> getDomainType() {
         return InstallationHistory.class;
     }
 

@@ -54,16 +54,20 @@ public class CalculationCommandService implements CalculationCommandUseCase {
         // Monthly Fee DataLoader List를 Map으로 변환
         this.monthlyFeeDataLoaderMap = monthlyFeeDataLoaders.stream()
                 .collect(Collectors.toMap(
-                        MonthlyFeeDataLoader::getDataType,
-                        Function.identity()
+                        MonthlyFeeDataLoader::getDomainType,
+                        Function.identity(),
+                        (oldValue, newValue) -> oldValue,
+                        LinkedHashMap::new
                 ));
         this.monthlyFeeCalculators = monthlyFeeCalculators;
 
         // OneTime Charge DataLoader List를 Map으로 변환
         this.oneTimeChargeDataLoaderMap = oneTimeChargeDataLoaders.stream()
                 .collect(Collectors.toMap(
-                        OneTimeChargeDataLoader::getDataType,
-                        Function.identity()
+                        OneTimeChargeDataLoader::getDomainType,
+                        Function.identity(),
+                        (oldValue, newValue) -> oldValue,
+                        LinkedHashMap::new
                 ));
         this.oneTimeChargeCalculators = oneTimeChargeCalculators;
 
@@ -73,13 +77,13 @@ public class CalculationCommandService implements CalculationCommandUseCase {
         log.info("Registered {} MonthlyFee DataLoaders: {}",
                 monthlyFeeDataLoaders.size(),
                 monthlyFeeDataLoaders.stream()
-                        .map(loader -> loader.getDataType().getSimpleName())
+                        .map(loader -> loader.getDomainType().getSimpleName())
                         .collect(Collectors.joining(", ")));
 
         log.info("Registered {} OneTimeCharge DataLoaders: {}",
                 oneTimeChargeDataLoaders.size(),
                 oneTimeChargeDataLoaders.stream()
-                        .map(loader -> loader.getDataType().getSimpleName())
+                        .map(loader -> loader.getDomainType().getSimpleName())
                         .collect(Collectors.joining(", ")));
     }
 
@@ -125,15 +129,15 @@ public class CalculationCommandService implements CalculationCommandUseCase {
     /**
      * 모든 MonthlyFeeDataLoader를 실행하여 데이터 로딩
      */
-    private Map<Class<? extends MonthlyChargeDomain>, Map<Long, List<MonthlyChargeDomain>>>
+    private Map<Class<? extends MonthlyChargeDomain>, Map<Long, List<? extends MonthlyChargeDomain>>>
         loadMonthlyFeeDataByType(List<Long> contractIds, CalculationContext context) {
 
-        Map<Class<? extends MonthlyChargeDomain>, Map<Long, List<MonthlyChargeDomain>>> result = new HashMap<>();
+        Map<Class<? extends MonthlyChargeDomain>, Map<Long, List<? extends MonthlyChargeDomain>>> result = new HashMap<>();
 
         for (var entry : monthlyFeeDataLoaderMap.entrySet()) {
             var dataType = entry.getKey();
             var loader = entry.getValue();
-            Map<Long, List<MonthlyChargeDomain>> data = loader.read(contractIds, context);
+            Map<Long, List<? extends MonthlyChargeDomain>> data = loader.read(contractIds, context);
             if (!data.isEmpty()) {
                 result.put(dataType, data);
             }
@@ -145,17 +149,17 @@ public class CalculationCommandService implements CalculationCommandUseCase {
     /**
      * 특정 계약의 MonthlyFee 데이터 그룹화
      */
-    private Map<Class<? extends MonthlyChargeDomain>, List<MonthlyChargeDomain>> groupMonthlyFeeDataByContract(
+    private Map<Class<? extends MonthlyChargeDomain>, List<? extends MonthlyChargeDomain>> groupMonthlyFeeDataByContract(
             Long contractId,
-            Map<Class<? extends MonthlyChargeDomain>, Map<Long, List<MonthlyChargeDomain>>> monthlyFeeDataByType) {
+            Map<Class<? extends MonthlyChargeDomain>, Map<Long, List<? extends MonthlyChargeDomain>>> monthlyFeeDataByType) {
 
-        Map<Class<? extends MonthlyChargeDomain>, List<MonthlyChargeDomain>> result = new HashMap<>();
+        Map<Class<? extends MonthlyChargeDomain>, List<? extends MonthlyChargeDomain>> result = new HashMap<>();
 
         for (var entry : monthlyFeeDataByType.entrySet()) {
             var dataType = entry.getKey();
             var dataByContract = entry.getValue();
 
-            List<MonthlyChargeDomain> contractData = dataByContract.get(contractId);
+            List<? extends MonthlyChargeDomain> contractData = dataByContract.get(contractId);
             if (contractData != null && !contractData.isEmpty()) {
                 result.put(dataType, contractData);
             }
@@ -169,10 +173,10 @@ public class CalculationCommandService implements CalculationCommandUseCase {
      * key : OneTimeCharge종류
      * value : key가 계약Id이고, value가 domain의 list인 map
      */
-    private Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<OneTimeChargeDomain>>>
+    private Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>>
         loadOneTimeChargeDataByType(List<Long> contractIds, CalculationContext context) {
 
-        Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<OneTimeChargeDomain>>> result = new HashMap<>();
+        Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>> result = new HashMap<>();
 
         // Map을 순회하면서 각 DataLoader 실행 - 조건문 완전 제거
         //for (Map.Entry<Class<? extends OneTimeChargeDomain>, OneTimeChargeDataLoader<? extends OneTimeChargeDomain>>
@@ -181,7 +185,7 @@ public class CalculationCommandService implements CalculationCommandUseCase {
 //            OneTimeChargeDataLoader<? extends OneTimeChargeDomain> loader = entry.getValue();
             var dataType = entry.getKey();
             var loader = entry.getValue();
-            Map<Long, List<OneTimeChargeDomain>> data = loader.read(contractIds, context);
+            Map<Long, List<? extends OneTimeChargeDomain>> data = loader.read(contractIds, context);
             if (!data.isEmpty()) {
                 result.put(dataType, data);
             }
@@ -192,12 +196,12 @@ public class CalculationCommandService implements CalculationCommandUseCase {
     /**
      * 특정 계약의 OneTimeCharge 데이터 그룹화
      */
-    private Map<Class<? extends OneTimeChargeDomain>, List<OneTimeChargeDomain>>
+    private Map<Class<? extends OneTimeChargeDomain>, List<? extends OneTimeChargeDomain>>
         groupOneTimeChargeDataByContract(
             Long contractId,
-            Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<OneTimeChargeDomain>>> oneTimeChargeDataByType) {
+            Map<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>> oneTimeChargeDataByType) {
 
-        Map<Class<? extends OneTimeChargeDomain>, List<OneTimeChargeDomain>> result = new HashMap<>();
+        Map<Class<? extends OneTimeChargeDomain>, List<? extends OneTimeChargeDomain>> result = new HashMap<>();
 
         //for (Map.Entry<Class<? extends OneTimeChargeDomain>, Map<Long, List<? extends OneTimeChargeDomain>>>
         for (var entry : oneTimeChargeDataByType.entrySet()) {
@@ -207,7 +211,7 @@ public class CalculationCommandService implements CalculationCommandUseCase {
             var dataType = entry.getKey();
             var dataByContract = entry.getValue();
 
-            List<OneTimeChargeDomain> contractData = dataByContract.get(contractId);
+            List<? extends OneTimeChargeDomain> contractData = dataByContract.get(contractId);
             if (contractData != null && !contractData.isEmpty()) {
                 result.put(dataType, contractData);
             }
@@ -267,7 +271,7 @@ public class CalculationCommandService implements CalculationCommandUseCase {
             CalculationTarget target,
             CalculationContext ctx,
             List<CalculationResult<?>> results) {
-        Class<T> inputType = calculator.getInputType();
+        Class<T> inputType = calculator.getDomainType();
         List<T> inputData = target.getMonthlyChargeData(inputType);
         results.addAll(process(inputData, calculator::process, ctx));
     }
@@ -281,7 +285,7 @@ public class CalculationCommandService implements CalculationCommandUseCase {
             CalculationTarget target,
             CalculationContext ctx,
             List<CalculationResult<?>> results) {
-        Class<T> inputType = calculator.getInputType();
+        Class<T> inputType = calculator.getDomainType();
         List<T> inputData = target.getOneTimeChargeData(inputType);
         results.addAll(process(inputData, calculator::process, ctx));
     }
@@ -294,7 +298,7 @@ public class CalculationCommandService implements CalculationCommandUseCase {
         return items.stream()
                 .flatMap(item -> processor.apply(context, item).stream())
                 .<CalculationResult<?>>map(result -> result)
-                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+                .toList();
     }
 
     @Override

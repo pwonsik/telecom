@@ -54,7 +54,7 @@ public class DeviceInstallmentCalculator implements OneTimeChargeCalculator<Devi
     
     // OneTimeChargeCalculator 인터페이스 구현
     @Override
-    public Class<DeviceInstallmentMaster> getInputType() {
+    public Class<DeviceInstallmentMaster> getDomainType() {
         return DeviceInstallmentMaster.class;
     }
 

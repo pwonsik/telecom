@@ -2,7 +2,6 @@ package me.realimpact.telecom.calculation.application.onetimecharge;
 
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 import me.realimpact.telecom.calculation.domain.onetimecharge.OneTimeChargeDomain;
-import me.realimpact.telecom.calculation.domain.onetimecharge.policy.installment.DeviceInstallmentMaster;
 
 import java.util.List;
 import java.util.Map;
@@ -19,7 +18,7 @@ public interface OneTimeChargeDataLoader<T extends OneTimeChargeDomain> {
      * 로딩할 수 있는 데이터 타입 반환
      * @return 데이터 타입
      */
-    Class<T> getDataType();
+    Class<T> getDomainType();
     
     /**
      * 계약 ID 목록에 대한 데이터 로딩
@@ -27,5 +26,5 @@ public interface OneTimeChargeDataLoader<T extends OneTimeChargeDomain> {
      * @param context 계산 컨텍스트
      * @return 로딩된 데이터 목록
      */
-    Map<Long, List<OneTimeChargeDomain>> read(List<Long> contractIds, CalculationContext context);
+    Map<Long, List<? extends OneTimeChargeDomain>> read(List<Long> contractIds, CalculationContext context);
 }

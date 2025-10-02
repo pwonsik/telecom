@@ -13,8 +13,8 @@ import java.util.Map;
 
 public record CalculationTarget(
     Long contractId,
-    Map<Class<? extends MonthlyChargeDomain>, List<MonthlyChargeDomain>> monthlyChargeData,
-    Map<Class<? extends OneTimeChargeDomain>, List<OneTimeChargeDomain>> oneTimeChargeData,
+    Map<Class<? extends MonthlyChargeDomain>, List<? extends MonthlyChargeDomain>> monthlyChargeData,
+    Map<Class<? extends OneTimeChargeDomain>, List<? extends OneTimeChargeDomain>> oneTimeChargeData,
     List<Discount> discounts
 ) {
     
@@ -25,7 +25,7 @@ public record CalculationTarget(
      */
     @SuppressWarnings("unchecked")
     public <T extends MonthlyChargeDomain> List<T> getMonthlyChargeData(Class<T> type) {
-        List<MonthlyChargeDomain> data = monthlyChargeData.getOrDefault(type, Collections.emptyList());
+        List<? extends MonthlyChargeDomain> data = monthlyChargeData.getOrDefault(type, Collections.emptyList());
         return (List<T>) data;
     }
 
@@ -36,16 +36,8 @@ public record CalculationTarget(
      */
     @SuppressWarnings("unchecked")
     public <T extends OneTimeChargeDomain> List<T> getOneTimeChargeData(Class<T> type) {
-        List<OneTimeChargeDomain> data = oneTimeChargeData.getOrDefault(type, Collections.emptyList());
+        List<? extends OneTimeChargeDomain> data = oneTimeChargeData.getOrDefault(type, Collections.emptyList());
         return (List<T>) data;
-    }
-
-    /**
-     * 기존 호환성을 위한 ContractWithProductsAndSuspensions 조회 메서드
-     * @return ContractWithProductsAndSuspensions 목록
-     */
-    public List<ContractWithProductsAndSuspensions> contractWithProductsAndSuspensions() {
-        return getMonthlyChargeData(ContractWithProductsAndSuspensions.class);
     }
 
     /**
@@ -55,12 +47,5 @@ public record CalculationTarget(
     public List<InstallationHistory> installationHistories() {
         return getOneTimeChargeData(InstallationHistory.class);
     }
-    
-    /**
-     * 기존 호환성을 위한 DeviceInstallmentMaster 조회 메서드
-     * @return DeviceInstallmentMaster 목록
-     */
-    public List<DeviceInstallmentMaster> deviceInstallmentMasters() {
-        return getOneTimeChargeData(DeviceInstallmentMaster.class);
-    }
+
 }

@@ -12,6 +12,7 @@ import me.realimpact.telecom.calculation.infrastructure.adapter.ProductQueryPort
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -27,12 +28,12 @@ public class ContractWithProductsAndSuspensionsDataLoader implements MonthlyFeeD
     private final BillingPeriodService billingPeriodService;
 
     @Override
-    public Class<ContractWithProductsAndSuspensions> getDataType() {
+    public Class<ContractWithProductsAndSuspensions> getDomainType() {
         return ContractWithProductsAndSuspensions.class;
     }
 
     @Override
-    public Map<Long, List<MonthlyChargeDomain>> read(List<Long> contractIds, CalculationContext ctx) {
+    public Map<Long, List<? extends MonthlyChargeDomain>> read(List<Long> contractIds, CalculationContext ctx) {
         log.debug("Loading ContractWithProductsAndSuspensions data for {} contracts", contractIds.size());
 
         DefaultPeriod billingPeriod = billingPeriodService.createBillingPeriod(ctx);
@@ -44,12 +45,9 @@ public class ContractWithProductsAndSuspensionsDataLoader implements MonthlyFeeD
             ).stream()
             .collect(Collectors.groupingBy(ContractWithProductsAndSuspensions::getContractId));
 
-        // ContractWithProductsAndSuspensions를 MonthlyChargeDomain으로 변환
-        Map<Long, List<MonthlyChargeDomain>> result = new HashMap<>();
-        specificData.forEach((contractId, monthlyChargeDomains) ->
-                result.put(contractId, new ArrayList<>(monthlyChargeDomains)));
+        log.debug("Loaded ContractWithProductsAndSuspensions data for {} contracts", specificData.size());
 
-        log.debug("Loaded ContractWithProductsAndSuspensions data for {} contracts", result.size());
-        return result;
+        return specificData.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 }

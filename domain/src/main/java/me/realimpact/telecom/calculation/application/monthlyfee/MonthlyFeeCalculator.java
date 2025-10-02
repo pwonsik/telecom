@@ -18,7 +18,7 @@ public interface MonthlyFeeCalculator<T extends MonthlyChargeDomain> {
      * 처리할 수 있는 입력 데이터 타입 반환
      * @return 입력 데이터 타입
      */
-    Class<T> getInputType();
+    Class<T> getDomainType();
 
     /**
      * Monthly Fee 계산 실행

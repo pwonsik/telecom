@@ -26,12 +26,12 @@ public class DeviceInstallmentMasterDataLoader implements OneTimeChargeDataLoade
     private final DeviceInstallmentQueryPort deviceInstallmentQueryPort;
 
     @Override
-    public Class<DeviceInstallmentMaster> getDataType() {
+    public Class<DeviceInstallmentMaster> getDomainType() {
         return DeviceInstallmentMaster.class;
     }
 
     @Override
-    public Map<Long, List<OneTimeChargeDomain>> read(List<Long> contractIds, CalculationContext ctx) {
+    public Map<Long, List<? extends OneTimeChargeDomain>> read(List<Long> contractIds, CalculationContext ctx) {
         log.debug("Loading DeviceInstallmentMaster data for {} contracts", contractIds.size());
 
         Map<Long, List<DeviceInstallmentMaster>> specificData = deviceInstallmentQueryPort
@@ -39,12 +39,9 @@ public class DeviceInstallmentMasterDataLoader implements OneTimeChargeDataLoade
                 .stream()
                 .collect(Collectors.groupingBy(DeviceInstallmentMaster::getContractId));
 
-        // DeviceInstallmentMaster를 OneTimeChargeDomain으로 변환
-        Map<Long, List<OneTimeChargeDomain>> result = new HashMap<>();
-        specificData.forEach((contractId, deviceInstallmentMasters) ->
-                result.put(contractId, List.copyOf(deviceInstallmentMasters)));
+        log.debug("Loaded InstallationHistory data for {} contracts", specificData.size());
 
-        log.debug("Loaded DeviceInstallmentMaster data for {} contracts", result.size());
-        return result;
+        return specificData.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 }

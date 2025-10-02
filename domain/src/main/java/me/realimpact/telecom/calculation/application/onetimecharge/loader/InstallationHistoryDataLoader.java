@@ -26,12 +26,12 @@ public class InstallationHistoryDataLoader implements OneTimeChargeDataLoader<In
     private final InstallationHistoryQueryPort installationHistoryQueryPort;
 
     @Override
-    public Class<InstallationHistory> getDataType() {
+    public Class<InstallationHistory> getDomainType() {
         return InstallationHistory.class;
     }
 
     @Override
-    public Map<Long, List<OneTimeChargeDomain>> read(List<Long> contractIds, CalculationContext ctx) {
+    public Map<Long, List<? extends OneTimeChargeDomain>> read(List<Long> contractIds, CalculationContext ctx) {
         log.debug("Loading InstallationHistory data for {} contracts", contractIds.size());
 
         Map<Long, List<InstallationHistory>> specificData = installationHistoryQueryPort
@@ -39,12 +39,9 @@ public class InstallationHistoryDataLoader implements OneTimeChargeDataLoader<In
                 .stream()
                 .collect(Collectors.groupingBy(InstallationHistory::getContractId));
 
-        // InstallationHistory를 OneTimeChargeDomain으로 변환
-        Map<Long, List<OneTimeChargeDomain>> result = new HashMap<>();
-        specificData.forEach((contractId, installationHistories) ->
-                result.put(contractId, List.copyOf(installationHistories)));
+        log.debug("Loaded InstallationHistory data for {} contracts", specificData.size());
 
-        log.debug("Loaded InstallationHistory data for {} contracts", result.size());
-        return result;
+        return specificData.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 }

@@ -23,7 +23,7 @@ public class BasicPolicyMonthlyFeeCalculator implements MonthlyFeeCalculator<Con
 
     // MonthlyFeeCalculator 인터페이스 구현
     @Override
-    public Class<ContractWithProductsAndSuspensions> getInputType() {
+    public Class<ContractWithProductsAndSuspensions> getDomainType() {
         return ContractWithProductsAndSuspensions.class;
     }
 
