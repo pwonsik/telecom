@@ -1,19 +1,11 @@
 package me.realimpact.telecom.billing.batch.config;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import me.realimpact.telecom.billing.batch.CalculationParameters;
-import me.realimpact.telecom.billing.batch.partitioner.ContractPartitioner;
-import me.realimpact.telecom.billing.batch.processor.CalculationProcessor;
-import me.realimpact.telecom.billing.batch.reader.PartitionedContractReader;
-import me.realimpact.telecom.billing.batch.tasklet.CalculationResultCleanupTasklet;
-import me.realimpact.telecom.billing.batch.writer.CalculationWriter;
-import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
-import me.realimpact.telecom.calculation.api.BillingCalculationType;
-import me.realimpact.telecom.calculation.api.CalculationResultGroup;
-import me.realimpact.telecom.calculation.application.CalculationCommandService;
-import me.realimpact.telecom.calculation.application.CalculationTarget;
-import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
+import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
+
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -35,19 +27,28 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
-
-import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import me.realimpact.telecom.billing.batch.CalculationParameters;
+import me.realimpact.telecom.billing.batch.partitioner.ContractPartitioner;
+import me.realimpact.telecom.billing.batch.processor.CalculationProcessor;
+import me.realimpact.telecom.billing.batch.reader.PartitionedContractReader;
+import me.realimpact.telecom.billing.batch.tasklet.CalculationResultCleanupTasklet;
+import me.realimpact.telecom.billing.batch.writer.CalculationWriter;
+import me.realimpact.telecom.calculation.api.BillingCalculationPeriod;
+import me.realimpact.telecom.calculation.api.BillingCalculationType;
+import me.realimpact.telecom.calculation.api.CalculationResultGroup;
+import me.realimpact.telecom.calculation.application.CalculationCommandService;
+import me.realimpact.telecom.calculation.application.CalculationTarget;
+import me.realimpact.telecom.calculation.application.CalculationTargetLoader;
+import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 
 /**
- * Partitioner 기반 Spring Batch 설정
- * 계약 ID를 파티션별로 분할하여 병렬 처리
+ * 파티셔닝을 사용하여 월별 요금 계산 배치를 설정하는 클래스.
+ * `partitionedMonthlyFeeCalculationJob` 잡이 활성화될 때 이 설정이 사용된다.
  */
 @Configuration
 @RequiredArgsConstructor
-//@MapperScan("me.realimpact.telecom.calculation.infrastructure.adapter")
 @ConditionalOnProperty(name = "spring.batch.job.names", havingValue = "partitionedMonthlyFeeCalculationJob")
 @Slf4j
 public class PartitionedCalculationBatchConfig {
@@ -57,10 +58,12 @@ public class PartitionedCalculationBatchConfig {
     private final PlatformTransactionManager transactionManager;
 
     private final CalculationCommandService calculationCommandService;
+    private final CalculationTargetLoader calculationTargetLoader;
     private final CalculationResultSavePort calculationResultSavePort;
 
     /**
-     * Helper method to create CalculationParameters from individual parameters
+     * 잡 파라미터를 파싱하여 CalculationParameters 객체를 생성한다.
+     * @return CalculationParameters 객체
      */
     private CalculationParameters createCalculationParameters(
             String billingStartDateStr,
@@ -94,7 +97,9 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * 파티션 기반 처리를 위한 TaskExecutor 설정
+     * 파티셔닝 처리를 위한 TaskExecutor를 설정한다.
+     * @param threadCount 스레드 개수
+     * @return 설정된 TaskExecutor
      */
     @Bean("partitionedTaskExecutor")
     public TaskExecutor partitionedTaskExecutor(@Value("${batch.thread-count}") Integer threadCount) {
@@ -119,7 +124,9 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * Contract Partitioner Bean - Step 실행 시 동적으로 thread count 결정
+     * 계약 ID를 기준으로 파티션을 나누는 Partitioner를 생성한다.
+     * @param threadCount 파티션 개수 (스레드 개수와 동일)
+     * @return ContractPartitioner
      */
     @Bean("contractPartitioner")
     public Partitioner contractPartitioner(@Value("${batch.thread-count}") Integer threadCount) {
@@ -133,11 +140,11 @@ public class PartitionedCalculationBatchConfig {
 
 
     /**
-     * 파티션별 Contract Reader
+     * 파티션별로 계약 데이터를 읽는 Reader를 생성한다.
+     * @return PartitionedContractReader
      */
     @Bean("partitionedContractReader")
     @StepScope
-    // ItemStreamReader로 반환해야 하는데 ItemReader로 반환하여 chunk가 한번만 처리되고 끝나버리는 문제가 있었다.
     public ItemStreamReader<CalculationTarget> partitionedContractReader(
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
@@ -157,7 +164,7 @@ public class PartitionedCalculationBatchConfig {
         );
 
         PartitionedContractReader reader = new PartitionedContractReader(
-                calculationCommandService,
+                calculationTargetLoader,
                 sqlSessionFactory,
                 params,
                 partitionKey,
@@ -168,6 +175,10 @@ public class PartitionedCalculationBatchConfig {
         return reader;
     }
 
+    /**
+     * 읽어온 데이터를 처리하는 Processor를 생성한다.
+     * @return CalculationProcessor
+     */
     @Bean("partitionedCalculationProcessor")
     @StepScope
     public ItemProcessor<CalculationTarget, CalculationResultGroup> partitionedCalculationProcessor(
@@ -193,7 +204,8 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * 파티션별 Writer Bean
+     * 처리된 데이터를 저장하는 Writer를 생성한다.
+     * @return CalculationWriter
      */
     @Bean("partitionedCalculationWriter")
     @StepScope
@@ -220,7 +232,8 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * Worker Step - 각 파티션에서 실행되는 실제 처리 Step
+     * 각 파티션에서 실행될 Worker Step을 정의한다.
+     * @return Worker Step
      */
     @Bean("partitionedWorkerStep")
     public Step partitionedWorkerStep() {
@@ -233,7 +246,9 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * Partition Handler - 파티션들을 관리하고 병렬 실행
+     * 파티션을 관리하고 병렬 실행하는 PartitionHandler를 설정한다.
+     * @param threadCount 스레드 개수
+     * @return PartitionHandler
      */
     @Bean("partitionHandler")
     public PartitionHandler partitionHandler(@Value("${batch.thread-count:8}") Integer threadCount) {
@@ -242,7 +257,7 @@ public class PartitionedCalculationBatchConfig {
         TaskExecutorPartitionHandler partitionHandler = new TaskExecutorPartitionHandler();
         partitionHandler.setStep(partitionedWorkerStep());
         partitionHandler.setTaskExecutor(partitionedTaskExecutor(threadCount));
-        partitionHandler.setGridSize(threadCount);  // 파티션 수 설정
+        partitionHandler.setGridSize(threadCount);
 
         log.info("=== PartitionHandler Bean 생성 완료 === Grid Size (파티션 수): {}", threadCount);
 
@@ -250,7 +265,8 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * Master Step - Partitioner를 이용해 파티션을 생성하고 Worker Step들을 병렬 실행
+     * Partitioner를 사용하여 파티션을 생성하고 Worker Step들을 병렬로 실행하는 Master Step을 정의한다.
+     * @return Master Step
      */
     @Bean("partitionedMasterStep")
     public Step partitionedMasterStep() {
@@ -261,7 +277,9 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * Cleanup Step 설정 - 기존 계산 결과 삭제 (파티션 Job용)
+     * 잡 실행 전, 이전 계산 결과를 삭제하는 Cleanup Step을 정의한다.
+     * @param calculationResultCleanupTasklet
+     * @return Cleanup Step
      */
     @Bean("partitionedCleanupCalculationResultStep")
     public Step partitionedCleanupCalculationResultStep(CalculationResultCleanupTasklet calculationResultCleanupTasklet) {
@@ -271,13 +289,15 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * Partitioned Job - Cleanup → Master Step 순서로 실행
+     * 파티셔닝을 사용하는 월별 요금 계산 잡을 정의한다.
+     * @param calculationResultCleanupTasklet
+     * @return partitionedMonthlyFeeCalculationJob
      */
     @Bean("partitionedMonthlyFeeCalculationJob")
     public Job partitionedMonthlyFeeCalculationJob(CalculationResultCleanupTasklet calculationResultCleanupTasklet) {
         return new JobBuilder("partitionedMonthlyFeeCalculationJob", jobRepository)
-                .start(partitionedCleanupCalculationResultStep(calculationResultCleanupTasklet))  // 1. 기존 결과 삭제
-                .next(partitionedMasterStep())                                                     // 2. 파티션 기반 계산 수행
+                .start(partitionedCleanupCalculationResultStep(calculationResultCleanupTasklet))
+                .next(partitionedMasterStep())
                 .build();
     }
 

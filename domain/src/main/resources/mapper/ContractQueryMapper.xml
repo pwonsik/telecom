@@ -17,10 +17,10 @@
         </if>
 
         <!-- 계약 유효 기간 필터링 -->
-        AND COALESCE(c.subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
-        AND COALESCE(c.terminated_at, '9999-12-31') &gt; #{billingStartDate}
-        AND COALESCE(c.initially_subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
-        AND COALESCE(c.preffered_termination_date, '9999-12-31') &gt; #{billingStartDate}
+        AND COALESCE(c.subscribed_at, DATE '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(c.terminated_at, DATE '9999-12-31') &gt; #{billingStartDate}
+        AND COALESCE(c.initially_subscribed_at, DATE '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(c.preffered_termination_date, DATE '9999-12-31') &gt; #{billingStartDate}
         ORDER BY c.contract_id
     </select>
 
@@ -29,14 +29,14 @@
         SELECT DISTINCT c.contract_id
         FROM contract c
         WHERE 1=1
-        <!-- 파티션 조건: contractId % partitionCount = partitionKey -->
-        AND c.contract_id % #{partitionCount} = #{partitionKey}
+    <!-- 파티션 조건: contractId MOD partitionCount = partitionKey (Oracle) -->
+    AND MOD(c.contract_id, #{partitionCount}) = #{partitionKey}
 
         <!-- 계약 유효 기간 필터링 -->
-        AND COALESCE(c.subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
-        AND COALESCE(c.terminated_at, '9999-12-31') &gt; #{billingStartDate}
-        AND COALESCE(c.initially_subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
-        AND COALESCE(c.preffered_termination_date, '9999-12-31') &gt; #{billingStartDate}
+        AND COALESCE(c.subscribed_at, DATE '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(c.terminated_at, DATE '9999-12-31') &gt; #{billingStartDate}
+        AND COALESCE(c.initially_subscribed_at, DATE '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(c.preffered_termination_date, DATE '9999-12-31') &gt; #{billingStartDate}
         ORDER BY c.contract_id
     </select>
 

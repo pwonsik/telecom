@@ -99,23 +99,29 @@
         </foreach>
 
         <!-- 계약 유효 기간 필터링 -->
-        AND COALESCE(c.subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
-        AND COALESCE(c.terminated_at, '9999-12-31') &gt; #{billingStartDate}
-        AND COALESCE(c.initially_subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
-        AND COALESCE(c.preffered_termination_date, '9999-12-31') &gt; #{billingStartDate}
+        AND COALESCE(c.subscribed_at, DATE '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(c.terminated_at, DATE '9999-12-31') &gt; #{billingStartDate}
+        AND COALESCE(c.initially_subscribed_at, DATE '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(c.preffered_termination_date, DATE '9999-12-31') &gt; #{billingStartDate}
 
         <!-- 상품 유효 기간 필터링 -->
-        AND DATE(COALESCE(p.effective_start_date_time, '1900-01-01 00:00:00')) &lt; DATE(COALESCE(p.effective_end_date_time, '9999-12-31 23:59:59'))
-        AND COALESCE(p.effective_start_date_time, '1900-01-01 00:00:00') &lt;= CONCAT(#{billingEndDate}, ' 23:59:59')
-        AND COALESCE(p.effective_end_date_time, '9999-12-31 23:59:59') &gt; CONCAT(#{billingStartDate}, ' 23:59:59')
-        AND COALESCE(p.subscribed_at, '1900-01-01') &lt;= #{billingEndDate}
-        AND COALESCE(p.terminated_at, '9999-12-31') &gt; #{billingStartDate}
+        AND TRUNC(COALESCE(p.effective_start_date_time, TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS'))) 
+            &lt; TRUNC(COALESCE(p.effective_end_date_time, TO_TIMESTAMP('9999-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')))
+        AND COALESCE(p.effective_start_date_time, TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')) 
+            &lt;= (TRUNC(#{billingEndDate}) + 1 - (1/86400))
+        AND COALESCE(p.effective_end_date_time, TO_TIMESTAMP('9999-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')) 
+            &gt; (TRUNC(#{billingStartDate}) + 1 - (1/86400))
+        AND COALESCE(p.subscribed_at, DATE '1900-01-01') &lt;= #{billingEndDate}
+        AND COALESCE(p.terminated_at, DATE '9999-12-31') &gt; #{billingStartDate}
 
         <!-- 정지 유효 기간 필터링 (LEFT JOIN이므로 NULL 허용) -->
         AND (s.contract_id IS NULL OR (
-        DATE(COALESCE(s.effective_start_date_time, '1900-01-01 00:00:00')) &lt; DATE(COALESCE(s.effective_end_date_time, '9999-12-31 23:59:59'))
-        AND COALESCE(s.effective_start_date_time, '1900-01-01 00:00:00') &lt;= CONCAT(#{billingEndDate}, ' 23:59:59')
-        AND COALESCE(s.effective_end_date_time, '9999-12-31 23:59:59') &gt; CONCAT(#{billingStartDate}, ' 23:59:59')
+        TRUNC(COALESCE(s.effective_start_date_time, TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS'))) 
+            &lt; TRUNC(COALESCE(s.effective_end_date_time, TO_TIMESTAMP('9999-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')))
+        AND COALESCE(s.effective_start_date_time, TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')) 
+            &lt;= (TRUNC(#{billingEndDate}) + 1 - (1/86400))
+        AND COALESCE(s.effective_end_date_time, TO_TIMESTAMP('9999-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')) 
+            &gt; (TRUNC(#{billingStartDate}) + 1 - (1/86400))
         ))
     </sql>
 

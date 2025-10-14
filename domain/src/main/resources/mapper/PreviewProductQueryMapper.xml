@@ -101,10 +101,11 @@
         AND c.terminated_at IS NOT NULL
 
         <!-- 상품 유효 기간 필터링 -->
-        AND DATE(COALESCE(p.effective_start_date_time, '1900-01-01 00:00:00')) &lt; DATE(COALESCE(p.effective_end_date_time, '9999-12-31 23:59:59'))
-        AND COALESCE(p.effective_end_date_time, '9999-12-31 23:59:59') = '9999-12-31 23:59:59'
+        AND TRUNC(COALESCE(p.effective_start_date_time, TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS'))) 
+            &lt; TRUNC(COALESCE(p.effective_end_date_time, TO_TIMESTAMP('9999-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')))
+        AND COALESCE(p.effective_end_date_time, TO_TIMESTAMP('9999-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')) = 
+            TO_TIMESTAMP('9999-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')
         AND p.terminated_at IS NOT NULL
-        ))
     </sql>
 
     <!-- 공통 정렬 조건 (MyBatisCursorItemReader용) -->
@@ -114,10 +115,7 @@
             po.product_offering_id, 
             p.effective_start_date_time, 
             p.effective_end_date_time,
-            ci.charge_item_id,
-            s.suspension_type_code,
-            s.effective_start_date_time,
-            s.effective_end_date_time
+            ci.charge_item_id
     </sql>
     <!-- 계약 ID 목록으로 상세 정보 조회 (IN 절 사용) -->
     <select id="findContractsAndProductInventoriesByContractIds" resultMap="contractWithProductsAndSuspensions">

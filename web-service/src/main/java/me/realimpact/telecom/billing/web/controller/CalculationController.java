@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 계산 관련 REST API Controller
+ * 요금 계산 관련 REST API 엔드포인트를 제공하는 컨트롤러 클래스.
  */
 @Tag(name = "계산 API", description = "통신요금 계산 관련 API")
 @RestController
@@ -33,10 +33,10 @@ public class CalculationController {
     private final CalculationCommandUseCase calculationCommandUseCase;
 
     /**
-     * 계약별 요금 계산
+     * 지정된 계약들에 대해 월요금, 일회성 요금, 할인, 부가세(VAT)를 포함한 통합 요금 계산을 수행한다.
      * 
-     * @param request 계산 요청 정보
-     * @return 계약별 계산 결과
+     * @param request 계산 요청 정보를 담은 DTO. 계약 ID 목록, 청구 기간 등을 포함한다.
+     * @return 각 계약별 계산 결과를 담은 `CalculationResultGroup` 리스트를 포함하는 ResponseEntity.
      */
     @Operation(
             summary = "계약별 요금 계산", 
@@ -74,7 +74,7 @@ public class CalculationController {
                 request.billingCalculationType());
 
         try {
-            // CalculationContext 생성
+            // 요청 정보를 바탕으로 계산 컨텍스트를 생성한다.
             CalculationContext context = new CalculationContext(
                     request.billingStartDate(),
                     request.billingEndDate(), 
@@ -82,14 +82,14 @@ public class CalculationController {
                     request.billingCalculationPeriod()
             );
 
-            // Response 변환
+            // 유스케이스를 실행하여 계산을 수행하고 결과를 받는다.
             List<CalculationResultGroup> response = calculationCommandUseCase.calculate(request.contractIds(), context);
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             log.error("계산 처리 중 오류 발생", e);
-            throw e; // GlobalExceptionHandler에서 처리
+            throw e; // GlobalExceptionHandler에서 공통으로 예외를 처리한다.
         }
     }
 

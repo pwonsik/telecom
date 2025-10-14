@@ -1,6 +1,6 @@
 dependencies {
-    // MySQL connector for production
-    runtimeOnly 'com.mysql:mysql-connector-j'
+    // Oracle JDBC driver for production
+    runtimeOnly 'com.oracle.database.jdbc:ojdbc11:23.4.0.24.05'
     
     // H2 database for testing (optional)
     runtimeOnly 'com.h2database:h2'

@@ -1,15 +1,16 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/telecom_billing?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&socketTimeout=0&connectTimeout=60000
-    username: user
-    password: 1234
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+    username: dev
+    password: secret
+    driver-class-name: oracle.jdbc.OracleDriver
     hikari:
       maximum-pool-size: 20   # 멀티쓰레드 처리를 위해 증가
       minimum-idle: 8         # 최소 유지 커넥션 수 증가
       connection-timeout: 60000
       idle-timeout: 30000     # 30초로 단축 (프로그램 종료 개선)
       max-lifetime: 60000     # 1분으로 단축 (프로그램 종료 개선)
+      connection-test-query: SELECT 1 FROM DUAL
 
   batch:
     job:
@@ -41,9 +42,9 @@ logging:
     #org.springframework.jdbc: WARN
     #com.zaxxer.hikari: INFO
     # MyBatis SQL 로깅 설정
-    #me.realimpact.telecom.calculation.infrastructure.adapter: DEBUG  # Mapper SQL 출력
+    # me.realimpact.telecom.calculation.infrastructure.adapter.mybatis: DEBUG  # Mapper SQL 출력
     #org.mybatis.spring.SqlSessionUtils: DEBUG  # MyBatis 세션 정보
     #org.springframework.batch.item.database: DEBUG  # Spring Batch Database 로깅
     #org.mybatis.spring.batch: DEBUG  # MyBatis Batch 로깅
     #org.springframework.jdbc.core.JdbcTemplate: DEBUG  # JDBC 템플릿 SQL
-    #org.springframework.jdbc.core.StatementCreatorUtils: TRACE  # SQL 파라미터 값
+    # org.springframework.jdbc.core.StatementCreatorUtils: TRACE  # SQL 파라미터 값
