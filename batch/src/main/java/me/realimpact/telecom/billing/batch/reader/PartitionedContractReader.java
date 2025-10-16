@@ -1,10 +1,12 @@
 package me.realimpact.telecom.billing.batch.reader;
 
-import lombok.extern.slf4j.Slf4j;
-import me.realimpact.telecom.billing.batch.CalculationParameters;
-import me.realimpact.telecom.calculation.application.CalculationTarget;
-import me.realimpact.telecom.calculation.application.CalculationTargetLoader;
-import me.realimpact.telecom.calculation.domain.CalculationContext;
+import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
 import org.springframework.batch.item.ExecutionContext;
@@ -12,9 +14,11 @@ import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.support.ListItemReader;
 
-import java.util.*;
-
-import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
+import lombok.extern.slf4j.Slf4j;
+import me.realimpact.telecom.billing.batch.CalculationParameters;
+import me.realimpact.telecom.calculation.application.CalculationTarget;
+import me.realimpact.telecom.calculation.application.CalculationTargetLoader;
+import me.realimpact.telecom.calculation.domain.CalculationContext;
 
 /**
  * 파티션 기반으로 계약 데이터를 읽어오는 ItemStreamReader 구현체.
@@ -142,11 +146,8 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
             contractIdReader = new MyBatisCursorItemReader<>();
             contractIdReader.setSqlSessionFactory(sqlSessionFactory);
 
-            log.info("##################################### 1");
-
             if (calculationParameters.getContractIds().isEmpty()) {
 
-                log.info("##################################### 2");
                 // 전체 계약 대상 (파티션 조건 적용)
                 contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findContractIdsWithPartition");
 
@@ -160,20 +161,17 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
 
                 log.info("전체 계약 조회 (파티션 조건 적용): contractId % {} = {}", partitionCount, partitionKey);
             } else {
-                log.info("##################################### 3");
                 // 특정 계약 대상 (파티션 조건 적용)
                 List<Long> filteredContractIds = calculationParameters.getContractIds().stream()
                         .filter(contractId -> contractId % partitionCount == partitionKey)
                         .toList();
 
                 if (filteredContractIds.isEmpty()) {
-                    log.info("##################################### 4");
                     log.info("파티션 {}에 해당하는 계약이 없습니다.", partitionKey);
                     // 빈 결과를 반환하도록 설정
                     contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findEmptyContractIds");
                     contractIdReader.setParameterValues(new HashMap<>());
                 } else {
-                    log.info("##################################### 5");
                     contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findSpecificContractIds");
 
                     Map<String, Object> parameterValues = new HashMap<>();
