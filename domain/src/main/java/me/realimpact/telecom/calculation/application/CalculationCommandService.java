@@ -228,7 +228,7 @@ public class CalculationCommandService implements CalculationCommandUseCase {
             }
         }
 
-        return result;
+        return result;   
     }
 
     public CalculationResultGroup processCalculation(CalculationTarget calculationTarget, CalculationContext ctx) {  
