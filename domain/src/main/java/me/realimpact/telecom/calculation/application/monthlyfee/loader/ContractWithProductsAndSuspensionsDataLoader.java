@@ -1,5 +1,11 @@
 package me.realimpact.telecom.calculation.application.monthlyfee.loader;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.calculation.application.monthlyfee.MonthlyFeeDataLoader;
@@ -9,11 +15,6 @@ import me.realimpact.telecom.calculation.domain.monthlyfee.ContractWithProductsA
 import me.realimpact.telecom.calculation.domain.monthlyfee.DefaultPeriod;
 import me.realimpact.telecom.calculation.domain.monthlyfee.MonthlyChargeDomain;
 import me.realimpact.telecom.calculation.infrastructure.adapter.ProductQueryPortResolver;
-import org.springframework.stereotype.Component;
-
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * ContractWithProductsAndSuspensions 데이터 로딩 전담 클래스
@@ -46,7 +47,7 @@ public class ContractWithProductsAndSuspensionsDataLoader implements MonthlyFeeD
             .collect(Collectors.groupingBy(ContractWithProductsAndSuspensions::getContractId));
 
         log.debug("Loaded ContractWithProductsAndSuspensions data for {} contracts", specificData.size());
-
+        
         return specificData.entrySet().stream()
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }

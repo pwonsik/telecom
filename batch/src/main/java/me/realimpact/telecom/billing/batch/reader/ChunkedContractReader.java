@@ -1,10 +1,12 @@
 package me.realimpact.telecom.billing.batch.reader;
 
-import lombok.extern.slf4j.Slf4j;
-import me.realimpact.telecom.billing.batch.CalculationParameters;
-import me.realimpact.telecom.calculation.application.CalculationTarget;
-import me.realimpact.telecom.calculation.application.CalculationTargetLoader;
-import me.realimpact.telecom.calculation.domain.CalculationContext;
+import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
 import org.springframework.batch.item.ExecutionContext;
@@ -12,9 +14,11 @@ import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.support.ListItemReader;
 
-import java.util.*;
-
-import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SIZE;
+import lombok.extern.slf4j.Slf4j;
+import me.realimpact.telecom.billing.batch.CalculationParameters;
+import me.realimpact.telecom.calculation.application.CalculationCommandService;
+import me.realimpact.telecom.calculation.application.CalculationTarget;
+import me.realimpact.telecom.calculation.domain.CalculationContext;
 
 /**
  * 청크 기반으로 계약 데이터를 읽어오는 ItemStreamReader 구현체.
@@ -23,7 +27,9 @@ import static me.realimpact.telecom.billing.batch.config.BatchConstants.CHUNK_SI
 @Slf4j
 public class ChunkedContractReader implements ItemStreamReader<CalculationTarget> {
 
-    private final CalculationTargetLoader calculationTargetLoader;
+    //-- 인터페이스 주입이 아닌 구현체 주입.. 배치는 read, process, write를 나눠서 호출해야 해서 어쩔 수 없이.
+    private final CalculationCommandService calculationCommandService;
+
     private final SqlSessionFactory sqlSessionFactory;
     private final CalculationParameters calculationParameters;
 
@@ -34,28 +40,20 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
     private boolean initialized = false;
 
     /**
-     * 생성자.
-     * @param calculationTargetLoader CalculationTarget을 로드하는 로더
-     * @param sqlSessionFactory MyBatis 연동을 위한 SqlSessionFactory
-     * @param calculationParameters 배치 계산 파라미터
+     * 생성자
      */
     public ChunkedContractReader(
-            CalculationTargetLoader calculationTargetLoader,
+            CalculationCommandService calculationCommandService,
             SqlSessionFactory sqlSessionFactory,
             CalculationParameters calculationParameters) {
 
-        this.calculationTargetLoader = calculationTargetLoader;
+        this.calculationCommandService = calculationCommandService;
         this.sqlSessionFactory = sqlSessionFactory;
         this.calculationParameters = calculationParameters;
 
         log.info("=== ChunkedContractReader 생성 ===");
     }
 
-    /**
-     * Reader를 열고 초기화한다.
-     * @param executionContext 실행 컨텍스트
-     * @throws ItemStreamException
-     */
     @Override
     public void open(ExecutionContext executionContext) throws ItemStreamException {
         if (!initialized) {
@@ -66,11 +64,6 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
         }
     }
 
-    /**
-     * 실행 컨텍스트를 업데이트한다.
-     * @param executionContext 실행 컨텍스트
-     * @throws ItemStreamException
-     */
     @Override
     public void update(ExecutionContext executionContext) throws ItemStreamException {
         if (contractIdReader != null) {
@@ -78,10 +71,6 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
         }
     }
 
-    /**
-     * Reader를 닫는다.
-     * @throws ItemStreamException
-     */
     @Override
     public void close() throws ItemStreamException {
         if (contractIdReader != null) {
@@ -90,20 +79,17 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
         }
     }
     
-    /**
-     * 다음 CalculationTarget을 읽어온다.
-     * @return CalculationTarget 객체, 더 이상 읽을 데이터가 없으면 null
-     * @throws Exception
-     */
     @Override
     public CalculationTarget read() throws Exception {
         log.debug("=== ChunkedContractReader.read() 호출 ===");
 
+        // contractIdReader null 체크 (방어적 프로그래밍)
         if (contractIdReader == null) {
             log.error("contractIdReader가 null입니다. 초기화에 실패했습니다");
             return null;
         }
 
+        // 현재 청크에서 아이템을 읽기 시도
         if (currentChunkReader != null) {
             CalculationTarget item = currentChunkReader.read();
             if (item != null) {
@@ -112,14 +98,18 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
             } else {
                 log.info("현재 청크 완료 - 다음 청크 로드 시도");
             }
+        } else {
+            log.info("currentChunkReader가 null - 첫 번째 청크 로드 시도");
         }
 
+        // 현재 청크가 끝났으면 다음 청크 로드
         loadNextChunk();
         if (currentChunkReader == null) {
             log.info("loadNextChunk() 결과: currentChunkReader가 null - 더 이상 읽을 데이터 없음");
-            return null;
+            return null; // 더 이상 읽을 데이터가 없음
         }
 
+        // 새로운 청크에서 첫 번째 아이템 반환
         CalculationTarget item = currentChunkReader.read();
         if (item != null) {
             log.info("새 청크에서 첫 번째 아이템 반환");
@@ -129,10 +119,6 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
         return item;
     }
     
-    /**
-     * 계약 ID를 읽어오는 MyBatisCursorItemReader를 초기화한다.
-     * @param executionContext 실행 컨텍스트
-     */
     private void initializeContractIdReader(ExecutionContext executionContext) {
         log.info("=== ChunkedContractReader 초기화 ===");
         log.info("chunkSize: {}", chunkSize);
@@ -141,13 +127,9 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
         contractIdReader.setSqlSessionFactory(sqlSessionFactory);
         contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findContractIds");
         contractIdReader.setParameterValues(getParameterValues());
-        contractIdReader.open(executionContext);
+        contractIdReader.open(executionContext);    // ItemStreamReader 기반이므로 반드시 호출해야함
     }
 
-    /**
-     * MyBatis 쿼리에 전달할 파라미터를 생성한다.
-     * @return 쿼리 파라미터 맵
-     */
     private Map<String, Object> getParameterValues() {
         Map<String, Object> parameterValues = new HashMap<>();
         parameterValues.put("billingStartDate", calculationParameters.getBillingStartDate());
@@ -156,22 +138,19 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
         return parameterValues;
     }
 
-    /**
-     * 다음 청크를 로드한다.
-     * @throws Exception
-     */
     private void loadNextChunk() throws Exception {
         log.info("=== ChunkedContractReader loadNextChunk 시작 ===");
 
         List<Long> contractIds = new ArrayList<>();
 
+        // chunk size만큼 contract ID를 읽어오기
         for (int i = 0; i < chunkSize; i++) {
             Long contractId = contractIdReader.read();
             log.debug("contractIdReader.read() 결과 [{}]: {}", i, contractId);
 
             if (contractId == null) {
                 log.info("contractIdReader.read()가 null 반환 - 더 이상 읽을 데이터 없음 (읽은 개수: {})", i);
-                break;
+                break; // 더 이상 읽을 데이터가 없음
             }
             contractIds.add(contractId);
         }
@@ -184,20 +163,17 @@ public class ChunkedContractReader implements ItemStreamReader<CalculationTarget
             return;
         }
 
+        // CalculationTarget 생성
         List<CalculationTarget> calculationTargets = getCalculationTargets(contractIds);
         log.info("생성된 CalculationTarget 개수: {}", calculationTargets.size());
 
+        // ListItemReader로 감싸서 하나씩 반환할 수 있도록 설정
         currentChunkReader = new ListItemReader<>(calculationTargets);
         log.info("=== ChunkedContractReader loadNextChunk 완료 ===");
     }
 
-    /**
-     * 계약 ID 목록을 사용하여 CalculationTarget 목록을 가져온다.
-     * @param contractIds 계약 ID 목록
-     * @return CalculationTarget 목록
-     */
     private List<CalculationTarget> getCalculationTargets(List<Long> contractIds) {
         CalculationContext ctx = calculationParameters.toCalculationContext();
-        return calculationTargetLoader.load(contractIds, ctx);
+        return calculationCommandService.loadCalculationTargets(contractIds, ctx);
     }
 }

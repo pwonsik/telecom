@@ -16,8 +16,8 @@ import org.springframework.batch.item.support.ListItemReader;
 
 import lombok.extern.slf4j.Slf4j;
 import me.realimpact.telecom.billing.batch.CalculationParameters;
+import me.realimpact.telecom.calculation.application.CalculationCommandService;
 import me.realimpact.telecom.calculation.application.CalculationTarget;
-import me.realimpact.telecom.calculation.application.CalculationTargetLoader;
 import me.realimpact.telecom.calculation.domain.CalculationContext;
 
 /**
@@ -27,7 +27,7 @@ import me.realimpact.telecom.calculation.domain.CalculationContext;
 @Slf4j
 public class PartitionedContractReader implements ItemStreamReader<CalculationTarget> {
 
-    private final CalculationTargetLoader calculationTargetLoader;
+    private final CalculationCommandService calculationCommandService;
     private final SqlSessionFactory sqlSessionFactory;
     private final CalculationParameters calculationParameters;
     private final Integer partitionKey;
@@ -39,21 +39,13 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
     private ListItemReader<CalculationTarget> currentChunkReader;
     private boolean initialized = false;
 
-    /**
-     * 생성자.
-     * @param calculationTargetLoader CalculationTarget을 로드하는 로더
-     * @param sqlSessionFactory MyBatis 연동을 위한 SqlSessionFactory
-     * @param calculationParameters 배치 계산 파라미터
-     * @param partitionKey 현재 파티션의 키
-     * @param partitionCount 전체 파티션 개수
-     */
     public PartitionedContractReader(
-            CalculationTargetLoader calculationTargetLoader,
+            CalculationCommandService calculationCommandService,
             SqlSessionFactory sqlSessionFactory,
             CalculationParameters calculationParameters,
             Integer partitionKey,
             Integer partitionCount) {
-        this.calculationTargetLoader = calculationTargetLoader;
+        this.calculationCommandService = calculationCommandService;
         this.sqlSessionFactory = sqlSessionFactory;
         this.calculationParameters = calculationParameters;
         this.partitionKey = partitionKey;
@@ -63,11 +55,6 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
         log.info("Partition Key: {}, Partition Count: {}", partitionKey, partitionCount);
     }
 
-    /**
-     * Reader를 열고 초기화한다.
-     * @param executionContext 실행 컨텍스트
-     * @throws ItemStreamException
-     */
     @Override
     public void open(ExecutionContext executionContext) throws ItemStreamException {
         if (!initialized) {
@@ -78,11 +65,6 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
         }
     }
 
-    /**
-     * 실행 컨텍스트를 업데이트한다.
-     * @param executionContext 실행 컨텍스트
-     * @throws ItemStreamException
-     */
     @Override
     public void update(ExecutionContext executionContext) throws ItemStreamException {
         if (contractIdReader != null) {
@@ -90,10 +72,6 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
         }
     }
 
-    /**
-     * Reader를 닫는다.
-     * @throws ItemStreamException
-     */
     @Override
     public void close() throws ItemStreamException {
         if (contractIdReader != null) {
@@ -102,20 +80,17 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
         }
     }
 
-    /**
-     * 다음 CalculationTarget을 읽어온다.
-     * @return CalculationTarget 객체, 더 이상 읽을 데이터가 없으면 null
-     * @throws Exception
-     */
     @Override
     public CalculationTarget read() throws Exception {
         log.debug("=== PartitionedContractReader.read() 호출 (파티션 {}) ===", partitionKey);
 
+        // contractIdReader null 체크 (방어적 프로그래밍)
         if (contractIdReader == null) {
             log.error("contractIdReader가 null입니다. 초기화에 실패했습니다 (파티션 {})", partitionKey);
             return null;
         }
 
+        // 현재 청크에서 아이템을 읽기 시도
         if (currentChunkReader != null) {
             CalculationTarget item = currentChunkReader.read();
             if (item != null) {
@@ -124,20 +99,21 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
             }
         }
 
+        // 현재 청크가 끝났으면 다음 청크 로드
         loadNextChunk();
         if (currentChunkReader == null) {
             log.debug("더 이상 읽을 데이터 없음 (파티션 {})", partitionKey);
-            return null;
+            return null; // 더 이상 읽을 데이터가 없음
         }
 
+        // 새로운 청크에서 첫 번째 아이템 반환
         CalculationTarget item = currentChunkReader.read();
         log.debug("새 청크에서 아이템 반환 (파티션 {})", partitionKey);
         return item;
     }
 
     /**
-     * 파티션 조건에 맞는 계약 ID를 읽어오는 MyBatisCursorItemReader를 초기화한다.
-     * @param executionContext 실행 컨텍스트
+     * 파티션 조건이 적용된 Contract ID Reader 초기화
      */
     private void initializePartitionedContractIdReader(ExecutionContext executionContext) {
         log.info("=== MyBatisCursorItemReader 생성 시작 (파티션 {}) ===", partitionKey);
@@ -146,8 +122,8 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
             contractIdReader = new MyBatisCursorItemReader<>();
             contractIdReader.setSqlSessionFactory(sqlSessionFactory);
 
+            // 파티션 조건이 포함된 쿼리 사용
             if (calculationParameters.getContractIds().isEmpty()) {
-
                 // 전체 계약 대상 (파티션 조건 적용)
                 contractIdReader.setQueryId("me.realimpact.telecom.calculation.infrastructure.adapter.mybatis.ContractQueryMapper.findContractIdsWithPartition");
 
@@ -157,7 +133,7 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
                 parameterValues.put("billingStartDate", calculationParameters.getBillingStartDate());
                 parameterValues.put("billingEndDate", calculationParameters.getBillingEndDate());
                 contractIdReader.setParameterValues(parameterValues);
-                contractIdReader.open(executionContext);
+                contractIdReader.open(executionContext);    // ItemStreamReader 기반이므로 반드시 호출해야함
 
                 log.info("전체 계약 조회 (파티션 조건 적용): contractId % {} = {}", partitionCount, partitionKey);
             } else {
@@ -177,7 +153,7 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
                     Map<String, Object> parameterValues = new HashMap<>();
                     parameterValues.put("contractIds", filteredContractIds);
                     contractIdReader.setParameterValues(parameterValues);
-                    contractIdReader.open(executionContext);
+                    contractIdReader.open(executionContext);    // ItemStreamReader 기반이므로 반드시 호출해야함
 
                     log.info("특정 계약 조회 (파티션 필터링 적용): {} 건", filteredContractIds.size());
                 }
@@ -192,8 +168,7 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
     }
 
     /**
-     * 다음 청크를 로드한다.
-     * @throws Exception
+     * 다음 청크 로드 (ChunkedContractReader 로직과 동일)
      */
     private void loadNextChunk() throws Exception {
         
@@ -203,7 +178,7 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
         for (int i = 0; i < chunkSize; i++) {
             Long contractId = contractIdReader.read();
             if (contractId == null) {
-                break;
+                break; // 더 이상 읽을 데이터가 없음
             }
             contractIds.add(contractId);
         }
@@ -213,16 +188,12 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
             return;
         }
 
+        // ListItemReader로 감싸서 하나씩 반환할 수 있도록 설정
         currentChunkReader = new ListItemReader<>(getCalculationTargets(contractIds));
     }
 
-    /**
-     * 계약 ID 목록을 사용하여 CalculationTarget 목록을 가져온다.
-     * @param contractIds 계약 ID 목록
-     * @return CalculationTarget 목록
-     */
     private List<CalculationTarget> getCalculationTargets(List<Long> contractIds) {
         CalculationContext ctx = calculationParameters.toCalculationContext();
-        return calculationTargetLoader.load(contractIds, ctx);
+        return calculationCommandService.loadCalculationTargets(contractIds, ctx);
     }
 }

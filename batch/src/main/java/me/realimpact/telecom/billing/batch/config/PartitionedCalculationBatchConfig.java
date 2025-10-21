@@ -40,7 +40,6 @@ import me.realimpact.telecom.calculation.api.BillingCalculationType;
 import me.realimpact.telecom.calculation.api.CalculationResultGroup;
 import me.realimpact.telecom.calculation.application.CalculationCommandService;
 import me.realimpact.telecom.calculation.application.CalculationTarget;
-import me.realimpact.telecom.calculation.application.CalculationTargetLoader;
 import me.realimpact.telecom.calculation.port.out.CalculationResultSavePort;
 
 /**
@@ -58,12 +57,10 @@ public class PartitionedCalculationBatchConfig {
     private final PlatformTransactionManager transactionManager;
 
     private final CalculationCommandService calculationCommandService;
-    private final CalculationTargetLoader calculationTargetLoader;
     private final CalculationResultSavePort calculationResultSavePort;
 
     /**
-     * 잡 파라미터를 파싱하여 CalculationParameters 객체를 생성한다.
-     * @return CalculationParameters 객체
+     * Helper method to create CalculationParameters from individual parameters
      */
     private CalculationParameters createCalculationParameters(
             String billingStartDateStr,
@@ -97,9 +94,7 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * 파티셔닝 처리를 위한 TaskExecutor를 설정한다.
-     * @param threadCount 스레드 개수
-     * @return 설정된 TaskExecutor
+     * 파티션 기반 처리를 위한 TaskExecutor 설정
      */
     @Bean("partitionedTaskExecutor")
     public TaskExecutor partitionedTaskExecutor(@Value("${batch.thread-count}") Integer threadCount) {
@@ -124,9 +119,7 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * 계약 ID를 기준으로 파티션을 나누는 Partitioner를 생성한다.
-     * @param threadCount 파티션 개수 (스레드 개수와 동일)
-     * @return ContractPartitioner
+     * Contract Partitioner Bean - Step 실행 시 동적으로 thread count 결정
      */
     @Bean("contractPartitioner")
     public Partitioner contractPartitioner(@Value("${batch.thread-count}") Integer threadCount) {
@@ -140,11 +133,11 @@ public class PartitionedCalculationBatchConfig {
 
 
     /**
-     * 파티션별로 계약 데이터를 읽는 Reader를 생성한다.
-     * @return PartitionedContractReader
+     * 파티션별 Contract Reader
      */
     @Bean("partitionedContractReader")
     @StepScope
+    // ItemStreamReader로 반환해야 하는데 ItemReader로 반환하여 chunk가 한번만 처리되고 끝나버리는 문제가 있었다.
     public ItemStreamReader<CalculationTarget> partitionedContractReader(
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
@@ -164,7 +157,7 @@ public class PartitionedCalculationBatchConfig {
         );
 
         PartitionedContractReader reader = new PartitionedContractReader(
-                calculationTargetLoader,
+                calculationCommandService,
                 sqlSessionFactory,
                 params,
                 partitionKey,
@@ -175,10 +168,6 @@ public class PartitionedCalculationBatchConfig {
         return reader;
     }
 
-    /**
-     * 읽어온 데이터를 처리하는 Processor를 생성한다.
-     * @return CalculationProcessor
-     */
     @Bean("partitionedCalculationProcessor")
     @StepScope
     public ItemProcessor<CalculationTarget, CalculationResultGroup> partitionedCalculationProcessor(
@@ -204,8 +193,7 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * 처리된 데이터를 저장하는 Writer를 생성한다.
-     * @return CalculationWriter
+     * 파티션별 Writer Bean
      */
     @Bean("partitionedCalculationWriter")
     @StepScope
@@ -232,8 +220,7 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * 각 파티션에서 실행될 Worker Step을 정의한다.
-     * @return Worker Step
+     * Worker Step - 각 파티션에서 실행되는 실제 처리 Step
      */
     @Bean("partitionedWorkerStep")
     public Step partitionedWorkerStep() {
@@ -246,9 +233,7 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * 파티션을 관리하고 병렬 실행하는 PartitionHandler를 설정한다.
-     * @param threadCount 스레드 개수
-     * @return PartitionHandler
+     * Partition Handler - 파티션들을 관리하고 병렬 실행
      */
     @Bean("partitionHandler")
     public PartitionHandler partitionHandler(@Value("${batch.thread-count:8}") Integer threadCount) {
@@ -257,7 +242,7 @@ public class PartitionedCalculationBatchConfig {
         TaskExecutorPartitionHandler partitionHandler = new TaskExecutorPartitionHandler();
         partitionHandler.setStep(partitionedWorkerStep());
         partitionHandler.setTaskExecutor(partitionedTaskExecutor(threadCount));
-        partitionHandler.setGridSize(threadCount);
+        partitionHandler.setGridSize(threadCount);  // 파티션 수 설정
 
         log.info("=== PartitionHandler Bean 생성 완료 === Grid Size (파티션 수): {}", threadCount);
 
@@ -265,8 +250,7 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * Partitioner를 사용하여 파티션을 생성하고 Worker Step들을 병렬로 실행하는 Master Step을 정의한다.
-     * @return Master Step
+     * Master Step - Partitioner를 이용해 파티션을 생성하고 Worker Step들을 병렬 실행
      */
     @Bean("partitionedMasterStep")
     public Step partitionedMasterStep() {
@@ -277,9 +261,7 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * 잡 실행 전, 이전 계산 결과를 삭제하는 Cleanup Step을 정의한다.
-     * @param calculationResultCleanupTasklet
-     * @return Cleanup Step
+     * Cleanup Step 설정 - 기존 계산 결과 삭제 (파티션 Job용)
      */
     @Bean("partitionedCleanupCalculationResultStep")
     public Step partitionedCleanupCalculationResultStep(CalculationResultCleanupTasklet calculationResultCleanupTasklet) {
@@ -289,15 +271,13 @@ public class PartitionedCalculationBatchConfig {
     }
 
     /**
-     * 파티셔닝을 사용하는 월별 요금 계산 잡을 정의한다.
-     * @param calculationResultCleanupTasklet
-     * @return partitionedMonthlyFeeCalculationJob
+     * Partitioned Job - Cleanup → Master Step 순서로 실행
      */
     @Bean("partitionedMonthlyFeeCalculationJob")
     public Job partitionedMonthlyFeeCalculationJob(CalculationResultCleanupTasklet calculationResultCleanupTasklet) {
         return new JobBuilder("partitionedMonthlyFeeCalculationJob", jobRepository)
-                .start(partitionedCleanupCalculationResultStep(calculationResultCleanupTasklet))
-                .next(partitionedMasterStep())
+                .start(partitionedCleanupCalculationResultStep(calculationResultCleanupTasklet))  // 1. 기존 결과 삭제
+                .next(partitionedMasterStep())                                                     // 2. 파티션 기반 계산 수행
                 .build();
     }
 
