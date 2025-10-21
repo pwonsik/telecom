@@ -164,7 +164,7 @@ public class PartitionedCalculationBatchConfig {
                 partitionCount 
         );
 
-        log.info("=== PartitionedContractReader Bean 생성 완료 ===");
+        log.info("=== PartitionedContractReader Bean 생성 완료 ==="); 
         return reader;
     }
 
