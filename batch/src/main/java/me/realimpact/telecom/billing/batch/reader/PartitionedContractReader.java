@@ -159,7 +159,7 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
                 }
             }
 
-            log.info("=== MyBatisCursorItemReader 생성 완료 (파티션 {}) ===", partitionKey);sdf
+            log.info("=== MyBatisCursorItemReader 생성 완료 (파티션 {}) ===", partitionKey); 
 
         } catch (Exception e) {
             log.error("MyBatisCursorItemReader 초기화 실패 (파티션 {})", partitionKey, e);
