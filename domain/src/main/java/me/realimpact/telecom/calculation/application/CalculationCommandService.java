@@ -233,7 +233,7 @@ public class CalculationCommandService implements CalculationCommandUseCase {
 
     public CalculationResultGroup processCalculation(CalculationTarget calculationTarget, CalculationContext ctx) {  
         try {
-            log.debug("Processing contract calculation for contractId: {}", calculationTarget.contractId());
+            log.debug("Processing contract calculation for contractId: {}", calculationTarget.contractId()); 
             List<CalculationResult<?>> results = new ArrayList<>();
 
             // 월정액 계산
