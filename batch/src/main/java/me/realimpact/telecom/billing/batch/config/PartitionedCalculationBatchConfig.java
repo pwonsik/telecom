@@ -161,7 +161,7 @@ public class PartitionedCalculationBatchConfig {
                 sqlSessionFactory,
                 params,
                 partitionKey,
-                partitionCount
+                partitionCount 
         );
 
         log.info("=== PartitionedContractReader Bean 생성 완료 ===");
