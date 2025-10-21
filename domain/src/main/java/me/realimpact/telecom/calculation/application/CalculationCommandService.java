@@ -270,7 +270,7 @@ public class CalculationCommandService implements CalculationCommandUseCase {
         } catch (Exception e) {
             log.error("Failed to process contract calculation for contractId: {}", calculationTarget.contractId(), e);
             throw e;
-        }
+        } 
     }
 
     /**
