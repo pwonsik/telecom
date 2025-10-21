@@ -127,7 +127,7 @@ public class PartitionedCalculationBatchConfig {
 
         ContractPartitioner partitioner = new ContractPartitioner(threadCount);
 
-        log.info("=== ContractPartitioner Bean 생성 완료 === 파티션 수: {}", threadCount);
+        log.info("=== ContractPartitioner Bean 생성 완료 === 파티션 수: {}", threadCount);   
         return partitioner;
     }
 
