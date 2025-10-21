@@ -133,7 +133,7 @@ public class PartitionedCalculationBatchConfig {
 
 
     /**
-     * 파티션별 Contract Reader
+     * 파티션별 Contract Reader  
      */
     @Bean("partitionedContractReader")
     @StepScope
