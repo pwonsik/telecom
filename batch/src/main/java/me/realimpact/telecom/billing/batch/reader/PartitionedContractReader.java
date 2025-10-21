@@ -152,7 +152,7 @@ public class PartitionedContractReader implements ItemStreamReader<CalculationTa
 
                     Map<String, Object> parameterValues = new HashMap<>();
                     parameterValues.put("contractIds", filteredContractIds);
-                    contractIdReader.setParameterValues(parameterValues);
+                    contractIdReader.setParameterValues(parameterValues); 
                     contractIdReader.open(executionContext);    // ItemStreamReader 기반이므로 반드시 호출해야함
 
                     log.info("특정 계약 조회 (파티션 필터링 적용): {} 건", filteredContractIds.size());
