@@ -231,7 +231,7 @@ public class CalculationCommandService implements CalculationCommandUseCase {
         return result;
     }
 
-    public CalculationResultGroup processCalculation(CalculationTarget calculationTarget, CalculationContext ctx) { 
+    public CalculationResultGroup processCalculation(CalculationTarget calculationTarget, CalculationContext ctx) {  
         try {
             log.debug("Processing contract calculation for contractId: {}", calculationTarget.contractId());
             List<CalculationResult<?>> results = new ArrayList<>();
