@@ -170,7 +170,7 @@ public class PartitionedCalculationBatchConfig {
 
     @Bean("partitionedCalculationProcessor")
     @StepScope
-    public ItemProcessor<CalculationTarget, CalculationResultGroup> partitionedCalculationProcessor(
+    public ItemProcessor<CalculationTarget, CalculationResultGroup> partitionedCalculationProcessor( 
             @Value("${billingStartDate}") String billingStartDateStr,
             @Value("${billingEndDate}") String billingEndDateStr,
             @Value("${contractIds:}") String contractIdsStr,
